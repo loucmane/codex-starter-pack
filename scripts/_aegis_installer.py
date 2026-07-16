@@ -8,17 +8,21 @@ from __future__ import annotations
 
 import json
 import fnmatch
+import fcntl
 import importlib.util
 import os
 import re
 import shlex
 import shutil
+import stat
 import subprocess
 import sys
 import hashlib
 import tarfile
 import tempfile
+import types
 import zipfile
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -31,6 +35,7 @@ if _REPO_ROOT.as_posix() not in sys.path:
     sys.path.insert(0, _REPO_ROOT.as_posix())
 
 from aegis_foundation import managed_update as _managed_update  # noqa: E402
+from aegis_foundation import task_authority as _task_authority  # noqa: E402
 from aegis_foundation.version import (  # noqa: E402
     FOUNDATION_NAME,
     FOUNDATION_VERSION,
@@ -126,6 +131,32 @@ AEGIS_OBSERVATION_RUNTIME_PREFIXES = (
     "worker/node_modules/.mf",
 )
 AEGIS_PENDING_EVENT_SENTINELS = {"current", "latest"}
+
+# Gas City Beads kickoff is deliberately stricter than the legacy numeric-task
+# path.  These values describe the one production Aegis rig; callers may not
+# infer them from a repository or from whichever Beads files happen to exist.
+AEGIS_TASK_AUTHORITY_FILE_ENV = "AEGIS_TASK_AUTHORITY_FILE"
+AEGIS_TASK_AUTHORITY_RUNTIME_FILE_ENV = "AEGIS_TASK_AUTHORITY_RUNTIME_FILE"
+AEGIS_TASK_AUTHORITY_RUNTIME_SHA256_ENV = "AEGIS_TASK_AUTHORITY_RUNTIME_SHA256"
+AEGIS_BD_EXECUTABLE_ENV = "AEGIS_BD_EXECUTABLE"
+AEGIS_BD_SHA256_ENV = "AEGIS_BD_SHA256"
+AEGIS_BEADS_KICKOFF_IDENTITY = {
+    "GC_RIG": "aegis",
+    "GC_BEADS_PREFIX": "ags",
+    "BEADS_DOLT_SERVER_DATABASE": "aegis_beads",
+    "GC_DOLT_DATABASE": "aegis_beads",
+}
+AEGIS_BEADS_REQUIRED_AUTHORITY_GENERATION = 2
+AEGIS_BEADS_AUTHORITY_RUNTIME_MAX_BYTES = 512 * 1024
+AEGIS_BEADS_SHOW_MAX_BYTES = 256 * 1024
+AEGIS_BEADS_TITLE_MAX_CHARS = 240
+AEGIS_BEADS_SLUG_MAX_CHARS = 72
+AEGIS_SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
+AEGIS_BEAD_ID_RE = re.compile(
+    r"[a-z][a-z0-9-]{0,62}-[A-Za-z0-9][A-Za-z0-9._-]{0,126}\Z"
+)
+AEGIS_BEADS_ASSIGNEE_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._/@:-]{0,127}\Z")
+AEGIS_POLECAT_BRANCH_RE = re.compile(r"polecat/(?P<bead_id>[^/]+)\Z")
 AEGIS_PLAN_STATUS_CHOICES = {"pending", "in-progress", "completed", "done", "n/a"}
 AEGIS_ENFORCEMENT_MODES = {"strict", "advisory"}
 AEGIS_DELIVERY_POLICY_MODES = {"attended", "evidence-gated"}
@@ -5510,6 +5541,487 @@ def _normalize_task_slug(slug: str, *, task_id: str | int) -> str:
     return normalized
 
 
+@dataclass(frozen=True)
+class _BeadsAuthorityBinding:
+    module: Any
+    receipt: Any
+    receipt_path: Path
+    runtime_path: Path
+    runtime_sha256: str
+    record: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class _PinnedBd:
+    path: Path
+    descriptor: int
+    sha256: str
+    identity: tuple[int, int, int, int]
+
+
+def _required_beads_environment(name: str) -> str:
+    value = os.environ.get(name, "")
+    if not value:
+        raise AegisError(f"Gas City Beads kickoff requires explicit {name}")
+    return value
+
+
+def _external_normalized_path(
+    raw_path: str,
+    *,
+    target_root: Path,
+    label: str,
+) -> Path:
+    configured = Path(raw_path)
+    if not configured.is_absolute() or ".." in configured.parts:
+        raise AegisError(f"{label} must be an absolute normalized path")
+    try:
+        resolved = configured.resolve(strict=True)
+        governed_root = target_root.resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        raise AegisError(f"cannot resolve {label}: {configured}") from exc
+    if resolved != configured or configured.is_symlink():
+        raise AegisError(f"{label} must not traverse a symlink")
+    try:
+        resolved.relative_to(governed_root)
+    except ValueError:
+        return resolved
+    raise AegisError(f"{label} must be outside the writable governed repository")
+
+
+def _load_beads_authority_runtime(target_root: Path) -> tuple[Any, Path, str]:
+    runtime_path = _external_normalized_path(
+        _required_beads_environment(AEGIS_TASK_AUTHORITY_RUNTIME_FILE_ENV),
+        target_root=target_root,
+        label=AEGIS_TASK_AUTHORITY_RUNTIME_FILE_ENV,
+    )
+    expected_digest = _required_beads_environment(
+        AEGIS_TASK_AUTHORITY_RUNTIME_SHA256_ENV
+    )
+    if not AEGIS_SHA256_RE.fullmatch(expected_digest):
+        raise AegisError(
+            f"{AEGIS_TASK_AUTHORITY_RUNTIME_SHA256_ENV} must be one lowercase SHA-256"
+        )
+    no_follow = getattr(os, "O_NOFOLLOW", None)
+    if no_follow is None:  # pragma: no cover - Gas City workers are Linux.
+        raise AegisError("cannot safely open the pinned task-authority runtime")
+    try:
+        descriptor = os.open(runtime_path, os.O_RDONLY | os.O_CLOEXEC | no_follow)
+    except OSError as exc:
+        raise AegisError("cannot open the pinned task-authority runtime") from exc
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode):
+            raise AegisError("task-authority runtime must be a regular file")
+        if stat.S_IMODE(before.st_mode) != 0o444:
+            raise AegisError("task-authority runtime permissions must be exactly 0444")
+        with os.fdopen(os.dup(descriptor), "rb") as handle:
+            content = handle.read(AEGIS_BEADS_AUTHORITY_RUNTIME_MAX_BYTES + 1)
+        after = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    if len(content) > AEGIS_BEADS_AUTHORITY_RUNTIME_MAX_BYTES:
+        raise AegisError("task-authority runtime exceeds 512 KiB")
+    before_identity = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+    after_identity = (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+    if before_identity != after_identity or len(content) != after.st_size:
+        raise AegisError("task-authority runtime changed while it was being read")
+    if hashlib.sha256(content).hexdigest() != expected_digest:
+        raise AegisError("task-authority runtime SHA-256 does not match its pinned digest")
+
+    module_name = "_aegis_beads_kickoff_task_authority"
+    module = types.ModuleType(module_name)
+    module.__file__ = str(runtime_path)
+    module.__package__ = ""
+    sys.modules[module_name] = module
+    try:
+        code = compile(content, str(runtime_path), "exec", dont_inherit=True)
+        exec(code, module.__dict__)
+    except Exception as exc:
+        sys.modules.pop(module_name, None)
+        raise AegisError("pinned task-authority runtime could not be loaded") from exc
+    return module, runtime_path, expected_digest
+
+
+def _load_beads_authority_binding(target_root: Path) -> _BeadsAuthorityBinding:
+    for name, expected in AEGIS_BEADS_KICKOFF_IDENTITY.items():
+        actual = _required_beads_environment(name)
+        if actual != expected:
+            raise AegisError(
+                f"Gas City Beads kickoff identity mismatch for {name}: "
+                f"expected {expected!r}"
+            )
+    if AEGIS_TASK_AUTHORITY_FILE_ENV not in os.environ:
+        raise AegisError(
+            "Gas City Beads kickoff refuses implicit Taskmaster authority; "
+            f"{AEGIS_TASK_AUTHORITY_FILE_ENV} is required"
+        )
+    module, runtime_path, runtime_digest = _load_beads_authority_runtime(target_root)
+    try:
+        selected = module.load_authority_from_environment(
+            os.environ,
+            expected_rig="aegis",
+            expected_beads_prefix="ags",
+            expected_database="aegis_beads",
+        )
+    except Exception as exc:
+        raise AegisError(f"explicit Gas City task authority is invalid: {exc}") from exc
+    receipt = selected.receipt
+    if not bool(selected.explicit) or receipt is None:
+        raise AegisError("Gas City Beads kickoff requires explicit receipt authority")
+    if str(selected.mode.value) != "beads":
+        raise AegisError("Gas City Beads kickoff requires Beads, not Taskmaster, authority")
+    if receipt.generation != AEGIS_BEADS_REQUIRED_AUTHORITY_GENERATION:
+        raise AegisError(
+            "Gas City Beads kickoff requires exact authority receipt generation "
+            f"{AEGIS_BEADS_REQUIRED_AUTHORITY_GENERATION}"
+        )
+    receipt_path = Path(os.environ[AEGIS_TASK_AUTHORITY_FILE_ENV])
+    record = {
+        "mode": "beads",
+        "rig": str(receipt.rig),
+        "beads_prefix": str(receipt.beads_prefix),
+        "database": str(receipt.database),
+        "receipt_generation": receipt.generation,
+        "receipt_sha256": str(module.receipt_sha256(receipt)),
+    }
+    return _BeadsAuthorityBinding(
+        module=module,
+        receipt=receipt,
+        receipt_path=receipt_path,
+        runtime_path=runtime_path,
+        runtime_sha256=runtime_digest,
+        record=record,
+    )
+
+
+def _authority_binding_identity(binding: _BeadsAuthorityBinding) -> tuple[Any, ...]:
+    return (
+        binding.receipt_path,
+        binding.runtime_path,
+        binding.runtime_sha256,
+        tuple(sorted(binding.record.items())),
+    )
+
+
+@contextmanager
+def _locked_beads_authority(target_root: Path) -> Iterable[_BeadsAuthorityBinding]:
+    """Hold the shared authority-transition lock for the complete kickoff."""
+
+    initial = _load_beads_authority_binding(target_root)
+    lock_path = Path(f"{initial.receipt_path}.lock")
+    if not lock_path.is_absolute() or ".." in lock_path.parts or lock_path.is_symlink():
+        raise AegisError("task-authority lock path is not a safe absolute file")
+    no_follow = getattr(os, "O_NOFOLLOW", None)
+    if no_follow is None:  # pragma: no cover - Gas City workers are Linux.
+        raise AegisError("cannot safely lock the task-authority receipt")
+    try:
+        descriptor = os.open(lock_path, os.O_RDONLY | os.O_CLOEXEC | no_follow)
+    except OSError as exc:
+        raise AegisError("cannot open the task-authority transition lock") from exc
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise AegisError("task-authority transition lock is not a regular file")
+        if stat.S_IMODE(metadata.st_mode) != 0o600 or metadata.st_uid != os.geteuid():
+            raise AegisError(
+                "task-authority transition lock must be owner-only and owned by this worker"
+            )
+        fcntl.flock(descriptor, fcntl.LOCK_SH)
+        locked = _load_beads_authority_binding(target_root)
+        if _authority_binding_identity(locked) != _authority_binding_identity(initial):
+            raise AegisError("task authority changed before the kickoff lock was acquired")
+        yield locked
+        final = _load_beads_authority_binding(target_root)
+        if _authority_binding_identity(final) != _authority_binding_identity(locked):
+            raise AegisError("task authority changed during Beads kickoff")
+    finally:
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+        finally:
+            os.close(descriptor)
+
+
+@contextmanager
+def _open_pinned_bd(target_root: Path) -> Iterable[_PinnedBd]:
+    raw_path = _required_beads_environment(AEGIS_BD_EXECUTABLE_ENV)
+    path = _external_normalized_path(
+        raw_path,
+        target_root=target_root,
+        label=AEGIS_BD_EXECUTABLE_ENV,
+    )
+    expected_digest = _required_beads_environment(AEGIS_BD_SHA256_ENV)
+    if not AEGIS_SHA256_RE.fullmatch(expected_digest):
+        raise AegisError(f"{AEGIS_BD_SHA256_ENV} must be one lowercase SHA-256")
+    no_follow = getattr(os, "O_NOFOLLOW", None)
+    if no_follow is None:  # pragma: no cover - Gas City workers are Linux.
+        raise AegisError("cannot safely open the pinned bd executable")
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_CLOEXEC | no_follow)
+    except OSError as exc:
+        raise AegisError("cannot open the pinned bd executable") from exc
+    try:
+        before = os.fstat(descriptor)
+        mode = stat.S_IMODE(before.st_mode)
+        if not stat.S_ISREG(before.st_mode) or not (mode & 0o111):
+            raise AegisError("pinned bd must be an executable regular file")
+        if mode & 0o022:
+            raise AegisError("pinned bd must not be group- or world-writable")
+        digest = hashlib.sha256()
+        with os.fdopen(os.dup(descriptor), "rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        after = os.fstat(descriptor)
+        identity = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+        if identity != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns):
+            raise AegisError("pinned bd changed while it was being hashed")
+        if digest.hexdigest() != expected_digest:
+            raise AegisError("pinned bd SHA-256 does not match AEGIS_BD_SHA256")
+        pinned = _PinnedBd(path, descriptor, expected_digest, identity)
+        yield pinned
+        final = path.stat(follow_symlinks=False)
+        final_identity = (final.st_dev, final.st_ino, final.st_size, final.st_mtime_ns)
+        if path.is_symlink() or final_identity != identity:
+            raise AegisError("pinned bd path changed during Beads kickoff")
+    finally:
+        os.close(descriptor)
+
+
+def _reject_beads_duplicate_keys(pairs: Sequence[tuple[str, Any]]) -> dict[str, Any]:
+    value: dict[str, Any] = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError(f"duplicate key {key!r}")
+        value[key] = item
+    return value
+
+
+def _reject_beads_non_finite(value: str) -> None:
+    raise ValueError(f"non-finite JSON value {value!r}")
+
+
+def _bead_slug_from_title(title: Any) -> tuple[str, str]:
+    if type(title) is not str:
+        raise AegisError("authoritative Bead title must be a string")
+    if not title or title != title.strip():
+        raise AegisError("authoritative Bead title must be non-empty without edge whitespace")
+    if len(title) > AEGIS_BEADS_TITLE_MAX_CHARS:
+        raise AegisError(
+            f"authoritative Bead title exceeds {AEGIS_BEADS_TITLE_MAX_CHARS} characters"
+        )
+    if any(ord(character) < 0x20 or ord(character) == 0x7F for character in title):
+        raise AegisError("authoritative Bead title contains a control character")
+    slug = _slugify(title)
+    if len(slug) > AEGIS_BEADS_SLUG_MAX_CHARS:
+        slug = slug[:AEGIS_BEADS_SLUG_MAX_CHARS].rstrip("-")
+    if not slug:
+        raise AegisError("authoritative Bead title cannot produce a safe slug")
+    return title, slug
+
+
+def _expected_beads_assignee() -> tuple[str, str]:
+    """Mirror Gas City's documented work-agent identity precedence."""
+
+    for name in ("BEADS_ACTOR", "GC_SESSION_NAME", "GC_SESSION_ID", "GC_AGENT"):
+        if name not in os.environ:
+            continue
+        value = os.environ[name]
+        if value != value.strip() or not AEGIS_BEADS_ASSIGNEE_RE.fullmatch(value):
+            raise AegisError(f"Gas City work identity {name} has an unsafe value")
+        return value, name
+    raise AegisError(
+        "Gas City Beads kickoff requires BEADS_ACTOR or a GC_SESSION_NAME/"
+        "GC_SESSION_ID/GC_AGENT assignee identity"
+    )
+
+
+def _read_authoritative_bead(
+    target_root: Path,
+    bead_id: str,
+    pinned: _PinnedBd,
+) -> tuple[dict[str, str], dict[str, Any]]:
+    command = [
+        f"/proc/self/fd/{pinned.descriptor}",
+        "--json",
+        "--readonly",
+        "-C",
+        str(target_root),
+        "show",
+        "--id",
+        bead_id,
+    ]
+    try:
+        result = subprocess.run(
+            command,
+            cwd=target_root,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=20,
+            check=False,
+            pass_fds=(pinned.descriptor,),
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise AegisError(f"pinned read-only bd show could not execute: {exc}") from exc
+    if len(result.stdout) > AEGIS_BEADS_SHOW_MAX_BYTES or len(result.stderr) > AEGIS_BEADS_SHOW_MAX_BYTES:
+        raise AegisError("pinned read-only bd show exceeded its bounded output limit")
+    if result.returncode != 0:
+        detail = result.stderr.decode("utf-8", errors="replace").strip()
+        raise AegisError(
+            f"pinned read-only bd show failed for {bead_id}: "
+            f"{detail or f'exit {result.returncode}'}"
+        )
+    try:
+        output = result.stdout.decode("utf-8")
+        payload = json.loads(
+            output,
+            object_pairs_hook=_reject_beads_duplicate_keys,
+            parse_constant=_reject_beads_non_finite,
+        )
+    except (UnicodeDecodeError, ValueError, RecursionError) as exc:
+        raise AegisError(f"pinned read-only bd show returned invalid JSON: {exc}") from exc
+    if not isinstance(payload, list) or len(payload) != 1 or not isinstance(payload[0], dict):
+        raise AegisError("pinned read-only bd show must return exactly one issue object")
+    issue = payload[0]
+    if type(issue.get("id")) is not str or issue["id"] != bead_id:
+        raise AegisError(
+            f"pinned read-only bd show returned issue {issue.get('id')!r}, expected {bead_id!r}"
+        )
+    if type(issue.get("status")) is not str or issue["status"] != "in_progress":
+        raise AegisError(
+            f"authoritative Bead {bead_id} status is {issue.get('status')!r}, "
+            "expected 'in_progress'"
+        )
+    issue_type = issue.get("issue_type")
+    if type(issue_type) is not str or issue_type != "task":
+        raise AegisError(
+            f"authoritative Bead {bead_id} issue_type is {issue_type!r}, expected "
+            "one source-work 'task' (not a convoy, formula, molecule, epic, or wisp)"
+        )
+    expected_assignee, assignee_source = _expected_beads_assignee()
+    assignee = issue.get("assignee")
+    if type(assignee) is not str or assignee != expected_assignee:
+        raise AegisError(
+            f"authoritative Bead {bead_id} assignee is {assignee!r}, expected the "
+            f"current Gas City work identity from {assignee_source}"
+        )
+    for field in ("ephemeral", "no_history"):
+        if field in issue and type(issue[field]) is not bool:
+            raise AegisError(f"authoritative Bead field {field!r} must be a boolean")
+        if issue.get(field) is True:
+            raise AegisError(
+                f"authoritative Bead {bead_id} is {field}; infrastructure/wisp records "
+                "cannot become Aegis source work"
+            )
+    metadata = issue.get("metadata")
+    if not isinstance(metadata, dict):
+        raise AegisError(
+            "authoritative Bead must carry Gas City workspace metadata after setup"
+        )
+    expected_branch = f"polecat/{bead_id}"
+    metadata_branch = metadata.get("branch")
+    if type(metadata_branch) is not str or metadata_branch != expected_branch:
+        raise AegisError(
+            f"authoritative Bead metadata.branch is {metadata_branch!r}, expected "
+            f"{expected_branch!r}"
+        )
+    metadata_work_dir = metadata.get("work_dir")
+    if type(metadata_work_dir) is not str or not metadata_work_dir:
+        raise AegisError("authoritative Bead metadata.work_dir must be an absolute path")
+    work_dir = Path(metadata_work_dir)
+    if (
+        not work_dir.is_absolute()
+        or ".." in work_dir.parts
+        or str(work_dir) != str(target_root)
+    ):
+        raise AegisError(
+            "authoritative Bead metadata.work_dir is not the canonical target root"
+        )
+    try:
+        resolved_work_dir = work_dir.resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        raise AegisError("authoritative Bead metadata.work_dir does not exist") from exc
+    if resolved_work_dir != target_root:
+        raise AegisError(
+            "authoritative Bead metadata.work_dir resolves outside the target root"
+        )
+    title, slug = _bead_slug_from_title(issue.get("title"))
+    normalized = {
+        "id": bead_id,
+        "title": title,
+        "slug": slug,
+        "status": "in_progress",
+        "issue_type": issue_type,
+        "assignee": assignee,
+    }
+    evidence = {
+        "bd_executable": str(pinned.path),
+        "bd_sha256": pinned.sha256,
+        "command_mode": "--json --readonly -C <repo> show --id <bead>",
+        "issue_type": issue_type,
+        "assignee": assignee,
+        "assignee_identity_source": assignee_source,
+        "metadata_branch": metadata_branch,
+        "metadata_work_dir": metadata_work_dir,
+        "ephemeral": bool(issue.get("ephemeral", False)),
+        "no_history": bool(issue.get("no_history", False)),
+    }
+    return normalized, evidence
+
+
+def _normalize_bead_id(bead_id: str) -> str:
+    if type(bead_id) is not str or bead_id != bead_id.strip():
+        raise AegisError("--bead must be one safe opaque Bead ID without edge whitespace")
+    if not AEGIS_BEAD_ID_RE.fullmatch(bead_id):
+        raise AegisError("--bead is not a safe opaque Bead ID")
+    if not bead_id.startswith("ags-"):
+        raise AegisError("--bead must use the authoritative Aegis prefix 'ags-'")
+    return bead_id
+
+
+def _bead_branch(target_root: Path, bead_id: str) -> dict[str, Any]:
+    branch = _current_branch(target_root)
+    expected = f"polecat/{bead_id}"
+    match = AEGIS_POLECAT_BRANCH_RE.fullmatch(branch)
+    if match is None or match.group("bead_id") != bead_id or branch != expected:
+        raise AegisError(
+            f"Gas City Beads kickoff must run after workspace setup on exact branch "
+            f"{expected!r}; current branch is {branch!r}"
+        )
+    return {
+        "before": branch,
+        "current": branch,
+        "action": "preserved_gas_city_polecat_branch",
+        "created": False,
+        "requires_task_id": False,
+    }
+
+
+def _next_bead_session_rel(
+    target_root: Path,
+    bead_id: str,
+    slug: str,
+    now: datetime,
+) -> str:
+    date_text = now.strftime("%Y-%m-%d")
+    month_rel = Path("sessions") / now.strftime("%Y") / now.strftime("%m")
+    for index in range(1, 1000):
+        candidate = month_rel / f"{date_text}-{index:03d}-bead-{bead_id}-{slug}.md"
+        if not (target_root / candidate).exists():
+            return candidate.as_posix()
+    raise AegisError("could not allocate Beads session file name")
+
+
+def _bead_plan_rel(bead_id: str, slug: str, now: datetime) -> str:
+    return f"plans/{now.strftime('%Y-%m-%d')}-bead-{bead_id}-{slug}.md"
+
+
+def _bead_work_tracking_rel(bead_id: str, slug: str, now: datetime) -> str:
+    return (
+        "docs/ai/work-tracking/active/"
+        f"{now.strftime('%Y%m%d')}-bead-{bead_id}-{slug}-ACTIVE"
+    )
+
+
 def _run_target_git(target_root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["git", "-C", str(target_root), *args],
@@ -6600,7 +7112,11 @@ def _is_task_active_work_tracking_rel(work_rel: str) -> bool:
     archive_rel = _completed_work_tracking_archive_rel(work_rel)
     if not archive_rel:
         return False
-    return re.search(r"(?:^|-)task\d+(?:-|$)", Path(work_rel).name) is not None
+    name = Path(work_rel).name
+    return (
+        re.search(r"(?:^|-)task\d+(?:-|$)", name) is not None
+        or "-bead-" in name
+    )
 
 
 def _unique_work_tracking_archive_rel(target_root: Path, archive_rel: str) -> str:
@@ -7355,6 +7871,17 @@ def _update_manifest_after_kickoff(target_root: Path) -> None:
     manifest_path.write_text(_dump_json(manifest), encoding="utf-8")
 
 
+def _enrolled_task_authority(target_root: Path, operation: str):
+    try:
+        return _task_authority.validate_project_authority_environment(
+            target_root, os.environ
+        )
+    except _task_authority.TaskAuthorityError as exc:
+        raise AegisError(
+            f"Aegis {operation} refused invalid project task authority: {exc}"
+        ) from exc
+
+
 def _ensure_client_reload_cleared(
     target_root: Path,
     operation: str,
@@ -7387,6 +7914,12 @@ def kickoff(
     """Create Aegis-native current work state for an installed target project."""
 
     target_root = _resolve_target_root(target_dir)
+    enrollment = _enrolled_task_authority(target_root, "numeric kickoff")
+    if enrollment is not None:
+        raise AegisError(
+            "Aegis numeric kickoff is disabled for this externally managed project; "
+            "use Gas City claim/workspace setup and `aegis kickoff --bead <id>`"
+        )
     resolved_source = Path(source_root).resolve() if source_root is not None else None
     if not (target_root / AEGIS_MANIFEST_REL).is_file():
         raise AegisError("Aegis kickoff requires an installed .aegis/foundation-manifest.json")
@@ -7583,6 +8116,300 @@ def kickoff(
     }
     _write_text(target_root, AEGIS_KICKOFF_REPORT_REL, _dump_json(report))
     return report
+
+
+def _render_bead_workflow_template(
+    target_root: Path,
+    source_root: Path | None,
+    template_name: str,
+    context: Mapping[str, str],
+    *,
+    bead_id: str,
+) -> str:
+    """Render the normal scaffold while making its Beads authority explicit."""
+
+    rendered = _render_workflow_template(target_root, source_root, template_name, context)
+    rendered = rendered.replace(f"Task {bead_id}", f"Bead {bead_id}")
+    rendered = rendered.replace("task branch", "Gas City polecat branch")
+    rendered = rendered.replace("task-scoped", "Bead-scoped")
+    rendered = rendered.replace("Task Source**: Aegis-native current work", "Task Source**: authoritative Beads/Dolt")
+    rendered = rendered.replace(
+        "branch_policy: feature-required",
+        "branch_policy: gas-city-polecat-required",
+    )
+    rendered = rendered.replace(
+        "**Branch Policy**: feature-required",
+        "**Branch Policy**: gas-city-polecat-required",
+    )
+    rendered = rendered.replace(
+        f"Persistent work should happen on a branch containing `task-{bead_id}`.",
+        f"Persistent work must remain on the Gas City workspace branch `polecat/{bead_id}`.",
+    )
+    rendered = rendered.replace(
+        "Taskmaster and Serena are optional unless this task marks them required.",
+        "Taskmaster is read-only rollback evidence; Beads is authoritative. Serena remains optional.",
+    )
+    rendered = rendered.replace(
+        "Taskmaster and Serena may be used when present, but are not required for READY unless this task marks them required.",
+        "Taskmaster is preserved as read-only rollback evidence. Beads is required and authoritative; Serena remains optional.",
+    )
+    rendered = rendered.replace(
+        "Taskmaster is optional unless this task marks it required",
+        "Taskmaster is preserved rollback evidence and must not be mutated while Beads is authoritative",
+    )
+    return rendered
+
+
+def kickoff_bead(
+    target_dir: str | Path,
+    *,
+    bead_id: str,
+    goals: Sequence[str] | None = None,
+    source_root: str | Path | None = None,
+    invoking_agent: str | None = None,
+) -> dict[str, Any]:
+    """Start Aegis workflow state from one authoritative Gas City work Bead.
+
+    This entry point intentionally runs *after* ``gc hook --claim`` and Gas City
+    workspace setup.  ``GC_BEAD_ID`` is not consulted because upstream may use
+    it for a convoy or molecule rather than the single child work Bead.
+    """
+
+    target_root = _resolve_target_root(target_dir)
+    _enrolled_task_authority(target_root, "kickoff --bead")
+    resolved_source = Path(source_root).resolve() if source_root is not None else None
+    if not (target_root / AEGIS_MANIFEST_REL).is_file():
+        raise AegisError("Aegis kickoff --bead requires an installed .aegis/foundation-manifest.json")
+    _ensure_client_reload_cleared(
+        target_root,
+        "kickoff --bead",
+        invoking_agent=invoking_agent,
+    )
+    _ensure_git_work_tree(target_root)
+    normalized_bead_id = _normalize_bead_id(bead_id)
+    branch = _bead_branch(target_root, normalized_bead_id)
+
+    with _locked_beads_authority(target_root) as authority:
+        with _open_pinned_bd(target_root) as pinned_bd:
+            issue, bd_evidence = _read_authoritative_bead(
+                target_root,
+                normalized_bead_id,
+                pinned_bd,
+            )
+            task_payload = {
+                "id": issue["id"],
+                "slug": issue["slug"],
+                "title": issue["title"],
+                "status": "in-progress",
+                "source": "beads",
+                "authority_status": issue["status"],
+                "issue_type": issue["issue_type"],
+                "assignee": issue["assignee"],
+            }
+            beads_record = {
+                "issue_id": issue["id"],
+                "issue_status": issue["status"],
+                **bd_evidence,
+            }
+
+            existing_current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
+            if isinstance(existing_current_work, Mapping):
+                existing_status = str(existing_current_work.get("status") or "")
+                existing_task = (
+                    existing_current_work.get("task")
+                    if isinstance(existing_current_work.get("task"), Mapping)
+                    else {}
+                )
+                if existing_status == "in-progress":
+                    exact_same_work = (
+                        dict(existing_task) == task_payload
+                        and existing_current_work.get("authority") == authority.record
+                        and existing_current_work.get("beads") == beads_record
+                        and existing_current_work.get("branch") == branch
+                    )
+                    if exact_same_work:
+                        report = _already_started_report(target_root, existing_current_work)
+                        report["authority"] = dict(authority.record)
+                        report["beads"] = dict(beads_record)
+                        report["public_command"] = (
+                            f"./.aegis/bin/aegis kickoff --target-dir . "
+                            f"--bead {_quote_cli(normalized_bead_id)}"
+                        )
+                        return report
+                    raise AegisError(
+                        "Aegis current work is already in progress and does not exactly match "
+                        f"authoritative Bead {normalized_bead_id}; close it out before kickoff"
+                    )
+
+            active_root = target_root / "docs" / "ai" / "work-tracking" / "active"
+            active_folders = (
+                sorted(
+                    path.relative_to(target_root).as_posix()
+                    for path in active_root.iterdir()
+                    if path.is_dir() and path.name.endswith("-ACTIVE")
+                )
+                if active_root.is_dir()
+                else []
+            )
+            if active_folders:
+                raise AegisError(
+                    "Aegis kickoff --bead refuses stale or competing ACTIVE work-tracking "
+                    f"folders: {active_folders}"
+                )
+
+            now = datetime.now().astimezone().replace(microsecond=0)
+            selected_goals = list(goals or _default_goals())
+            session_rel = _next_bead_session_rel(
+                target_root,
+                normalized_bead_id,
+                issue["slug"],
+                now,
+            )
+            plan_rel = _bead_plan_rel(normalized_bead_id, issue["slug"], now)
+            work_rel = _bead_work_tracking_rel(normalized_bead_id, issue["slug"], now)
+            reports_rel = f"{work_rel}/reports/{issue['slug']}"
+            for rel_path in (plan_rel, work_rel):
+                if (target_root / rel_path).exists() or (target_root / rel_path).is_symlink():
+                    raise AegisError(
+                        f"Aegis kickoff --bead refuses to overwrite existing scaffold path: {rel_path}"
+                    )
+            template_context = _workflow_template_context(
+                task_id=normalized_bead_id,
+                title=issue["title"],
+                slug=issue["slug"],
+                goals=selected_goals,
+                now=now,
+                branch_current=str(branch["current"]),
+                session_rel=session_rel,
+                plan_rel=plan_rel,
+                work_rel=work_rel,
+                reports_rel=reports_rel,
+                work_context=f"bead-{normalized_bead_id}-{issue['slug']}",
+            )
+
+            def render(template_name: str) -> str:
+                return _render_bead_workflow_template(
+                    target_root,
+                    resolved_source,
+                    template_name,
+                    template_context,
+                    bead_id=normalized_bead_id,
+                )
+
+            _write_text(target_root, session_rel, render("session.md"))
+            _replace_symlink(
+                target_root / "sessions" / "current",
+                str(Path(session_rel).relative_to("sessions")),
+            )
+            state_payload = {
+                "schema_version": SCHEMA_VERSION,
+                "current": Path(session_rel).name,
+                "current_path": session_rel,
+                "task": task_payload,
+                "authority": dict(authority.record),
+                "updated_at": _iso_now(),
+            }
+            _write_text(target_root, "sessions/state.json", _dump_json(state_payload))
+
+            _write_text(target_root, plan_rel, render("plan.md"))
+            _replace_symlink(target_root / "plans" / "current", Path(plan_rel).name)
+
+            work_files = {
+                f"{work_rel}/TRACKER.md": render("tracker.md"),
+                f"{work_rel}/FINDINGS.md": render("findings.md"),
+                f"{work_rel}/DECISIONS.md": render("decisions.md"),
+                f"{work_rel}/HANDOFF.md": render("handoff.md"),
+                f"{work_rel}/IMPLEMENTATION.md": render("implementation.md"),
+                f"{work_rel}/CHANGELOG.md": render("changelog.md"),
+            }
+            for rel_path, content in work_files.items():
+                _write_text(target_root, rel_path, content)
+            (target_root / work_rel / "designs").mkdir(parents=True, exist_ok=True)
+            (target_root / reports_rel).mkdir(parents=True, exist_ok=True)
+
+            current_work = {
+                "schema_version": SCHEMA_VERSION,
+                "status": "in-progress",
+                "created_at": now.isoformat().replace("+00:00", "Z"),
+                "updated_at": _iso_now(),
+                "task": task_payload,
+                "authority": dict(authority.record),
+                "beads": beads_record,
+                "branch": branch,
+                "paths": {
+                    "session": session_rel,
+                    "session_current": "sessions/current",
+                    "plan": plan_rel,
+                    "plan_current": "plans/current",
+                    "work_tracking": work_rel,
+                    "reports": reports_rel,
+                    "workflow_templates": AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT,
+                },
+                "integrations": {
+                    "beads": {"required": True, "detected": True},
+                    "taskmaster": {
+                        "required": False,
+                        "detected": (target_root / ".taskmaster").exists(),
+                        "mode": "read-only-rollback-evidence",
+                    },
+                    "serena": {
+                        "required": False,
+                        "detected": (target_root / ".serena").exists(),
+                    },
+                },
+            }
+            _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(current_work))
+            _update_manifest_after_kickoff(target_root)
+
+            scope_handler = _workflow_log_handler(target_root, "scope")
+            report = {
+                "schema_version": SCHEMA_VERSION,
+                "status": "started",
+                "started_at": _iso_now(),
+                "target_root": str(target_root),
+                "task": task_payload,
+                "authority": dict(authority.record),
+                "authority_runtime": {
+                    "path": str(authority.runtime_path),
+                    "sha256": authority.runtime_sha256,
+                },
+                "beads": beads_record,
+                "branch": branch,
+                "paths": current_work["paths"],
+                "integrations": current_work["integrations"],
+                "workflow_templates": AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT,
+                "public_command": (
+                    f"./.aegis/bin/aegis kickoff --target-dir . "
+                    f"--bead {_quote_cli(normalized_bead_id)}"
+                ),
+                "next_action": _workflow_next_action(
+                    "log_scope_before_edit",
+                    "Before any source edit, record scope against plan-step-scope so closeout can pass first time.",
+                    suggested_cli=(
+                        f"./.aegis/bin/aegis log --target-dir . --handler {scope_handler} "
+                        f"--evidence {_quote_cli(f'{work_rel}/FINDINGS.md')} "
+                        "--note 'Confirmed Bead scope before implementation' "
+                        "--plan-step auto --plan-status completed"
+                    ),
+                    suggested_mcp_tool="aegis.log",
+                    suggested_mcp_arguments={
+                        "target_dir": ".",
+                        "handler": scope_handler,
+                        "evidence": f"{work_rel}/FINDINGS.md",
+                        "note": "Confirmed Bead scope before implementation",
+                        "event_class": "scope",
+                        "plan_step": "auto",
+                        "plan_status": "completed",
+                        "apply": True,
+                    },
+                    details={
+                        "scope_evidence": f"{work_rel}/FINDINGS.md",
+                        "required_before": "native source edits",
+                    },
+                ),
+            }
+            _write_text(target_root, AEGIS_KICKOFF_REPORT_REL, _dump_json(report))
+            return report
 
 
 def start_observation(
@@ -8151,6 +8978,12 @@ def start_local_work(
     """Allocate a local task id and reuse kickoff for projects without Taskmaster."""
 
     target_root = _resolve_target_root(target_dir)
+    enrollment = _enrolled_task_authority(target_root, "local task start")
+    if enrollment is not None:
+        raise AegisError(
+            "Aegis local task start is disabled for this externally managed project; "
+            "start authoritative work through Gas City"
+        )
     if not (target_root / AEGIS_MANIFEST_REL).is_file():
         raise AegisError(
             "Aegis start requires an installed .aegis/foundation-manifest.json; run aegis init first"
@@ -10025,6 +10858,7 @@ def _strict_current_work_checks(
     paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
     task_id = str(task.get("id") or "").strip()
     task_slug = str(task.get("slug") or "").strip()
+    task_source = str(task.get("source") or "").strip()
     work_mode = str(current_work.get("mode") or "task").strip() or "task"
     missing_path_keys = [
         key
@@ -10106,8 +10940,20 @@ def _strict_current_work_checks(
     elif task_id:
         try:
             branch = _current_branch(target_root)
-            branch_task = _branch_task_id(branch)
-            branch_matches = branch_task == task_id
+            if task_source == "beads":
+                branch_task = (
+                    AEGIS_POLECAT_BRANCH_RE.fullmatch(branch).group("bead_id")
+                    if AEGIS_POLECAT_BRANCH_RE.fullmatch(branch)
+                    else None
+                )
+                branch_matches = branch == f"polecat/{task_id}" and branch_task == task_id
+                matched_message = "Gas City polecat branch matches current Bead"
+                mismatched_message = "Gas City polecat branch does not match current Bead"
+            else:
+                branch_task = _branch_task_id(branch)
+                branch_matches = branch_task == task_id
+                matched_message = "branch task id matches current work"
+                mismatched_message = "branch task id does not match current work"
             checks.append(
                 _strict_check(
                     "workflow.branch_task_alignment",
@@ -10115,9 +10961,9 @@ def _strict_current_work_checks(
                     required=True,
                     passed=branch_matches,
                     message=(
-                        "branch task id matches current work"
+                        matched_message
                         if branch_matches
-                        else "branch task id does not match current work"
+                        else mismatched_message
                     ),
                     details={
                         "branch": branch,

@@ -1,0 +1,1026 @@
+#!/usr/bin/python3 -I
+"""Host-owned model evidence for isolated Gas City provider containers.
+
+The provider process never receives this state directory.  It receives only a
+bind-mounted Unix socket.  The host authenticates the supervisor with
+``SO_PEERCRED`` and the exact Docker init/supervisor process relationship before
+the supervisor starts any provider code, then keeps that same connection open
+until evidence is delivered.  A same-UID provider child can kill the
+supervisor, but it cannot replace the already authenticated connection; a
+closed connection produces no promotable evidence.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import secrets
+import signal
+import socket
+import stat
+import struct
+import subprocess
+import sys
+import tempfile
+from typing import Any, Mapping, Sequence
+
+
+SCHEMA_VERSION = 1
+MAX_JSON_BYTES = 1024 * 1024
+SUPERVISOR_PATH = "/opt/gas-city/provider-supervisor.py"
+SOCKET_CONTAINER_PATH = "/run/gas-city-trusted/model-evidence.sock"
+SAFE_CONTAINER_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}\Z")
+IMAGE_ID_RE = re.compile(r"sha256:[0-9a-f]{64}\Z")
+SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
+EXPECTED = {
+    "claude": ("claude-fable-5", None),
+    "codex": ("gpt-5.6-sol", "xhigh"),
+}
+PREFLIGHT_LOCATORS = {
+    "claude": "in-memory:claude-stream-json",
+    "codex": "in-memory:codex-exec-jsonl+server-model-log",
+}
+PREFLIGHT_ADVERTISED_TOOLS = {
+    "claude": [],
+    # Stock Codex 0.144.4 unconditionally advertises these two non-mutating
+    # utilities whenever an execution environment exists.  The host receipt
+    # proves that neither was invoked during the identity preflight.
+    "codex": ["update_plan", "view_image"],
+}
+MODEL_ATTESTATION_SCOPE = "isolated-zero-tool-invocation-preflight-gates-session"
+
+
+class EvidenceError(RuntimeError):
+    """The host evidence boundary cannot safely continue."""
+
+
+def _now() -> str:
+    return dt.datetime.now(dt.timezone.utc).isoformat()
+
+
+def _sha256(content: bytes) -> str:
+    return hashlib.sha256(content).hexdigest()
+
+
+def _json_bytes(value: Mapping[str, Any]) -> bytes:
+    return json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8") + b"\n"
+
+
+def _strict_json(content: bytes, label: str) -> dict[str, Any]:
+    def pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in items:
+            if key in result:
+                raise EvidenceError(f"{label} contains duplicate key {key!r}")
+            result[key] = value
+        return result
+
+    try:
+        value = json.loads(
+            content.decode("utf-8"),
+            object_pairs_hook=pairs,
+            parse_constant=lambda item: (_ for _ in ()).throw(
+                EvidenceError(f"{label} contains non-finite value {item!r}")
+            ),
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
+        raise EvidenceError(f"{label} is not strict UTF-8 JSON") from exc
+    if not isinstance(value, dict):
+        raise EvidenceError(f"{label} must be one JSON object")
+    return value
+
+
+def _secure_directory(path: Path, label: str, *, create: bool = False) -> Path:
+    if not path.is_absolute() or ".." in path.parts:
+        raise EvidenceError(f"{label} path is not one safe absolute path")
+    if create and not path.exists() and not path.is_symlink():
+        parent = _secure_directory(path.parent, f"parent of {label}")
+        try:
+            path.mkdir(mode=0o700)
+        except OSError as exc:
+            raise EvidenceError(f"could not create {label}") from exc
+        if path.parent.resolve(strict=True) != parent:
+            raise EvidenceError(f"parent of {label} changed during creation")
+    try:
+        info = path.lstat()
+    except OSError as exc:
+        raise EvidenceError(f"{label} is missing") from exc
+    if (
+        stat.S_ISLNK(info.st_mode)
+        or not stat.S_ISDIR(info.st_mode)
+        or info.st_uid != os.geteuid()
+        or stat.S_IMODE(info.st_mode) != 0o700
+    ):
+        raise EvidenceError(f"{label} must be one owner-only real directory")
+    return path.resolve(strict=True)
+
+
+def _secure_file(path: Path, label: str, *, modes: set[int]) -> bytes:
+    if not path.is_absolute() or ".." in path.parts:
+        raise EvidenceError(f"{label} path is not one safe absolute path")
+    no_follow = getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_CLOEXEC | no_follow)
+    except OSError as exc:
+        raise EvidenceError(f"{label} cannot be opened") from exc
+    try:
+        before = os.fstat(descriptor)
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or before.st_uid != os.geteuid()
+            or stat.S_IMODE(before.st_mode) not in modes
+            or before.st_nlink != 1
+            or before.st_size <= 0
+            or before.st_size > MAX_JSON_BYTES
+        ):
+            raise EvidenceError(f"{label} has unsafe type, owner, mode, links, or size")
+        content = b""
+        while len(content) <= MAX_JSON_BYTES:
+            chunk = os.read(descriptor, min(65536, MAX_JSON_BYTES + 1 - len(content)))
+            if not chunk:
+                break
+            content += chunk
+        after = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    identity_before = (
+        before.st_dev,
+        before.st_ino,
+        before.st_size,
+        before.st_mtime_ns,
+        before.st_ctime_ns,
+    )
+    identity_after = (
+        after.st_dev,
+        after.st_ino,
+        after.st_size,
+        after.st_mtime_ns,
+        after.st_ctime_ns,
+    )
+    if (
+        identity_before != identity_after
+        or len(content) != after.st_size
+        or len(content) > MAX_JSON_BYTES
+    ):
+        raise EvidenceError(f"{label} changed while it was read")
+    return content
+
+
+def _atomic_write(path: Path, content: bytes, mode: int) -> None:
+    parent = _secure_directory(path.parent, "model evidence state directory")
+    descriptor: int | None = None
+    temporary: Path | None = None
+    try:
+        descriptor, raw = tempfile.mkstemp(prefix=f".{path.name}.", dir=parent)
+        temporary = Path(raw)
+        os.fchmod(descriptor, mode)
+        offset = 0
+        while offset < len(content):
+            written = os.write(descriptor, content[offset:])
+            if written <= 0:
+                raise OSError("short evidence write")
+            offset += written
+        os.fsync(descriptor)
+        os.close(descriptor)
+        descriptor = None
+        if path.is_symlink():
+            raise EvidenceError("model evidence destination is a symlink")
+        os.replace(temporary, path)
+        temporary = None
+        parent_fd = os.open(parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+        try:
+            os.fsync(parent_fd)
+        finally:
+            os.close(parent_fd)
+    except OSError as exc:
+        raise EvidenceError(f"could not atomically write {path.name}") from exc
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+def _lock_descriptor(state: Path) -> int:
+    path = state / ".lock"
+    no_follow = getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(
+            path,
+            os.O_RDWR | os.O_CREAT | os.O_CLOEXEC | no_follow,
+            0o600,
+        )
+    except OSError as exc:
+        raise EvidenceError("could not open model evidence lock") from exc
+    info = os.fstat(descriptor)
+    if (
+        not stat.S_ISREG(info.st_mode)
+        or info.st_uid != os.geteuid()
+        or stat.S_IMODE(info.st_mode) != 0o600
+        or info.st_nlink != 1
+    ):
+        os.close(descriptor)
+        raise EvidenceError("model evidence lock is unsafe")
+    fcntl.flock(descriptor, fcntl.LOCK_EX)
+    return descriptor
+
+
+def _baseline_path(state: Path) -> Path:
+    return state / "baseline.json"
+
+
+def _receipt_path(state: Path, phase: str) -> Path:
+    return state / f"{phase}-receipt.json"
+
+
+def _socket_path(state: Path, phase: str) -> Path:
+    return state / f"{phase}.sock"
+
+
+def _ready_path(state: Path, phase: str) -> Path:
+    return state / f"{phase}-ready.json"
+
+
+def _load_baseline(state: Path) -> tuple[dict[str, Any], bytes]:
+    content = _secure_file(
+        _baseline_path(state), "model evidence baseline", modes={0o600}
+    )
+    value = _strict_json(content, "model evidence baseline")
+    if (
+        value.get("schema_version") != SCHEMA_VERSION
+        or value.get("kind") != "host-model-evidence-baseline"
+        or value.get("model_attestation_scope") != MODEL_ATTESTATION_SCOPE
+    ):
+        raise EvidenceError("model evidence baseline has the wrong protocol identity")
+    return value, content
+
+
+def _load_git_baseline(state: Path) -> tuple[dict[str, Any], bytes]:
+    content = _secure_file(state / "baseline.json", "Git broker baseline", modes={0o600})
+    value = _strict_json(content, "Git broker baseline")
+    if value.get("kind") != "aegis-private-git-baseline":
+        raise EvidenceError("Git broker baseline has the wrong protocol identity")
+    if value.get("status") != "frozen":
+        raise EvidenceError("model evidence can begin only for frozen Git authorization")
+    return value, content
+
+
+def _safe_remove(path: Path, *, allowed_modes: tuple[int, ...]) -> None:
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return
+    except OSError as exc:
+        raise EvidenceError(f"could not inspect stale {path.name}") from exc
+    if info.st_uid != os.geteuid() or not any(check(info.st_mode) for check in allowed_modes):
+        raise EvidenceError(f"stale {path.name} has an unsafe type or owner")
+    try:
+        path.unlink()
+    except OSError as exc:
+        raise EvidenceError(f"could not remove stale {path.name}") from exc
+
+
+def capability(args: argparse.Namespace) -> dict[str, Any]:
+    return {
+        "provider": args.provider,
+        "status": "supported",
+        "boundary": "subscription-auth-only-empty-read-only-zero-tool-invocation",
+        "advertised_tools": PREFLIGHT_ADVERTISED_TOOLS[args.provider],
+    }
+
+
+def begin_run(args: argparse.Namespace) -> dict[str, Any]:
+    git_state = _secure_directory(Path(args.git_state_dir), "Git broker session state")
+    state_path = Path(args.state_dir)
+    if state_path.parent.resolve(strict=True) != git_state or state_path.name != "model-evidence":
+        raise EvidenceError("model evidence state must be the exact Git broker child directory")
+    state = _secure_directory(state_path, "model evidence state directory", create=True)
+    if SAFE_CONTAINER_RE.fullmatch(args.preflight_container) is None:
+        raise EvidenceError("preflight container name is unsafe")
+    if SAFE_CONTAINER_RE.fullmatch(args.session_container) is None:
+        raise EvidenceError("session container name is unsafe")
+    if args.preflight_container == args.session_container:
+        raise EvidenceError("preflight and authority-bearing containers must be distinct")
+    if IMAGE_ID_RE.fullmatch(args.image_id) is None:
+        raise EvidenceError("locked worker image id is invalid")
+    if not args.run_id or len(args.run_id.encode("utf-8")) > 256:
+        raise EvidenceError("host run id is empty or too large")
+    git, git_content = _load_git_baseline(git_state)
+    expected_model, expected_effort = EXPECTED[args.provider]
+    session_sha = _sha256(args.session_id.encode("utf-8"))
+    if git.get("session_id_sha256") != session_sha:
+        raise EvidenceError("model run session does not match the Git broker session")
+    source = git.get("source")
+    if not isinstance(source, dict):
+        raise EvidenceError("Git broker source binding is invalid")
+    lock = _lock_descriptor(state)
+    try:
+        generation = 1
+        if _baseline_path(state).exists() and not _baseline_path(state).is_symlink():
+            previous, _ = _load_baseline(state)
+            previous_generation = previous.get("run_generation")
+            if not isinstance(previous_generation, int) or previous_generation < 1:
+                raise EvidenceError("previous model evidence generation is invalid")
+            if previous.get("git_baseline_sha256_at_begin") == _sha256(git_content):
+                raise EvidenceError(
+                    "the current frozen Git authorization already has a model run"
+                )
+            generation = previous_generation + 1
+        for phase in ("preflight", "session"):
+            _safe_remove(_receipt_path(state, phase), allowed_modes=(stat.S_ISREG,))
+            _safe_remove(_socket_path(state, phase), allowed_modes=(stat.S_ISSOCK,))
+            _safe_remove(_ready_path(state, phase), allowed_modes=(stat.S_ISREG,))
+        baseline = {
+            "schema_version": SCHEMA_VERSION,
+            "kind": "host-model-evidence-baseline",
+            "status": "awaiting_preflight",
+            "evidence_id": secrets.token_hex(16),
+            "run_generation": generation,
+            "run_id_sha256": _sha256(args.run_id.encode("utf-8")),
+            "provider": args.provider,
+            "expected_model": expected_model,
+            "expected_effort": expected_effort,
+            "model_attestation_scope": MODEL_ATTESTATION_SCOPE,
+            "session_id_sha256": session_sha,
+            "git_broker_id": git.get("broker_id"),
+            "git_broker_receipt_sha256": git.get("broker_receipt_sha256"),
+            "git_baseline_sha256_at_begin": _sha256(git_content),
+            "git_startup_receipt_sha256": git.get("startup_receipt_sha256"),
+            "git_source_starting_oid": source.get("starting_oid"),
+            "git_authorized_ref": git.get("authorized_ref"),
+            "preflight_container": args.preflight_container,
+            "session_container": args.session_container,
+            "worker_image_id": args.image_id,
+            "socket_container_path": SOCKET_CONTAINER_PATH,
+            "created_at": _now(),
+        }
+        _atomic_write(_baseline_path(state), _json_bytes(baseline), 0o600)
+    finally:
+        os.close(lock)
+    return {
+        "status": "awaiting_preflight",
+        "run_generation": generation,
+        "state_dir": str(state),
+    }
+
+
+def _process_stat(proc_root: Path, pid: int) -> tuple[int, int]:
+    try:
+        content = (proc_root / str(pid) / "stat").read_text(encoding="utf-8")
+    except OSError as exc:
+        raise EvidenceError(f"could not inspect peer process {pid}") from exc
+    end = content.rfind(")")
+    if end < 0:
+        raise EvidenceError("peer process stat is malformed")
+    fields = content[end + 1 :].split()
+    if len(fields) <= 19:
+        raise EvidenceError("peer process stat is incomplete")
+    try:
+        return int(fields[1]), int(fields[19])
+    except ValueError as exc:
+        raise EvidenceError("peer process stat fields are invalid") from exc
+
+
+def _process_argv(proc_root: Path, pid: int) -> list[str]:
+    try:
+        content = (proc_root / str(pid) / "cmdline").read_bytes()
+    except OSError as exc:
+        raise EvidenceError("could not inspect peer command line") from exc
+    try:
+        return [item.decode("utf-8") for item in content.rstrip(b"\0").split(b"\0")]
+    except UnicodeDecodeError as exc:
+        raise EvidenceError("peer command line is not UTF-8") from exc
+
+
+def _docker_init_pid(
+    container: str, *, expected_image: str, expected_boundary: str, provider: str
+) -> int:
+    try:
+        result = subprocess.run(
+            [
+                "/usr/bin/docker",
+                "inspect",
+                "--format",
+                '{{.State.Pid}}\t{{.State.Running}}\t{{.Image}}\t'
+                '{{index .Config.Labels "com.gascity.boundary"}}\t'
+                '{{index .Config.Labels "com.gascity.provider"}}',
+                container,
+            ],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=15,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise EvidenceError("could not inspect expected provider container") from exc
+    if result.returncode != 0 or len(result.stdout) > 128 or result.stderr:
+        raise EvidenceError("expected provider container is absent or uninspectable")
+    fields = result.stdout.decode("ascii", errors="strict").strip().split("\t")
+    if (
+        len(fields) != 5
+        or fields[1] != "true"
+        or fields[2] != expected_image
+        or fields[3] != expected_boundary
+        or fields[4] != provider
+    ):
+        raise EvidenceError("expected provider container identity is not running")
+    try:
+        pid = int(fields[0])
+    except ValueError as exc:
+        raise EvidenceError("provider container init pid is invalid") from exc
+    if pid <= 1:
+        raise EvidenceError("provider container init pid is unsafe")
+    return pid
+
+
+def _trusted_peer_identity(
+    *,
+    peer_pid: int,
+    peer_uid: int,
+    peer_gid: int,
+    init_pid: int,
+    phase: str,
+    provider: str,
+    proc_root: Path = Path("/proc"),
+) -> dict[str, Any]:
+    if peer_uid != os.geteuid() or peer_gid != os.getegid():
+        raise EvidenceError("Unix peer credentials do not match the host launcher identity")
+    peer_parent, peer_start = _process_stat(proc_root, peer_pid)
+    _, init_start = _process_stat(proc_root, init_pid)
+    if peer_parent != init_pid or peer_start <= init_start:
+        raise EvidenceError("peer is not the original direct child of the container init")
+    expected = ["python3", SUPERVISOR_PATH]
+    if phase == "preflight":
+        expected.extend(["model-preflight", provider])
+    else:
+        expected.append(provider)
+    argv = _process_argv(proc_root, peer_pid)
+    if (phase == "preflight" and argv != expected) or (
+        phase == "session" and argv[: len(expected)] != expected
+    ):
+        raise EvidenceError("peer command line is not the exact trusted supervisor invocation")
+    try:
+        executable = os.stat(proc_root / str(peer_pid) / "exe")
+        image_python = os.stat(proc_root / str(peer_pid) / "root/usr/bin/python3")
+    except OSError as exc:
+        raise EvidenceError("could not bind the supervisor executable identity") from exc
+    if (executable.st_dev, executable.st_ino) != (image_python.st_dev, image_python.st_ino):
+        raise EvidenceError("peer executable is not the image Python interpreter")
+
+    direct_children: list[tuple[int, int]] = []
+    try:
+        candidates = tuple(proc_root.iterdir())
+    except OSError as exc:
+        raise EvidenceError("could not enumerate host process identities") from exc
+    for candidate in candidates:
+        if not candidate.name.isdecimal():
+            continue
+        candidate_pid = int(candidate.name)
+        try:
+            parent, started = _process_stat(proc_root, candidate_pid)
+        except EvidenceError:
+            continue
+        if parent == init_pid:
+            direct_children.append((started, candidate_pid))
+    if not direct_children or min(direct_children) != (peer_start, peer_pid):
+        raise EvidenceError("peer is not the oldest direct child of the container init")
+    return {
+        "container_init_host_pid": init_pid,
+        "supervisor_host_pid": peer_pid,
+        "supervisor_host_uid": peer_uid,
+        "supervisor_host_gid": peer_gid,
+        "supervisor_starttime_ticks": peer_start,
+    }
+
+
+def _read_message(connection: socket.socket, label: str) -> dict[str, Any]:
+    content = bytearray()
+    while len(content) <= MAX_JSON_BYTES:
+        chunk = connection.recv(min(65536, MAX_JSON_BYTES + 1 - len(content)))
+        if not chunk:
+            raise EvidenceError(f"trusted supervisor closed before sending {label}")
+        content.extend(chunk)
+        newline = content.find(b"\n")
+        if newline >= 0:
+            if content[newline + 1 :]:
+                raise EvidenceError(f"trusted supervisor coalesced messages during {label}")
+            return _strict_json(bytes(content[:newline]), label)
+    raise EvidenceError(f"{label} exceeds its size bound")
+
+
+def _send_message(connection: socket.socket, value: Mapping[str, Any]) -> None:
+    connection.sendall(_json_bytes(value))
+
+
+def _validate_payload(
+    payload: Mapping[str, Any], baseline: Mapping[str, Any], phase: str, challenge: str
+) -> None:
+    common_fields = {
+        "schema_version",
+        "kind",
+        "phase",
+        "provider",
+        "challenge",
+        "provider_exit_code",
+        "transcript_sha256",
+        "transcript_locator",
+        "tool_free",
+    }
+    preflight_fields = common_fields | {
+        "expected_model",
+        "expected_effort",
+        "observed_model",
+        "observed_effort",
+        "event_sha256",
+    }
+    fields = preflight_fields if phase == "preflight" else common_fields
+    exit_code = payload.get("provider_exit_code")
+    transcript_sha = payload.get("transcript_sha256")
+    locator = payload.get("transcript_locator")
+    if (
+        set(payload) != fields
+        or payload.get("schema_version") != SCHEMA_VERSION
+        or payload.get("kind") != "supervisor-model-evidence"
+        or payload.get("phase") != phase
+        or payload.get("provider") != baseline.get("provider")
+        or payload.get("challenge") != challenge
+        or baseline.get("model_attestation_scope") != MODEL_ATTESTATION_SCOPE
+        or not isinstance(exit_code, int)
+        or isinstance(exit_code, bool)
+        or exit_code < 0
+        or exit_code > 255
+        or not isinstance(transcript_sha, str)
+        or SHA256_RE.fullmatch(transcript_sha) is None
+        or not isinstance(locator, str)
+    ):
+        raise EvidenceError("supervisor model evidence does not match the frozen host run")
+    if phase == "preflight":
+        event_sha = payload.get("event_sha256")
+        if (
+            payload.get("expected_model") != baseline.get("expected_model")
+            or payload.get("observed_model") != baseline.get("expected_model")
+            or payload.get("expected_effort") != baseline.get("expected_effort")
+            or payload.get("observed_effort") != baseline.get("expected_effort")
+            or not isinstance(event_sha, str)
+            or SHA256_RE.fullmatch(event_sha) is None
+            or exit_code != 0
+            or payload.get("tool_free") is not True
+            or locator != PREFLIGHT_LOCATORS[baseline["provider"]]
+        ):
+            raise EvidenceError("preflight was not one successful tool-free in-memory probe")
+    elif (
+        payload.get("tool_free") is not False
+        or not locator.startswith("/home/worker/")
+    ):
+        raise EvidenceError("session evidence does not name one provider transcript")
+
+
+def _receipt_bindings(baseline: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "evidence_id": baseline.get("evidence_id"),
+        "run_generation": baseline.get("run_generation"),
+        "run_id_sha256": baseline.get("run_id_sha256"),
+        "session_id_sha256": baseline.get("session_id_sha256"),
+        "git_broker_id": baseline.get("git_broker_id"),
+        "git_broker_receipt_sha256": baseline.get("git_broker_receipt_sha256"),
+        "git_startup_receipt_sha256": baseline.get("git_startup_receipt_sha256"),
+        "git_source_starting_oid": baseline.get("git_source_starting_oid"),
+        "git_authorized_ref": baseline.get("git_authorized_ref"),
+    }
+
+
+def _validate_receipt(
+    value: Mapping[str, Any], baseline: Mapping[str, Any], phase: str
+) -> None:
+    fields = {
+        "schema_version",
+        "kind",
+        "status",
+        "phase",
+        "provider",
+        "expected_model",
+        "expected_effort",
+        "observed_model",
+        "observed_effort",
+        "provider_exit_code",
+        "event_sha256",
+        "transcript_sha256",
+        "transcript_locator",
+        "tool_free",
+        "challenge_sha256",
+        "container_name",
+        "container_image_id",
+        "container_boundary",
+        "model_source_phase",
+        "model_attestation_scope",
+        "evidence_id",
+        "run_generation",
+        "run_id_sha256",
+        "session_id_sha256",
+        "git_broker_id",
+        "git_broker_receipt_sha256",
+        "git_startup_receipt_sha256",
+        "git_source_starting_oid",
+        "git_authorized_ref",
+        "container_init_host_pid",
+        "supervisor_host_pid",
+        "supervisor_host_uid",
+        "supervisor_host_gid",
+        "supervisor_starttime_ticks",
+        "preflight_receipt_sha256",
+        "recorded_at",
+    }
+    if (
+        set(value) != fields
+        or value.get("schema_version") != SCHEMA_VERSION
+        or value.get("kind") != "host-model-evidence-receipt"
+        or value.get("status") != "verified"
+        or value.get("phase") != phase
+        or value.get("provider") != baseline.get("provider")
+        or value.get("expected_model") != baseline.get("expected_model")
+        or value.get("observed_model") != baseline.get("expected_model")
+        or value.get("expected_effort") != baseline.get("expected_effort")
+        or value.get("observed_effort") != baseline.get("expected_effort")
+        or value.get("container_image_id") != baseline.get("worker_image_id")
+        or value.get("container_boundary")
+        != ("model-preflight" if phase == "preflight" else "isolated-worker")
+        or value.get("model_source_phase") != "preflight"
+        or value.get("model_attestation_scope") != MODEL_ATTESTATION_SCOPE
+        or baseline.get("model_attestation_scope") != MODEL_ATTESTATION_SCOPE
+        or any(value.get(key) != expected for key, expected in _receipt_bindings(baseline).items())
+    ):
+        raise EvidenceError("host model receipt is stale or does not match its run baseline")
+    for key in ("event_sha256", "transcript_sha256", "challenge_sha256"):
+        item = value.get(key)
+        if not isinstance(item, str) or SHA256_RE.fullmatch(item) is None:
+            raise EvidenceError("host model receipt has an invalid evidence digest")
+    if phase == "session":
+        preflight_sha = baseline.get("preflight_receipt_sha256")
+        if value.get("preflight_receipt_sha256") != preflight_sha:
+            raise EvidenceError("session evidence does not bind the current preflight")
+        if value.get("tool_free") is not False:
+            raise EvidenceError("session evidence has the wrong tool boundary")
+    elif (
+        value.get("provider_exit_code") != 0
+        or value.get("tool_free") is not True
+        or value.get("transcript_locator")
+        != PREFLIGHT_LOCATORS[baseline["provider"]]
+        or value.get("preflight_receipt_sha256") is not None
+    ):
+        raise EvidenceError("preflight receipt has the wrong zero-invocation boundary")
+
+
+def _advance_existing_receipt(
+    state: Path, baseline: Mapping[str, Any], baseline_content: bytes, phase: str
+) -> dict[str, Any] | None:
+    path = _receipt_path(state, phase)
+    if not path.exists() or path.is_symlink():
+        return None
+    content = _secure_file(path, f"host {phase} model receipt", modes={0o400})
+    value = _strict_json(content, f"host {phase} model receipt")
+    _validate_receipt(value, baseline, phase)
+    lock = _lock_descriptor(state)
+    try:
+        current, current_content = _load_baseline(state)
+        if current_content != baseline_content:
+            raise EvidenceError("model run raced while recovering host evidence")
+        refreshed = dict(current)
+        if phase == "preflight":
+            refreshed["status"] = "awaiting_session"
+            refreshed["preflight_receipt_sha256"] = _sha256(content)
+        else:
+            refreshed["status"] = "evidence_recorded"
+            refreshed["session_receipt_sha256"] = _sha256(content)
+        _atomic_write(_baseline_path(state), _json_bytes(refreshed), 0o600)
+    finally:
+        os.close(lock)
+    return value
+
+
+def _record_payload(
+    *,
+    state: Path,
+    baseline: Mapping[str, Any],
+    baseline_content: bytes,
+    phase: str,
+    payload: Mapping[str, Any],
+    challenge: str,
+    identity: Mapping[str, Any],
+) -> dict[str, Any]:
+    model_source: Mapping[str, Any] = payload
+    if phase == "session":
+        preflight_content = _secure_file(
+            _receipt_path(state, "preflight"),
+            "host preflight model receipt",
+            modes={0o400},
+        )
+        if _sha256(preflight_content) != baseline.get("preflight_receipt_sha256"):
+            raise EvidenceError("session run lost its exact host preflight receipt")
+        preflight = _strict_json(preflight_content, "host preflight model receipt")
+        _validate_receipt(preflight, baseline, "preflight")
+        model_source = preflight
+    receipt = {
+        "schema_version": SCHEMA_VERSION,
+        "kind": "host-model-evidence-receipt",
+        "status": "verified",
+        "phase": phase,
+        "provider": baseline["provider"],
+        "expected_model": baseline["expected_model"],
+        "expected_effort": baseline["expected_effort"],
+        "observed_model": model_source["observed_model"],
+        "observed_effort": model_source["observed_effort"],
+        "provider_exit_code": payload["provider_exit_code"],
+        # Positive model identity always comes from the isolated preflight.
+        # Session JSONL is provider-writable and is retained only as a
+        # run-bound audit digest, never as promotion authority.
+        "event_sha256": model_source["event_sha256"],
+        "transcript_sha256": payload["transcript_sha256"],
+        "transcript_locator": payload["transcript_locator"],
+        "tool_free": payload["tool_free"],
+        "challenge_sha256": _sha256(challenge.encode("ascii")),
+        "container_name": baseline[f"{phase}_container"],
+        "container_image_id": baseline["worker_image_id"],
+        "container_boundary": (
+            "model-preflight" if phase == "preflight" else "isolated-worker"
+        ),
+        "model_source_phase": "preflight",
+        "model_attestation_scope": MODEL_ATTESTATION_SCOPE,
+        **_receipt_bindings(baseline),
+        **identity,
+        "preflight_receipt_sha256": (
+            baseline.get("preflight_receipt_sha256") if phase == "session" else None
+        ),
+        "recorded_at": _now(),
+    }
+    content = _json_bytes(receipt)
+    lock = _lock_descriptor(state)
+    try:
+        current, current_content = _load_baseline(state)
+        if current_content != baseline_content:
+            raise EvidenceError("model run raced before host evidence commit")
+        path = _receipt_path(state, phase)
+        _atomic_write(path, content, 0o400)
+        refreshed = dict(current)
+        if phase == "preflight":
+            refreshed["status"] = "awaiting_session"
+            refreshed["preflight_receipt_sha256"] = _sha256(content)
+        else:
+            refreshed["status"] = "evidence_recorded"
+            refreshed["session_receipt_sha256"] = _sha256(content)
+        _atomic_write(_baseline_path(state), _json_bytes(refreshed), 0o600)
+    finally:
+        os.close(lock)
+    return receipt
+
+
+def receive(args: argparse.Namespace) -> dict[str, Any]:
+    if args.accept_timeout < 1 or args.timeout < 1:
+        raise EvidenceError("model evidence socket timeouts must be positive")
+    state = _secure_directory(Path(args.state_dir), "model evidence state directory")
+    phase = args.phase
+    baseline, baseline_content = _load_baseline(state)
+    expected_status = "awaiting_preflight" if phase == "preflight" else "awaiting_session"
+    completed_statuses = (
+        {"awaiting_session", "evidence_recorded"}
+        if phase == "preflight"
+        else {"evidence_recorded"}
+    )
+    if baseline.get("status") in completed_statuses:
+        content = _secure_file(
+            _receipt_path(state, phase), f"host {phase} model receipt", modes={0o400}
+        )
+        value = _strict_json(content, f"host {phase} model receipt")
+        _validate_receipt(value, baseline, phase)
+        expected_sha = baseline.get(f"{phase}_receipt_sha256")
+        if expected_sha != _sha256(content):
+            raise EvidenceError(f"completed host {phase} receipt digest changed")
+        return value
+    if baseline.get("status") != expected_status:
+        raise EvidenceError(f"model evidence phase {phase} is not currently authorized")
+    recovered = _advance_existing_receipt(state, baseline, baseline_content, phase)
+    if recovered is not None:
+        return recovered
+
+    socket_path = _socket_path(state, phase)
+    _safe_remove(socket_path, allowed_modes=(stat.S_ISSOCK,))
+    listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    listener.settimeout(args.accept_timeout)
+    bound_identity: tuple[int, int] | None = None
+    ready_identity: tuple[int, int] | None = None
+    try:
+        listener.bind(str(socket_path))
+        os.chmod(socket_path, 0o600, follow_symlinks=False)
+        info = socket_path.lstat()
+        if (
+            not stat.S_ISSOCK(info.st_mode)
+            or info.st_uid != os.geteuid()
+            or stat.S_IMODE(info.st_mode) != 0o600
+        ):
+            raise EvidenceError("host model evidence socket is unsafe")
+        bound_identity = (info.st_dev, info.st_ino)
+        listener.listen(1)
+        ready_path = _ready_path(state, phase)
+        _atomic_write(
+            ready_path,
+            _json_bytes(
+                {
+                    "schema_version": SCHEMA_VERSION,
+                    "kind": "host-model-evidence-listener-ready",
+                    "phase": phase,
+                    "evidence_id": baseline["evidence_id"],
+                    "run_generation": baseline["run_generation"],
+                    "socket_device": info.st_dev,
+                    "socket_inode": info.st_ino,
+                }
+            ),
+            0o400,
+        )
+        ready_info = ready_path.lstat()
+        ready_identity = (ready_info.st_dev, ready_info.st_ino)
+        connection, _ = listener.accept()
+        with connection:
+            connection.settimeout(args.timeout)
+            credentials = connection.getsockopt(
+                socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize("3i")
+            )
+            peer_pid, peer_uid, peer_gid = struct.unpack("3i", credentials)
+            try:
+                pidfd = os.pidfd_open(peer_pid, 0)
+            except (AttributeError, OSError) as exc:
+                raise EvidenceError("could not pin the supervisor process identity") from exc
+            try:
+                container = str(baseline[f"{phase}_container"])
+                boundary = (
+                    "model-preflight" if phase == "preflight" else "isolated-worker"
+                )
+                init_pid = _docker_init_pid(
+                    container,
+                    expected_image=str(baseline["worker_image_id"]),
+                    expected_boundary=boundary,
+                    provider=str(baseline["provider"]),
+                )
+                identity = _trusted_peer_identity(
+                    peer_pid=peer_pid,
+                    peer_uid=peer_uid,
+                    peer_gid=peer_gid,
+                    init_pid=init_pid,
+                    phase=phase,
+                    provider=str(baseline["provider"]),
+                )
+                hello = _read_message(connection, "supervisor hello")
+                if hello != {
+                    "schema_version": SCHEMA_VERSION,
+                    "kind": "supervisor-model-evidence-hello",
+                    "phase": phase,
+                    "provider": baseline["provider"],
+                }:
+                    raise EvidenceError("peer did not present the exact supervisor hello")
+                challenge = secrets.token_hex(32)
+                _send_message(
+                    connection,
+                    {
+                        "schema_version": SCHEMA_VERSION,
+                        "kind": "host-model-evidence-ack",
+                        "status": "accepted",
+                        "phase": phase,
+                        "provider": baseline["provider"],
+                        "challenge": challenge,
+                    },
+                )
+                if phase == "session":
+                    # The authority-bearing provider may legitimately run for
+                    # hours.  Its container lifetime is the watchdog; a crash
+                    # closes this already authenticated descriptor immediately.
+                    connection.settimeout(None)
+                payload = _read_message(connection, "supervisor model evidence")
+                try:
+                    signal.pidfd_send_signal(pidfd, 0, None, 0)
+                except (AttributeError, OSError) as exc:
+                    raise EvidenceError(
+                        "authenticated supervisor exited before evidence commit"
+                    ) from exc
+                _, final_starttime = _process_stat(Path("/proc"), peer_pid)
+                if final_starttime != identity["supervisor_starttime_ticks"]:
+                    raise EvidenceError("supervisor process identity changed during the run")
+                _validate_payload(payload, baseline, phase, challenge)
+                receipt = _record_payload(
+                    state=state,
+                    baseline=baseline,
+                    baseline_content=baseline_content,
+                    phase=phase,
+                    payload=payload,
+                    challenge=challenge,
+                    identity=identity,
+                )
+                receipt_content = _secure_file(
+                    _receipt_path(state, phase),
+                    f"committed host {phase} model receipt",
+                    modes={0o400},
+                )
+                _send_message(
+                    connection,
+                    {
+                        "schema_version": SCHEMA_VERSION,
+                        "kind": "host-model-evidence-committed",
+                        "status": "committed",
+                        "phase": phase,
+                        "provider": baseline["provider"],
+                        "challenge": challenge,
+                        "receipt_sha256": _sha256(receipt_content),
+                    },
+                )
+                return receipt
+            finally:
+                os.close(pidfd)
+    finally:
+        listener.close()
+        if ready_identity is not None:
+            ready_path = _ready_path(state, phase)
+            try:
+                ready_info = ready_path.lstat()
+            except FileNotFoundError:
+                pass
+            else:
+                if (
+                    stat.S_ISREG(ready_info.st_mode)
+                    and (ready_info.st_dev, ready_info.st_ino) == ready_identity
+                ):
+                    ready_path.unlink()
+        if bound_identity is not None:
+            try:
+                observed = socket_path.lstat()
+            except FileNotFoundError:
+                pass
+            else:
+                if (
+                    stat.S_ISSOCK(observed.st_mode)
+                    and (observed.st_dev, observed.st_ino) == bound_identity
+                ):
+                    socket_path.unlink()
+
+
+def inspect(args: argparse.Namespace) -> dict[str, Any]:
+    state = _secure_directory(Path(args.state_dir), "model evidence state directory")
+    baseline, content = _load_baseline(state)
+    return {
+        "status": baseline.get("status"),
+        "run_generation": baseline.get("run_generation"),
+        "baseline_sha256": _sha256(content),
+        "preflight_socket": str(_socket_path(state, "preflight")),
+        "session_socket": str(_socket_path(state, "session")),
+        "preflight_ready": str(_ready_path(state, "preflight")),
+        "session_ready": str(_ready_path(state, "session")),
+    }
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="model-evidence-broker")
+    subparsers = parser.add_subparsers(dest="action", required=True)
+    capability_parser = subparsers.add_parser("capability")
+    capability_parser.add_argument("--provider", choices=tuple(EXPECTED), required=True)
+    begin_parser = subparsers.add_parser("begin-run")
+    begin_parser.add_argument("--state-dir", required=True)
+    begin_parser.add_argument("--git-state-dir", required=True)
+    begin_parser.add_argument("--provider", choices=tuple(EXPECTED), required=True)
+    begin_parser.add_argument("--session-id", required=True)
+    begin_parser.add_argument("--run-id", required=True)
+    begin_parser.add_argument("--preflight-container", required=True)
+    begin_parser.add_argument("--session-container", required=True)
+    begin_parser.add_argument("--image-id", required=True)
+    receive_parser = subparsers.add_parser("receive")
+    receive_parser.add_argument("--state-dir", required=True)
+    receive_parser.add_argument("--phase", choices=("preflight", "session"), required=True)
+    receive_parser.add_argument("--accept-timeout", type=int, default=15)
+    receive_parser.add_argument("--timeout", type=int, default=210)
+    inspect_parser = subparsers.add_parser("inspect")
+    inspect_parser.add_argument("--state-dir", required=True)
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = _parser()
+    args = parser.parse_args(list(argv) if argv is not None else None)
+    actions = {
+        "capability": capability,
+        "begin-run": begin_run,
+        "receive": receive,
+        "inspect": inspect,
+    }
+    try:
+        result = actions[args.action](args)
+    except Exception as exc:  # noqa: BLE001 - the host broker must fail closed.
+        print(f"Model evidence broker rejected {args.action}: {exc}", file=sys.stderr)
+        return 70
+    print(json.dumps(result, sort_keys=True, separators=(",", ":")))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

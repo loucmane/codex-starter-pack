@@ -1,0 +1,272 @@
+{
+  "entries": [
+    {
+      "destination": "aegis_foundation/__init__.py",
+      "destination_mode": "0444",
+      "sha256": "2cb8302033c9b55d7346dc09c8d2815f7400f43c5a7ff986743431618a5b37b6",
+      "source": "aegis_foundation/__init__.py",
+      "source_mode": "0644"
+    },
+    {
+      "destination": "aegis_foundation/gas_city_authority.py",
+      "destination_mode": "0444",
+      "sha256": "16c077f4c8bff74fb54425c17792eab2301edcf947690d26c09de93cf4205e4b",
+      "source": "aegis_foundation/gas_city_authority.py",
+      "source_mode": "0644"
+    },
+    {
+      "destination": "aegis_foundation/gas_city_endpoint.py",
+      "destination_mode": "0444",
+      "sha256": "3d3cb87ebbbc54f66f5cc76add910af751a033481313856b00fe778abe2782b6",
+      "source": "aegis_foundation/gas_city_endpoint.py",
+      "source_mode": "0644"
+    },
+    {
+      "destination": "aegis_foundation/gas_city_ops.py",
+      "destination_mode": "0444",
+      "sha256": "6e50dde2fc2dbff3e38c21aa1ec8de1de88ab5c8755ddd288128284109acec18",
+      "source": "aegis_foundation/gas_city_ops.py",
+      "source_mode": "0644"
+    },
+    {
+      "destination": "aegis_foundation/obsidian_vault.py",
+      "destination_mode": "0444",
+      "sha256": "dd6e861936ebdc77410319d47e9313053f4c7657dc430c4e089389cba07125da",
+      "source": "aegis_foundation/obsidian_vault.py",
+      "source_mode": "0644"
+    },
+    {
+      "destination": "aegis_foundation/task_authority.py",
+      "destination_mode": "0444",
+      "sha256": "5ea3e3cad6b71fbaf6c976c0ba5e1e948fc0cb1267575c5611a8d3bde9c1c11f",
+      "source": "aegis_foundation/task_authority.py",
+      "source_mode": "0644"
+    },
+    {
+      "destination": "aegis_foundation/taskmaster_beads.py",
+      "destination_mode": "0444",
+      "sha256": "d138422ab0d59849dd638eec05ef3301f5d6764817e94244bfb26240525876b0",
+      "source": "aegis_foundation/taskmaster_beads.py",
+      "source_mode": "0644"
+    },
+    {
+      "destination": "aegis_foundation/version.py",
+      "destination_mode": "0444",
+      "sha256": "484cb01710a332ba38751fb70834bde71e9b4613dc960fcb9ebc5404ad5a5bf7",
+      "source": "aegis_foundation/version.py",
+      "source_mode": "0644"
+    },
+    {
+      "destination": "bin/bd",
+      "destination_mode": "0555",
+      "sha256": "f7dcf3d22eae0bf09d764a9a47ab5c6e263ee91b19f2243d9e0e077561cceb1e",
+      "source": "artifacts/bd",
+      "source_mode": "0555"
+    },
+    {
+      "destination": "bin/dolt",
+      "destination_mode": "0555",
+      "sha256": "72352f1d882472a7a8d6124e9c4dc12f80e2c2359ea95f1424c032e9250e35e6",
+      "source": "artifacts/dolt",
+      "source_mode": "0555"
+    },
+    {
+      "destination": "bin/gc",
+      "destination_mode": "0555",
+      "sha256": "ee26f66f39be5bde1f3ab1cc28115f57c6c553b595add893bba93fd2bfd2f637",
+      "source": "artifacts/gc",
+      "source_mode": "0555"
+    },
+    {
+      "destination": "bin/aegis-claude",
+      "destination_mode": "0755",
+      "sha256": "2e56758d87b75f44ef866f5572cd02a8cf98be4fa26f2da763cc309b68965f2d",
+      "source": "bin/aegis-claude",
+      "source_mode": "0755"
+    },
+    {
+      "destination": "bin/aegis-codex",
+      "destination_mode": "0755",
+      "sha256": "1e999c62ea508ba15de6eb86b49b92b6a6c126b71de981ba5f55c606ee29f5f3",
+      "source": "bin/aegis-codex",
+      "source_mode": "0755"
+    },
+    {
+      "destination": "bin/claude-container",
+      "destination_mode": "0755",
+      "sha256": "460c6e661e224045161fac1deb995fa558ee1a8457b1bf99573e5c1dcbb370b0",
+      "source": "bin/claude-container",
+      "source_mode": "0755"
+    },
+    {
+      "destination": "bin/codex-container",
+      "destination_mode": "0755",
+      "sha256": "617067dc4952afccfb08b36dbed19dc51e828750ec231e08dcef38d30fca2d30",
+      "source": "bin/codex-container",
+      "source_mode": "0755"
+    },
+    {
+      "destination": "bin/compose-locked",
+      "destination_mode": "0755",
+      "sha256": "4461430a6df3b85c03955bdebedaceb18f97aea91403ba28152747a100f543b0",
+      "source": "bin/compose-locked",
+      "source_mode": "0755"
+    },
+    {
+      "destination": "bin/gas-city-admin",
+      "destination_mode": "0755",
+      "sha256": "8d87fb6e9c26d680649ed0b70382c118a88c3b7a5d48a742e58062af6dd49ded",
+      "source": "bin/gas-city-admin",
+      "source_mode": "0755"
+    },
+    {
+      "destination": "bin/git-worktree-broker",
+      "destination_mode": "0755",
+      "sha256": "8b78c1ebba012c1b8c1c615a1ce6203c3f3e10e079afcd3768398e9fab4725f8",
+      "source": "bin/git-worktree-broker",
+      "source_mode": "0755"
+    },
+    {
+      "destination": "bin/github-app-token-broker",
+      "destination_mode": "0700",
+      "sha256": "17e8c4f8ec4ec38d0343ae33c6a384ed5e5e3d4291434f625370fd48ca7a5f7a",
+      "source": "bin/github-app-token-broker",
+      "source_mode": "0755"
+    },
+    {
+      "destination": "bin/locked-images",
+      "destination_mode": "0755",
+      "sha256": "9174c9b550d4e080f2cd320f1a2d5ffdff396ea0455a1b188d32da5949810dc9",
+      "source": "bin/locked-images",
+      "source_mode": "0755"
+    },
+    {
+      "destination": "bin/model-evidence-broker",
+      "destination_mode": "0700",
+      "sha256": "075f7c6ea78e4475001af40d5db4af15a3a12bfe7f6150fbaef7060500d638d1",
+      "source": "bin/model-evidence-broker",
+      "source_mode": "0755"
+    },
+    {
+      "destination": "bin/prepare-worker-boundary",
+      "destination_mode": "0755",
+      "sha256": "7bb2847e5c5c8cd72c6ca2a37319eb5111c40b94fe7055eed86232827822cd0d",
+      "source": "bin/prepare-worker-boundary",
+      "source_mode": "0755"
+    },
+    {
+      "destination": "bin/provider-auth-bootstrap",
+      "destination_mode": "0755",
+      "sha256": "93c04faff979de9d404063edce9c3a300468ca4090fffed2d330d7367eb84f50",
+      "source": "bin/provider-auth-bootstrap",
+      "source_mode": "0755"
+    },
+    {
+      "destination": "bin/provider-container",
+      "destination_mode": "0755",
+      "sha256": "401fa6281c605dda851f0a385f6852cb2c60ffffb170aa7ecd320a56690c1494",
+      "source": "bin/provider-container",
+      "source_mode": "0755"
+    },
+    {
+      "destination": "bin/provision-control-plane",
+      "destination_mode": "0755",
+      "sha256": "3bfdc3b85f58c1def3fdf97b09722e4814c4add203291aaeead47f0a8df3ba23",
+      "source": "bin/provision-control-plane",
+      "source_mode": "0755"
+    },
+    {
+      "destination": "bin/task-master",
+      "destination_mode": "0755",
+      "sha256": "5e04962c3fc6267fa9d51d5200499f30da825d14c59e8dc8c766ad1a58474ad3",
+      "source": "bin/task-master",
+      "source_mode": "0755"
+    },
+    {
+      "destination": "bin/with-aegis-authority",
+      "destination_mode": "0755",
+      "sha256": "ff15782ef1443d33363e89a6ebcf3f69e6fc9aef129ede5a8dfad4e937b03cab",
+      "source": "bin/with-aegis-authority",
+      "source_mode": "0755"
+    },
+    {
+      "destination": "compose.yaml",
+      "destination_mode": "0644",
+      "sha256": "8664651c3281cb07098a958d9043d6d5ee5275d38896e5b6b313e7753b95be8b",
+      "source": "compose.yaml",
+      "source_mode": "0644"
+    },
+    {
+      "destination": "city.toml",
+      "destination_mode": "0644",
+      "sha256": "a029d1b7d0921c18a89fc7de5415f07f947a202527e28e8961ec8d4c95ce1875",
+      "source": "config/city.toml",
+      "source_mode": "0644"
+    },
+    {
+      "destination": "city.worker.toml",
+      "destination_mode": "0644",
+      "sha256": "a6d5aa258d4036598eb877433c055d9be569e52053609b4b8e89898fb58a0ccf",
+      "source": "config/city.worker.toml",
+      "source_mode": "0644"
+    },
+    {
+      "destination": "provider-config/claude-settings.json",
+      "destination_mode": "0644",
+      "sha256": "ac30ef69c1ab3fb30438ff8102aadf54c5b99a7dcfc982d68d20a75ef1396381",
+      "source": "config/claude-settings.json",
+      "source_mode": "0644"
+    },
+    {
+      "destination": "provider-config/codex-preflight-models.json",
+      "destination_mode": "0644",
+      "sha256": "1487260f5deb22b5da6c3d306ae06444fc207b69881440dcc010cacb029f419c",
+      "source": "config/codex-preflight-models.json",
+      "source_mode": "0644"
+    },
+    {
+      "destination": "provider-config/codex.toml",
+      "destination_mode": "0644",
+      "sha256": "2051ebce511cc7bc01f6243b8b7a8ff4c1d358c90103058b96e05a045419accf",
+      "source": "config/codex.toml",
+      "source_mode": "0644"
+    },
+    {
+      "destination": "pack.toml",
+      "destination_mode": "0644",
+      "sha256": "6e211f4763384b65edaf0433fcb75abae0b58c9b986b9251ffaa86b9231e96d8",
+      "source": "config/pack.toml",
+      "source_mode": "0644"
+    },
+    {
+      "destination": "packs.lock",
+      "destination_mode": "0644",
+      "sha256": "9b574b9b730fdb493b6fa0706818a4977e6ddb520d74688971627ecbb7646573",
+      "source": "config/packs.lock",
+      "source_mode": "0644"
+    },
+    {
+      "destination": ".gc/site.toml",
+      "destination_mode": "0600",
+      "sha256": "8ba96ee51b4ace29ff98ee56a28a6897e2e0d5c73478a2b389b9c8ff57642ffd",
+      "source": "config/site.example.toml",
+      "source_mode": "0644"
+    },
+    {
+      "destination": "runtime/authority/task-authority.py",
+      "destination_mode": "0444",
+      "sha256": "5ea3e3cad6b71fbaf6c976c0ba5e1e948fc0cb1267575c5611a8d3bde9c1c11f",
+      "source": "docker/task-authority.py",
+      "source_mode": "0644"
+    },
+    {
+      "destination": "formulas/aegis/mol-polecat-work.toml",
+      "destination_mode": "0644",
+      "sha256": "64deaf49c6163d8f15c691675aa11af0eae222a09a2dd9755f21dada1df9a01f",
+      "source": "formulas/aegis/mol-polecat-work.toml",
+      "source_mode": "0644"
+    }
+  ],
+  "kind": "gas-city-control-plane",
+  "schema_version": 1
+}

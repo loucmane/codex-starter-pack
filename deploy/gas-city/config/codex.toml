@@ -1,0 +1,9 @@
+model = "gpt-5.6-sol"
+model_reasoning_effort = "xhigh"
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
+check_for_update_on_startup = false
+
+# The outer non-root, capability-free, read-only Docker boundary is the sandbox.
+# Disabling Codex's nested bwrap sandbox keeps Docker's default seccomp profile
+# intact. No MCP memory server is configured in this production phase.

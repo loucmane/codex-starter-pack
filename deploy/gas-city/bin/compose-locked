@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+
+: "${GC_CITY_ROOT:=/home/loucmane/gas-city}"
+city_root=$(realpath -e "$GC_CITY_ROOT")
+lock="$city_root/runtime-lock.json"
+image_reader="$city_root/bin/locked-images"
+[[ -x "$image_reader" ]]
+
+stage_receipt=
+if [[ ${1:-} == "--provisioning-stage" ]]; then
+  [[ $# -ge 3 ]] || {
+    echo "compose-locked: --provisioning-stage requires a receipt and command" >&2
+    exit 64
+  }
+  stage_receipt=$(realpath -e "$2")
+  shift 2
+  bootstrap_services=(hq-dolt aegis-dolt hq-egress-proxy aegis-egress-proxy hq-dolt-loopback aegis-dolt-loopback)
+  case ${1:-} in
+    up)
+      [[ $# -eq 8 && ${2:-} == "--detach" \
+        && ${3:-} == "${bootstrap_services[0]}" \
+        && ${4:-} == "${bootstrap_services[1]}" \
+        && ${5:-} == "${bootstrap_services[2]}" \
+        && ${6:-} == "${bootstrap_services[3]}" \
+        && ${7:-} == "${bootstrap_services[4]}" \
+        && ${8:-} == "${bootstrap_services[5]}" ]] || {
+        echo "compose-locked: staged up is limited to the exact six bootstrap services" >&2
+        exit 64
+      }
+      ;;
+    stop)
+      [[ $# -eq 7 \
+        && ${2:-} == "${bootstrap_services[0]}" \
+        && ${3:-} == "${bootstrap_services[1]}" \
+        && ${4:-} == "${bootstrap_services[2]}" \
+        && ${5:-} == "${bootstrap_services[3]}" \
+        && ${6:-} == "${bootstrap_services[4]}" \
+        && ${7:-} == "${bootstrap_services[5]}" ]] || {
+        echo "compose-locked: staged stop is limited to the exact six bootstrap services" >&2
+        exit 64
+      }
+      ;;
+    ps)
+      [[ $# -eq 1 || ( $# -eq 3 && ${2:-} == "--format" && ${3:-} == "json" ) ]] || {
+        echo "compose-locked: staged ps accepts only optional --format json" >&2
+        exit 64
+      }
+      ;;
+    logs)
+      [[ $# -eq 8 && ${2:-} == "--no-color" \
+        && ${3:-} == "${bootstrap_services[0]}" \
+        && ${4:-} == "${bootstrap_services[1]}" \
+        && ${5:-} == "${bootstrap_services[2]}" \
+        && ${6:-} == "${bootstrap_services[3]}" \
+        && ${7:-} == "${bootstrap_services[4]}" \
+        && ${8:-} == "${bootstrap_services[5]}" ]] || {
+        echo "compose-locked: staged logs is limited to the exact six bootstrap services" >&2
+        exit 64
+      }
+      ;;
+    down)
+      [[ $# -eq 1 ]] || {
+        echo "compose-locked: staged down accepts no additional arguments" >&2
+        exit 64
+      }
+      ;;
+    *)
+      echo "compose-locked: command is not permitted during staged provisioning" >&2
+      exit 64
+      ;;
+  esac
+  "$image_reader" --verify-staged "$lock" "$stage_receipt" >/dev/null
+  GAS_CITY_DOLT_IMAGE=$("$image_reader" --staged-image "$lock" "$stage_receipt" dolt_server)
+  GAS_CITY_EGRESS_PROXY_IMAGE=$("$image_reader" --staged-image "$lock" "$stage_receipt" egress_proxy)
+  claude_image=$("$image_reader" --staged-image "$lock" "$stage_receipt" claude_worker)
+  codex_image=$("$image_reader" --staged-image "$lock" "$stage_receipt" codex_worker)
+else
+  GAS_CITY_DOLT_IMAGE=$("$image_reader" "$lock" dolt_server)
+  GAS_CITY_EGRESS_PROXY_IMAGE=$("$image_reader" "$lock" egress_proxy)
+  claude_image=$("$image_reader" "$lock" claude_worker)
+  codex_image=$("$image_reader" "$lock" codex_worker)
+fi
+export GAS_CITY_DOLT_IMAGE GAS_CITY_EGRESS_PROXY_IMAGE
+
+for image in "$GAS_CITY_DOLT_IMAGE" "$GAS_CITY_EGRESS_PROXY_IMAGE" \
+  "$claude_image" "$codex_image"; do
+  docker image inspect "$image" >/dev/null
+done
+
+exec docker compose --project-directory "$city_root" \
+  --file "$city_root/compose.yaml" "$@"

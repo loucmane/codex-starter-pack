@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' 'Taskmaster is read-only rollback evidence for this enrolled session; use authoritative Beads.' >&2
+exit 77

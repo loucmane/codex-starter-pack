@@ -1,0 +1,1535 @@
+#!/usr/bin/python3 -I
+"""Crash-aware phased installer for the shared Gas City control plane."""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import stat
+import subprocess
+import sys
+import tempfile
+from typing import Any, Mapping, Sequence
+
+
+sys.dont_write_bytecode = True
+SOURCE_ROOT = Path(__file__).resolve().parents[1]
+DEFERRED_DESTINATIONS = frozenset(
+    {"city.toml", "pack.toml", "packs.lock", ".gc/site.toml"}
+)
+METADATA_DESTINATIONS = (
+    ("control-plane-manifest.json", 0o644),
+    ("runtime-lock.json", 0o600),
+)
+STAGE_SCHEMA = 1
+ACTIVATION_SCHEMA = 1
+INTENT_SCHEMA = 1
+SHA256 = frozenset("0123456789abcdef")
+
+
+class ProvisionError(RuntimeError):
+    """Raised when a provisioning invariant is not proven."""
+
+
+def _sha256(content: bytes) -> str:
+    return hashlib.sha256(content).hexdigest()
+
+
+def _json_bytes(value: object) -> bytes:
+    return (json.dumps(value, indent=2, sort_keys=True) + "\n").encode()
+
+
+def _utc_now() -> str:
+    return dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _strict_json(content: bytes, *, label: str) -> dict[str, Any]:
+    try:
+        value = json.loads(content)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ProvisionError(f"{label} is not strict JSON") from exc
+    if type(value) is not dict:
+        raise ProvisionError(f"{label} must contain one object")
+    return value
+
+
+def _canonical_existing(path: Path, *, label: str) -> Path:
+    if not path.is_absolute():
+        raise ProvisionError(f"{label} must be absolute")
+    try:
+        canonical = path.resolve(strict=True)
+    except OSError as exc:
+        raise ProvisionError(f"{label} does not exist: {path}") from exc
+    if path.is_symlink() or not canonical.is_dir():
+        raise ProvisionError(f"{label} must be a real directory")
+    return canonical
+
+
+def _canonical_target(path: Path, *, label: str) -> Path:
+    if not path.is_absolute():
+        raise ProvisionError(f"{label} must be absolute")
+    parent = _canonical_existing(path.parent, label=f"{label} parent")
+    target = parent / path.name
+    if target.exists() or target.is_symlink():
+        canonical = target.resolve(strict=True)
+        if canonical != target or target.is_symlink() or not target.is_dir():
+            raise ProvisionError(f"{label} must be a real directory")
+    else:
+        target.mkdir(mode=0o700)
+        canonical = target
+    if stat.S_IMODE(canonical.stat().st_mode) & 0o077:
+        raise ProvisionError(f"{label} must be owner-only")
+    return canonical
+
+
+def _regular_bytes(
+    path: Path,
+    *,
+    label: str,
+    expected_mode: int | None = None,
+    private: bool = False,
+) -> bytes:
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    except OSError as exc:
+        raise ProvisionError(f"{label} must be a real non-symlink file") from exc
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+            raise ProvisionError(f"{label} must be one regular file")
+        mode = stat.S_IMODE(before.st_mode)
+        if expected_mode is not None and mode != expected_mode:
+            raise ProvisionError(f"{label} mode must be {expected_mode:04o}")
+        if private and (before.st_uid != os.getuid() or mode & 0o077):
+            raise ProvisionError(f"{label} must be owner-private")
+        chunks: list[bytes] = []
+        while True:
+            chunk = os.read(descriptor, 1024 * 1024)
+            if not chunk:
+                break
+            chunks.append(chunk)
+        content = b"".join(chunks)
+        after = os.fstat(descriptor)
+        if (
+            before.st_dev,
+            before.st_ino,
+            before.st_size,
+            before.st_mtime_ns,
+            before.st_ctime_ns,
+            before.st_mode,
+        ) != (
+            after.st_dev,
+            after.st_ino,
+            after.st_size,
+            after.st_mtime_ns,
+            after.st_ctime_ns,
+            after.st_mode,
+        ) or len(content) != after.st_size:
+            raise ProvisionError(f"{label} changed while being read")
+        return content
+    finally:
+        os.close(descriptor)
+
+
+def _atomic_write(path: Path, content: bytes, mode: int, *, replace: bool) -> None:
+    missing: list[Path] = []
+    cursor = path.parent
+    while not cursor.exists() and not cursor.is_symlink():
+        missing.append(cursor)
+        if cursor == cursor.parent:
+            raise ProvisionError(f"destination has no trusted parent: {path}")
+        cursor = cursor.parent
+    if cursor.is_symlink() or not cursor.is_dir():
+        raise ProvisionError(f"unsafe destination ancestry: {cursor}")
+    for directory in reversed(missing):
+        directory.mkdir(mode=0o700)
+        directory.chmod(0o700)
+    cursor = path.parent
+    while True:
+        metadata = cursor.lstat()
+        if not stat.S_ISDIR(metadata.st_mode) or stat.S_ISLNK(metadata.st_mode):
+            raise ProvisionError(f"unsafe destination parent: {cursor}")
+        if cursor == cursor.parent:
+            break
+        cursor = cursor.parent
+    descriptor, raw = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary = Path(raw)
+    try:
+        os.fchmod(descriptor, mode)
+        with os.fdopen(descriptor, "wb", closefd=True) as stream:
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
+        if not replace and (path.exists() or path.is_symlink()):
+            raise ProvisionError(f"append-only evidence already exists: {path}")
+        os.replace(temporary, path)
+        directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    finally:
+        if temporary.exists() or temporary.is_symlink():
+            temporary.unlink()
+
+
+def _run(
+    arguments: Sequence[str],
+    *,
+    cwd: Path,
+    environment: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
+    result = subprocess.run(
+        tuple(arguments),
+        cwd=cwd,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+        env=dict(os.environ if environment is None else environment),
+    )
+    evidence = {
+        "argv": list(arguments),
+        "cwd": cwd.as_posix(),
+        "returncode": result.returncode,
+        "stdout_sha256": _sha256(result.stdout.encode()),
+        "stderr_sha256": _sha256(result.stderr.encode()),
+    }
+    if result.returncode != 0:
+        message = result.stderr.strip() or result.stdout.strip()
+        raise ProvisionError(f"command failed ({' '.join(arguments)}): {message}")
+    evidence["stdout"] = result.stdout
+    return evidence
+
+
+def _tool_environment(directory: Path) -> dict[str, str]:
+    """Prefer one already verified gc/bd/dolt sibling directory."""
+
+    env = dict(os.environ)
+    inherited = env.get("PATH", "")
+    env["PATH"] = directory.as_posix() + (os.pathsep + inherited if inherited else "")
+    return env
+
+
+def _gc_init_environment(source: Path) -> dict[str, str]:
+    """Keep an inert init away from both managed and external Dolt services."""
+
+    env = _tool_environment(source / "artifacts")
+    env["GC_DOLT"] = "skip"
+    return env
+
+
+def _manifest_contract(source: Path) -> tuple[bytes, dict[str, Any], list[dict[str, str]]]:
+    lock_bytes = _regular_bytes(
+        source / "runtime-lock.json", label="source runtime lock", expected_mode=0o644
+    )
+    manifest_bytes = _regular_bytes(
+        source / "control-plane-manifest.json",
+        label="source control-plane manifest",
+        expected_mode=0o644,
+    )
+    lock = _strict_json(lock_bytes, label="source runtime lock")
+    manifest = _strict_json(manifest_bytes, label="source control-plane manifest")
+    if lock.get("status") != "staged_pending_provisioning" or lock.get(
+        "control_plane_manifest"
+    ) != {
+        "path": "control-plane-manifest.json",
+        "sha256": _sha256(manifest_bytes),
+    }:
+        raise ProvisionError("source runtime lock does not bind the staged manifest")
+    entries = manifest.get("entries")
+    if (
+        set(manifest) != {"schema_version", "kind", "entries"}
+        or manifest.get("schema_version") != 1
+        or manifest.get("kind") != "gas-city-control-plane"
+        or type(entries) is not list
+        or not entries
+    ):
+        raise ProvisionError("source control-plane manifest is invalid")
+    normalized: list[dict[str, str]] = []
+    destinations: set[str] = set()
+    sources: set[str] = set()
+    for record in entries:
+        if type(record) is not dict or set(record) != {
+            "source",
+            "destination",
+            "sha256",
+            "source_mode",
+            "destination_mode",
+        }:
+            raise ProvisionError("source control-plane entry is invalid")
+        if record["source"] in sources or record["destination"] in destinations:
+            raise ProvisionError("source control-plane manifest aliases a path")
+        if (
+            Path(record["source"]).is_absolute()
+            or Path(record["destination"]).is_absolute()
+            or ".." in Path(record["source"]).parts
+            or ".." in Path(record["destination"]).parts
+            or len(record["sha256"]) != 64
+            or any(character not in SHA256 for character in record["sha256"])
+        ):
+            raise ProvisionError("source control-plane manifest path or digest is invalid")
+        content = _regular_bytes(
+            source / record["source"],
+            label=f"source control-plane file {record['source']}",
+            expected_mode=int(record["source_mode"], 8),
+        )
+        if _sha256(content) != record["sha256"]:
+            raise ProvisionError(f"source control-plane file drift: {record['source']}")
+        normalized.append(record)
+        sources.add(record["source"])
+        destinations.add(record["destination"])
+    if "bin/provision-control-plane" not in sources:
+        raise ProvisionError("source manifest omits the provisioner")
+    self_record = next(
+        item for item in normalized if item["source"] == "bin/provision-control-plane"
+    )
+    if Path(__file__).resolve() != source / self_record["source"]:
+        raise ProvisionError("provisioner is not executing from the verified source root")
+    verifier = source / "bin" / "locked-images"
+    _run((verifier.as_posix(), "--verify-source", source.as_posix()), cwd=source)
+    return lock_bytes, lock, normalized
+
+
+def _verify_tools(source: Path, lock: Mapping[str, Any]) -> dict[str, Any]:
+    commands = {
+        "gc": ("version",),
+        "bd": ("version",),
+        "dolt": ("version",),
+    }
+    observed: dict[str, Any] = {}
+    for name, tail in commands.items():
+        record = lock.get("tools", {}).get(name)
+        binary = source / "artifacts" / name
+        content = _regular_bytes(binary, label=f"source {name} binary")
+        if type(record) is not dict or _sha256(content) != record.get("binary_sha256"):
+            raise ProvisionError(f"source {name} binary conflicts with runtime lock")
+        command = _run((binary.as_posix(), *tail), cwd=source)
+        output = command.pop("stdout").strip()
+        if str(record.get("version")) not in output:
+            raise ProvisionError(f"source {name} version output conflicts with runtime lock")
+        observed[name] = {
+            "path": binary.as_posix(),
+            "sha256": _sha256(content),
+            "version": record["version"],
+            "command": command,
+        }
+    return observed
+
+
+def _supervisor_stopped(gc: Path, city: Path) -> dict[str, Any]:
+    command = _run(
+        (gc.as_posix(), "--city", city.as_posix(), "supervisor", "status", "--json"),
+        cwd=city,
+        environment=_tool_environment(gc.parent),
+    )
+    try:
+        value = json.loads(command.pop("stdout"))
+    except json.JSONDecodeError as exc:
+        raise ProvisionError("gc supervisor status did not return JSON") from exc
+    home = Path(os.environ.get("HOME", "")).resolve()
+    runtime = Path(
+        os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
+    ).resolve()
+    expected_paths = [
+        (runtime / "gc" / "supervisor.sock").as_posix(),
+        (home / ".gc" / "supervisor.sock").as_posix(),
+    ]
+    if value != {
+        "schema_version": "1",
+        "ok": True,
+        "running": False,
+        "pid": 0,
+        "socket_path": "",
+        "checked_paths": expected_paths,
+    }:
+        raise ProvisionError("gc supervisor status does not prove the machine supervisor stopped")
+    provider_pid = city / ".gc/runtime/packs/dolt/dolt.pid"
+    if provider_pid.exists() or provider_pid.is_symlink():
+        raise ProvisionError("managed Dolt pid exists while provisioning")
+    provider_state = city / ".gc/runtime/packs/dolt/dolt-provider-state.json"
+    if provider_state.exists() or provider_state.is_symlink():
+        state = _strict_json(
+            _regular_bytes(provider_state, label="managed Dolt provider state"),
+            label="managed Dolt provider state",
+        )
+        if state.get("running") is not False or state.get("pid") != 0:
+            raise ProvisionError("managed Dolt provider state does not prove stopped")
+    return {"status": value, "command": command}
+
+
+def _path_state(path: Path, *, root: Path) -> dict[str, Any]:
+    relative = path.relative_to(root).as_posix()
+    if not path.exists() and not path.is_symlink():
+        return {"destination": relative, "present": False}
+    content = _regular_bytes(path, label=f"destination {relative}")
+    observed = path.stat()
+    return {
+        "destination": relative,
+        "present": True,
+        "mode": stat.S_IMODE(observed.st_mode),
+        "size": len(content),
+        "sha256": _sha256(content),
+    }
+
+
+def _state_matches(path: Path, state: Mapping[str, Any], *, root: Path) -> bool:
+    return _path_state(path, root=root) == dict(state)
+
+
+def _validate_recorded_state(state: Any, *, destination: str) -> None:
+    """Reject forged or structurally incomplete transaction path states."""
+
+    if not isinstance(state, dict) or state.get("destination") != destination:
+        raise ProvisionError(f"recorded destination state is invalid: {destination}")
+    if state.get("present") is False:
+        if set(state) != {"destination", "present"}:
+            raise ProvisionError(f"absent destination state is invalid: {destination}")
+        return
+    if (
+        state.get("present") is not True
+        or set(state) != {"destination", "present", "mode", "size", "sha256"}
+        or type(state.get("mode")) is not int
+        or not 0 <= state["mode"] <= 0o7777
+        or type(state.get("size")) is not int
+        or state["size"] < 0
+        or type(state.get("sha256")) is not str
+        or len(state["sha256"]) != 64
+        or any(character not in SHA256 for character in state["sha256"])
+    ):
+        raise ProvisionError(f"present destination state is invalid: {destination}")
+
+
+def _backup_before(
+    city: Path,
+    transaction: Path,
+    destinations: Sequence[str],
+) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    for relative in destinations:
+        path = city / relative
+        state = _path_state(path, root=city)
+        result.append(state)
+        if state["present"]:
+            content = _regular_bytes(path, label=f"prior destination {relative}")
+            backup = transaction / "backup" / relative
+            _atomic_write(backup, content, 0o600, replace=False)
+    return result
+
+
+def _install_record(
+    source: Path,
+    city: Path,
+    record: Mapping[str, str],
+    before: Mapping[str, Mapping[str, Any]],
+) -> None:
+    destination = city / record["destination"]
+    expected = {
+        "destination": record["destination"],
+        "present": True,
+        "mode": int(record["destination_mode"], 8),
+        "size": (source / record["source"]).stat().st_size,
+        "sha256": record["sha256"],
+    }
+    current = _path_state(destination, root=city)
+    if current == expected:
+        return
+    if current != before[record["destination"]]:
+        raise ProvisionError(f"destination changed outside transaction: {record['destination']}")
+    content = _regular_bytes(source / record["source"], label=record["source"])
+    _atomic_write(destination, content, int(record["destination_mode"], 8), replace=True)
+
+
+def _install_metadata(
+    source: Path,
+    city: Path,
+    before: Mapping[str, Mapping[str, Any]],
+) -> None:
+    for relative, mode in METADATA_DESTINATIONS:
+        destination = city / relative
+        content = _regular_bytes(source / relative, label=f"source {relative}")
+        expected = {
+            "destination": relative,
+            "present": True,
+            "mode": mode,
+            "size": len(content),
+            "sha256": _sha256(content),
+        }
+        current = _path_state(destination, root=city)
+        if current == expected:
+            continue
+        if current != before[relative]:
+            raise ProvisionError(f"destination changed outside transaction: {relative}")
+        _atomic_write(destination, content, mode, replace=True)
+
+
+def _load_private_json(path: Path, *, label: str) -> tuple[bytes, dict[str, Any]]:
+    content = _regular_bytes(path, label=label, expected_mode=0o600, private=True)
+    return content, _strict_json(content, label=label)
+
+
+def _intent(
+    source: Path,
+    city: Path,
+    transaction: Path,
+    lock_bytes: bytes,
+    entries: Sequence[Mapping[str, str]],
+    tools: Mapping[str, Any],
+    supervisor: Mapping[str, Any],
+) -> dict[str, Any]:
+    path = transaction / "intent.json"
+    if path.exists() or path.is_symlink():
+        _, value = _load_private_json(path, label="provisioning intent")
+        return value
+    has_scaffold = (city / ".gc").exists() or (city / "city.toml").exists()
+    if not has_scaffold and any(city.iterdir()):
+        raise ProvisionError("a new city target must be empty before gc init")
+    destinations = sorted(
+        {record["destination"] for record in entries}
+        | {item[0] for item in METADATA_DESTINATIONS}
+    )
+    before = _backup_before(city, transaction, destinations)
+    value = {
+        "schema_version": INTENT_SCHEMA,
+        "kind": "gas-city-control-plane-provision-intent",
+        "status": "prepared",
+        "created_at": _utc_now(),
+        "source_root": source.as_posix(),
+        "city_root": city.as_posix(),
+        "transaction_dir": transaction.as_posix(),
+        "source_runtime_lock_sha256": _sha256(lock_bytes),
+        "source_manifest_sha256": _sha256(
+            _regular_bytes(source / "control-plane-manifest.json", label="source manifest")
+        ),
+        "topology_action": (
+            "requires_hq_external_transition" if has_scaffold else "initialized_external"
+        ),
+        "before": before,
+        "tools": tools,
+        "supervisor_before": supervisor,
+    }
+    _atomic_write(path, _json_bytes(value), 0o600, replace=False)
+    return value
+
+
+def _assert_intent(
+    value: Mapping[str, Any], source: Path, city: Path, transaction: Path
+) -> None:
+    required = {
+        "schema_version", "kind", "status", "created_at", "source_root",
+        "city_root", "transaction_dir", "source_runtime_lock_sha256",
+        "source_manifest_sha256", "topology_action", "before", "tools",
+        "supervisor_before",
+    }
+    if (
+        set(value) != required
+        or value.get("schema_version") != INTENT_SCHEMA
+        or value.get("kind") != "gas-city-control-plane-provision-intent"
+        or value.get("status") != "prepared"
+        or value.get("source_root") != source.as_posix()
+        or value.get("city_root") != city.as_posix()
+        or value.get("transaction_dir") != transaction.as_posix()
+        or value.get("topology_action")
+        not in {"requires_hq_external_transition", "initialized_external"}
+        or type(value.get("before")) is not list
+    ):
+        raise ProvisionError("provisioning intent conflicts with this invocation")
+
+
+def _initialize_if_needed(
+    source: Path, city: Path, transaction: Path, intent: Mapping[str, Any]
+) -> dict[str, Any] | None:
+    if intent["topology_action"] != "initialized_external":
+        return None
+    receipt = transaction / "gc-init.json"
+    if receipt.exists() or receipt.is_symlink():
+        _, value = _load_private_json(receipt, label="gc init receipt")
+        return value
+    gc = source / "artifacts" / "gc"
+    command = (
+        gc.as_posix(),
+        "init",
+        "--file",
+        (source / "config" / "city.toml").as_posix(),
+        "--preserve-existing",
+        "--skip-provider-readiness",
+        "--no-start",
+        city.as_posix(),
+    )
+    started = transaction / "gc-init-started.json"
+    if started.exists() or started.is_symlink():
+        # File-based gc init refuses an existing scaffold.  Resume through the
+        # upstream existing-city path and require it to finish all inert init
+        # checks before accepting a process killed after the journal write.
+        resume = _run(
+            (
+                gc.as_posix(),
+                "init",
+                "--skip-provider-readiness",
+                "--no-start",
+                city.as_posix(),
+            ),
+            cwd=city,
+            environment=_gc_init_environment(source),
+        )
+        resume.pop("stdout", None)
+        validation = _run(
+            (gc.as_posix(), "--city", city.as_posix(), "config", "show", "--validate"),
+            cwd=city,
+            environment=_gc_init_environment(source),
+        )
+        stopped = _supervisor_stopped(gc, city)
+        value = {
+            "status": "recovered-complete",
+            "argv": list(command),
+            "resume": resume,
+            "validation": validation,
+            "supervisor": stopped,
+        }
+    else:
+        _atomic_write(
+            started,
+            _json_bytes({"status": "started", "argv": list(command)}),
+            0o600,
+            replace=False,
+        )
+        result = _run(
+            command,
+            cwd=source,
+            environment=_gc_init_environment(source),
+        )
+        result.pop("stdout", None)
+        value = {"status": "completed", **result}
+    _atomic_write(receipt, _json_bytes(value), 0o600, replace=False)
+    return value
+
+
+def _validate_stage(
+    city: Path,
+    transaction: Path,
+    entries: Sequence[Mapping[str, str]],
+    manifest_sha256: str,
+    *,
+    enforce_deferred: bool,
+    enforce_installed: bool = True,
+) -> dict[str, Any]:
+    receipt_path = transaction / "stage-receipt.json"
+    _, receipt = _load_private_json(receipt_path, label="provisioning stage receipt")
+    installed = sorted(
+        record["destination"]
+        for record in entries
+        if record["destination"] not in DEFERRED_DESTINATIONS
+    )
+    required = {
+        "schema_version", "kind", "status", "created_at", "city_root",
+        "transaction_dir", "manifest_sha256", "topology_action",
+        "installed_destinations", "deferred_destinations", "deferred_state",
+        "gc_init", "supervisor_after", "next_required_action",
+    }
+    deferred_state = receipt.get("deferred_state")
+    if (
+        set(receipt) != required
+        or receipt.get("schema_version") != STAGE_SCHEMA
+        or receipt.get("kind") != "gas-city-control-plane-stage"
+        or receipt.get("status") != "staged"
+        or receipt.get("city_root") != city.as_posix()
+        or receipt.get("transaction_dir") != transaction.as_posix()
+        or receipt.get("manifest_sha256") != manifest_sha256
+        or receipt.get("installed_destinations") != installed
+        or receipt.get("deferred_destinations") != sorted(DEFERRED_DESTINATIONS)
+        or type(deferred_state) is not list
+        or len(deferred_state) != len(DEFERRED_DESTINATIONS)
+        or sorted(
+            state.get("destination")
+            for state in deferred_state
+            if isinstance(state, dict)
+        )
+        != sorted(DEFERRED_DESTINATIONS)
+    ):
+        raise ProvisionError("provisioning stage receipt is invalid")
+    for state in deferred_state:
+        _validate_recorded_state(state, destination=state["destination"])
+    by_destination = {record["destination"]: record for record in entries}
+    if enforce_installed:
+        for relative in installed:
+            record = by_destination[relative]
+            state = _path_state(city / relative, root=city)
+            if state != {
+                "destination": relative,
+                "present": True,
+                "mode": int(record["destination_mode"], 8),
+                "size": (city / relative).stat().st_size,
+                "sha256": record["sha256"],
+            }:
+                raise ProvisionError(f"staged destination drift: {relative}")
+    if enforce_deferred:
+        for state in deferred_state:
+            if not _state_matches(city / state["destination"], state, root=city):
+                raise ProvisionError(
+                    f"deferred topology changed before allowed transition: {state['destination']}"
+                )
+    return receipt
+
+
+def prepare(source_arg: Path, city_arg: Path, transaction_arg: Path) -> dict[str, Any]:
+    source = _canonical_existing(source_arg, label="source root")
+    if source != SOURCE_ROOT:
+        raise ProvisionError("source root must be the provisioner's own verified bundle")
+    lock_bytes, lock, entries = _manifest_contract(source)
+    tools = _verify_tools(source, lock)
+    city = _canonical_target(city_arg, label="city root")
+    transaction = _canonical_target(transaction_arg, label="transaction directory")
+    if transaction == city or city in transaction.parents or transaction in city.parents:
+        raise ProvisionError("transaction directory must be outside the city root")
+    lock_file = transaction / ".provision.lock"
+    descriptor = os.open(lock_file, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if (transaction / "stage-receipt.json").exists():
+            receipt = _validate_stage(
+                city,
+                transaction,
+                entries,
+                _sha256(_regular_bytes(source / "control-plane-manifest.json", label="manifest")),
+                enforce_deferred=True,
+            )
+            return {"status": "already-staged", "receipt": receipt}
+        supervisor = _supervisor_stopped(source / "artifacts" / "gc", city)
+        intent = _intent(source, city, transaction, lock_bytes, entries, tools, supervisor)
+        _assert_intent(intent, source, city, transaction)
+        before = {item["destination"]: item for item in intent["before"]}
+        for record in entries:
+            if record["destination"] not in DEFERRED_DESTINATIONS:
+                _install_record(source, city, record, before)
+        _install_metadata(source, city, before)
+        # A fresh gc init resolves the configured provider path checks.  Install
+        # their manifest-bound launchers first; the intent journal still makes
+        # this partial state resumable and exactly reversible after a crash.
+        gc_init = _initialize_if_needed(source, city, transaction, intent)
+        supervisor_after = _supervisor_stopped(city / "bin" / "gc", city)
+        deferred_state = [
+            _path_state(city / relative, root=city)
+            for relative in sorted(DEFERRED_DESTINATIONS)
+        ]
+        receipt = {
+            "schema_version": STAGE_SCHEMA,
+            "kind": "gas-city-control-plane-stage",
+            "status": "staged",
+            "created_at": _utc_now(),
+            "city_root": city.as_posix(),
+            "transaction_dir": transaction.as_posix(),
+            "manifest_sha256": intent["source_manifest_sha256"],
+            "topology_action": intent["topology_action"],
+            "installed_destinations": sorted(
+                record["destination"]
+                for record in entries
+                if record["destination"] not in DEFERRED_DESTINATIONS
+            ),
+            "deferred_destinations": sorted(DEFERRED_DESTINATIONS),
+            "deferred_state": deferred_state,
+            "gc_init": gc_init,
+            "supervisor_after": supervisor_after,
+            "next_required_action": (
+                "initialize-aegis-then-activate-topology"
+            ),
+        }
+        _atomic_write(
+            transaction / "stage-receipt.json",
+            _json_bytes(receipt),
+            0o600,
+            replace=False,
+        )
+        return {
+            "status": "staged",
+            "stage_receipt": (transaction / "stage-receipt.json").as_posix(),
+            "topology_action": receipt["topology_action"],
+            "next_required_action": receipt["next_required_action"],
+        }
+    finally:
+        os.close(descriptor)
+
+
+def _validate_endpoint_with_admin(
+    city: Path, receipt: Path | None, topology_action: str
+) -> dict[str, Any] | None:
+    if receipt is None:
+        raise ProvisionError("control-plane finalization requires an HQ transition receipt")
+    result = _run(
+        (
+            (city / "bin/gas-city-admin").as_posix(),
+            "endpoint-verify-hq",
+            "--city-root",
+            city.as_posix(),
+            "--lock",
+            (city / "runtime-lock.json").as_posix(),
+            "--transition-receipt",
+            receipt.as_posix(),
+        ),
+        cwd=city,
+    )
+    try:
+        value = json.loads(result.pop("stdout"))
+    except json.JSONDecodeError as exc:
+        raise ProvisionError("endpoint verifier did not return JSON") from exc
+    if value.get("status") != "verified":
+        raise ProvisionError("HQ endpoint transition is not verified")
+    return {"result": value, "command": result}
+
+
+def _promoted_lock(city: Path) -> dict[str, Any]:
+    lock = _strict_json(
+        _regular_bytes(city / "runtime-lock.json", label="deployed runtime lock"),
+        label="deployed runtime lock",
+    )
+    if lock.get("status") != "provisioned_pending_canary":
+        raise ProvisionError("topology activation requires promoted immutable images")
+    return lock
+
+
+def _validate_activation(
+    source: Path,
+    city: Path,
+    transaction: Path,
+    entries: Sequence[Mapping[str, str]],
+) -> dict[str, Any]:
+    receipt_path = transaction / "activation-receipt.json"
+    _, receipt = _load_private_json(
+        receipt_path, label="topology activation receipt"
+    )
+    stage_bytes = _regular_bytes(
+        transaction / "stage-receipt.json", label="stage receipt"
+    )
+    installed = sorted(DEFERRED_DESTINATIONS)
+    required = {
+        "schema_version", "kind", "status", "created_at", "city_root",
+        "transaction_dir", "stage_receipt_sha256", "activation_started_sha256",
+        "topology_action",
+        "installed_destinations", "deployed_verify", "config_validate",
+        "supervisor", "next_required_action",
+    }
+    if (
+        set(receipt) != required
+        or receipt.get("schema_version") != ACTIVATION_SCHEMA
+        or receipt.get("kind") != "gas-city-control-plane-topology-activation"
+        or receipt.get("status") != "verified"
+        or receipt.get("city_root") != city.as_posix()
+        or receipt.get("transaction_dir") != transaction.as_posix()
+        or receipt.get("stage_receipt_sha256") != _sha256(stage_bytes)
+        or receipt.get("activation_started_sha256")
+        != _sha256(
+            _regular_bytes(
+                transaction / "activation-started.json",
+                label="topology activation journal",
+            )
+        )
+        or receipt.get("topology_action")
+        not in {"requires_hq_external_transition", "initialized_external"}
+        or receipt.get("installed_destinations") != installed
+        or receipt.get("next_required_action")
+        != (
+            "transition-hq-endpoint"
+            if receipt.get("topology_action") == "requires_hq_external_transition"
+            else "initialize-hq-then-transition-hq-endpoint"
+        )
+    ):
+        raise ProvisionError("topology activation receipt is invalid")
+    by_destination = {record["destination"]: record for record in entries}
+    if set(installed) != set(by_destination) & DEFERRED_DESTINATIONS:
+        raise ProvisionError("control-plane manifest has an invalid topology layout")
+    for relative in installed:
+        record = by_destination[relative]
+        content = _regular_bytes(
+            city / relative, label=f"activated topology {relative}"
+        )
+        if (
+            _sha256(content) != record["sha256"]
+            or stat.S_IMODE((city / relative).stat().st_mode)
+            != int(record["destination_mode"], 8)
+        ):
+            raise ProvisionError(f"activated topology drift: {relative}")
+    return receipt
+
+
+def activate_topology(
+    source_arg: Path,
+    city_arg: Path,
+    transaction_arg: Path,
+) -> dict[str, Any]:
+    """Install the final stopped topology before sealing endpoint evidence."""
+
+    source = _canonical_existing(source_arg, label="source root")
+    if source != SOURCE_ROOT:
+        raise ProvisionError("source root must be the provisioner's own verified bundle")
+    _, _, entries = _manifest_contract(source)
+    city = _canonical_existing(city_arg, label="city root")
+    transaction = _canonical_existing(transaction_arg, label="transaction directory")
+    descriptor = os.open(
+        transaction / ".provision.lock", os.O_RDWR | os.O_NOFOLLOW
+    )
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if (transaction / "activation-receipt.json").exists():
+            receipt = _validate_activation(
+                source, city, transaction, entries
+            )
+            _supervisor_stopped(city / "bin/gc", city)
+            return {"status": "already-activated", "receipt": receipt}
+        started_path = transaction / "activation-started.json"
+        stage = _validate_stage(
+            city,
+            transaction,
+            entries,
+            _sha256(
+                _regular_bytes(
+                    source / "control-plane-manifest.json", label="manifest"
+                )
+            ),
+            enforce_deferred=not started_path.exists(),
+        )
+        _promoted_lock(city)
+        supervisor_before = _supervisor_stopped(city / "bin/gc", city)
+        stage_sha256 = _sha256(
+            _regular_bytes(
+                transaction / "stage-receipt.json", label="stage receipt"
+            )
+        )
+        if started_path.exists() or started_path.is_symlink():
+            _, started = _load_private_json(
+                started_path, label="topology activation journal"
+            )
+            if (
+                set(started)
+                != {
+                    "schema_version", "kind", "status", "created_at",
+                    "city_root", "transaction_dir", "stage_receipt_sha256",
+                    "topology_action", "supervisor_before",
+                }
+                or started.get("schema_version") != ACTIVATION_SCHEMA
+                or started.get("kind")
+                != "gas-city-control-plane-topology-activation-started"
+                or started.get("status") != "started"
+                or started.get("city_root") != city.as_posix()
+                or started.get("transaction_dir") != transaction.as_posix()
+                or started.get("stage_receipt_sha256") != stage_sha256
+                or started.get("topology_action") != stage["topology_action"]
+            ):
+                raise ProvisionError("topology activation journal is invalid")
+        else:
+            started = {
+                "schema_version": ACTIVATION_SCHEMA,
+                "kind": "gas-city-control-plane-topology-activation-started",
+                "status": "started",
+                "created_at": _utc_now(),
+                "city_root": city.as_posix(),
+                "transaction_dir": transaction.as_posix(),
+                "stage_receipt_sha256": stage_sha256,
+                "topology_action": stage["topology_action"],
+                "supervisor_before": supervisor_before,
+            }
+            _atomic_write(
+                started_path,
+                _json_bytes(started),
+                0o600,
+                replace=False,
+            )
+        before = {item["destination"]: item for item in stage["deferred_state"]}
+        for record in entries:
+            if record["destination"] in DEFERRED_DESTINATIONS:
+                _install_record(source, city, record, before)
+        deployed_verify = _run(
+            (
+                (city / "bin/locked-images").as_posix(),
+                "--verify-deployed",
+                (city / "runtime-lock.json").as_posix(),
+            ),
+            cwd=city,
+        )
+        deployed_verify.pop("stdout", None)
+        config_validate = _run(
+            (
+                (city / "bin/gc").as_posix(),
+                "--city",
+                city.as_posix(),
+                "config",
+                "show",
+                "--validate",
+            ),
+            cwd=city,
+            environment=_tool_environment(city / "bin"),
+        )
+        config_validate.pop("stdout", None)
+        supervisor_after = _supervisor_stopped(city / "bin/gc", city)
+        receipt = {
+            "schema_version": ACTIVATION_SCHEMA,
+            "kind": "gas-city-control-plane-topology-activation",
+            "status": "verified",
+            "created_at": _utc_now(),
+            "city_root": city.as_posix(),
+            "transaction_dir": transaction.as_posix(),
+            "stage_receipt_sha256": _sha256(
+                _regular_bytes(
+                    transaction / "stage-receipt.json", label="stage receipt"
+                )
+            ),
+            "activation_started_sha256": _sha256(
+                _regular_bytes(
+                    started_path, label="topology activation journal"
+                )
+            ),
+            "topology_action": stage["topology_action"],
+            "installed_destinations": sorted(DEFERRED_DESTINATIONS),
+            "deployed_verify": deployed_verify,
+            "config_validate": config_validate,
+            "supervisor": {"before": supervisor_before, "after": supervisor_after},
+            "next_required_action": (
+                "transition-hq-endpoint"
+                if stage["topology_action"] == "requires_hq_external_transition"
+                else "initialize-hq-then-transition-hq-endpoint"
+            ),
+        }
+        _atomic_write(
+            transaction / "activation-receipt.json",
+            _json_bytes(receipt),
+            0o600,
+            replace=False,
+        )
+        return {
+            "status": "verified",
+            "activation_receipt": (
+                transaction / "activation-receipt.json"
+            ).as_posix(),
+            "next_required_action": receipt["next_required_action"],
+        }
+    finally:
+        os.close(descriptor)
+
+
+def finalize(
+    source_arg: Path,
+    city_arg: Path,
+    transaction_arg: Path,
+    endpoint_receipt: Path | None,
+) -> dict[str, Any]:
+    source = _canonical_existing(source_arg, label="source root")
+    if source != SOURCE_ROOT:
+        raise ProvisionError("source root must be the provisioner's own verified bundle")
+    _, _, entries = _manifest_contract(source)
+    city = _canonical_existing(city_arg, label="city root")
+    transaction = _canonical_existing(transaction_arg, label="transaction directory")
+    descriptor = os.open(
+        transaction / ".provision.lock", os.O_RDWR | os.O_NOFOLLOW
+    )
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if (transaction / "final-receipt.json").exists():
+            _, value = _load_private_json(
+                transaction / "final-receipt.json", label="final provisioning receipt"
+            )
+            activation = _validate_activation(
+                source, city, transaction, entries
+            )
+            _validate_endpoint_with_admin(
+                city, endpoint_receipt, activation["topology_action"]
+            )
+            _run(
+                (
+                    (city / "bin/locked-images").as_posix(),
+                    "--verify-deployed",
+                    (city / "runtime-lock.json").as_posix(),
+                ),
+                cwd=city,
+            )
+            return {"status": "already-finalized", "receipt": value}
+        stage = _validate_stage(
+            city,
+            transaction,
+            entries,
+            _sha256(_regular_bytes(source / "control-plane-manifest.json", label="manifest")),
+            enforce_deferred=False,
+        )
+        _promoted_lock(city)
+        activation = _validate_activation(source, city, transaction, entries)
+        if activation["topology_action"] != stage["topology_action"]:
+            raise ProvisionError("topology activation conflicts with the staged action")
+        supervisor_before = _supervisor_stopped(city / "bin/gc", city)
+        endpoint = _validate_endpoint_with_admin(
+            city, endpoint_receipt, stage["topology_action"]
+        )
+        deployed_verify = _run(
+            (
+                (city / "bin/locked-images").as_posix(),
+                "--verify-deployed",
+                (city / "runtime-lock.json").as_posix(),
+            ),
+            cwd=city,
+        )
+        deployed_verify.pop("stdout", None)
+        supervisor_after = _supervisor_stopped(city / "bin/gc", city)
+        receipt = {
+            "schema_version": 1,
+            "kind": "gas-city-control-plane-final",
+            "status": "verified",
+            "created_at": _utc_now(),
+            "city_root": city.as_posix(),
+            "transaction_dir": transaction.as_posix(),
+            "stage_receipt_sha256": _sha256(
+                _regular_bytes(
+                    transaction / "stage-receipt.json", label="stage receipt"
+                )
+            ),
+            "activation_receipt_sha256": _sha256(
+                _regular_bytes(
+                    transaction / "activation-receipt.json",
+                    label="activation receipt",
+                )
+            ),
+            "endpoint_transition": endpoint,
+            "deployed_verify": deployed_verify,
+            "supervisor": {"before": supervisor_before, "after": supervisor_after},
+            "rollback_intent_sha256": _sha256(
+                _regular_bytes(transaction / "intent.json", label="intent")
+            ),
+        }
+        _atomic_write(
+            transaction / "final-receipt.json",
+            _json_bytes(receipt),
+            0o600,
+            replace=False,
+        )
+        return {
+            "status": "verified",
+            "final_receipt": (transaction / "final-receipt.json").as_posix(),
+        }
+    finally:
+        os.close(descriptor)
+
+
+def _remove_installed_file(path: Path, *, label: str) -> None:
+    _regular_bytes(path, label=label)
+    path.unlink()
+    directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        os.fsync(directory)
+    finally:
+        os.close(directory)
+
+
+def _validate_endpoint_rollback_receipt(
+    city: Path,
+    receipt_path: Path | None,
+) -> dict[str, Any]:
+    if receipt_path is None:
+        raise ProvisionError(
+            "finalized existing-city rollback requires the guarded endpoint rollback receipt"
+        )
+    if not receipt_path.is_absolute():
+        raise ProvisionError("endpoint rollback receipt must be absolute")
+    try:
+        canonical = receipt_path.resolve(strict=True)
+    except OSError as exc:
+        raise ProvisionError("endpoint rollback receipt does not exist") from exc
+    if (
+        canonical != receipt_path
+        or receipt_path.name != "rollback-receipt.json"
+        or receipt_path.parent.parent
+        != city / "runtime" / "evidence" / "endpoint-rollback"
+    ):
+        raise ProvisionError("endpoint rollback receipt is outside the exact city evidence root")
+    content, receipt = _load_private_json(
+        receipt_path, label="endpoint rollback receipt"
+    )
+    if (
+        receipt.get("kind") != "hq-host-endpoint-rollback"
+        or receipt.get("status") != "verified"
+        or receipt.get("city_root") != city.as_posix()
+        or receipt.get("managed_service_started") is not False
+        or type(receipt.get("runtime_lock")) is not dict
+        or receipt["runtime_lock"].get("path")
+        != (city / "runtime-lock.json").as_posix()
+    ):
+        raise ProvisionError("endpoint rollback receipt does not prove a stopped restored city")
+    return {
+        "path": receipt_path.as_posix(),
+        "sha256": _sha256(content),
+        "restored_tree_sha256": receipt.get("restored_tree_sha256"),
+    }
+
+
+def _nested_mounts(root: Path) -> list[str]:
+    """Return mount points below root; deleting across one is never permitted."""
+
+    mountinfo = Path("/proc/self/mountinfo")
+    try:
+        lines = mountinfo.read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        raise ProvisionError("cannot prove the city contains no nested mounts") from exc
+    result: list[str] = []
+    for line in lines:
+        fields = line.split()
+        if len(fields) < 5:
+            raise ProvisionError("cannot parse mount topology before rollback")
+        decoded = (
+            fields[4]
+            .replace(r"\040", " ")
+            .replace(r"\011", "\t")
+            .replace(r"\012", "\n")
+            .replace(r"\134", "\\")
+        )
+        mount = Path(decoded)
+        if mount != root and root in mount.parents:
+            result.append(mount.as_posix())
+    return sorted(result)
+
+
+def _clear_initialized_city(root: Path) -> None:
+    """Restore the guaranteed-empty pre-init tree without following links."""
+
+    nested = _nested_mounts(root)
+    if nested:
+        raise ProvisionError(
+            "initialized-city rollback refuses nested mounts: " + ", ".join(nested)
+        )
+    files: list[tuple[Path, int, int]] = []
+    directories: list[tuple[Path, int, int]] = []
+
+    def inspect(directory: Path) -> None:
+        try:
+            entries = sorted(os.scandir(directory), key=lambda item: item.name)
+        except OSError as exc:
+            raise ProvisionError(f"cannot inspect initialized city: {directory}") from exc
+        for entry in entries:
+            path = Path(entry.path)
+            try:
+                observed = entry.stat(follow_symlinks=False)
+            except OSError as exc:
+                raise ProvisionError(f"cannot inspect initialized city path: {path}") from exc
+            if stat.S_ISLNK(observed.st_mode):
+                raise ProvisionError(
+                    f"initialized-city rollback refuses symbolic link: {path.relative_to(root)}"
+                )
+            if stat.S_ISDIR(observed.st_mode):
+                inspect(path)
+                directories.append((path, observed.st_dev, observed.st_ino))
+            elif stat.S_ISREG(observed.st_mode):
+                files.append((path, observed.st_dev, observed.st_ino))
+            else:
+                raise ProvisionError(
+                    f"initialized-city rollback refuses special path: {path.relative_to(root)}"
+                )
+
+    inspect(root)
+    for path, device, inode in files:
+        observed = path.lstat()
+        if (
+            not stat.S_ISREG(observed.st_mode)
+            or observed.st_dev != device
+            or observed.st_ino != inode
+        ):
+            raise ProvisionError("initialized city changed during rollback")
+        path.unlink()
+    for path, device, inode in directories:
+        observed = path.lstat()
+        if (
+            not stat.S_ISDIR(observed.st_mode)
+            or observed.st_dev != device
+            or observed.st_ino != inode
+        ):
+            raise ProvisionError("initialized city changed during rollback")
+        path.rmdir()
+    if any(root.iterdir()):
+        raise ProvisionError("initialized city is not empty after rollback")
+    descriptor = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _preserve_initialized_city_evidence(
+    city: Path, transaction: Path
+) -> dict[str, dict[str, str]]:
+    """Copy final immutable build evidence outside a city being emptied."""
+
+    result: dict[str, dict[str, str]] = {}
+    for relative, name in (
+        ("runtime-lock.json", "promoted-runtime-lock.json"),
+        ("control-plane-manifest.json", "control-plane-manifest.json"),
+        (
+            "runtime/evidence/images/build-receipt.json",
+            "image-build-receipt.json",
+        ),
+    ):
+        source = city / relative
+        if not source.exists() and not source.is_symlink():
+            continue
+        content = _regular_bytes(source, label=f"rollback evidence {relative}")
+        destination = transaction / "rollback-evidence" / name
+        if destination.exists() or destination.is_symlink():
+            observed = _regular_bytes(
+                destination,
+                label=f"preserved rollback evidence {name}",
+                expected_mode=0o600,
+                private=True,
+            )
+            if observed != content:
+                raise ProvisionError(f"preserved rollback evidence drift: {name}")
+        else:
+            _atomic_write(destination, content, 0o600, replace=False)
+        result[relative] = {
+            "path": destination.as_posix(),
+            "sha256": _sha256(content),
+        }
+    return result
+
+
+def _hq_metadata_is_external(city: Path) -> bool:
+    path = city / ".beads" / "config.yaml"
+    if not path.exists() and not path.is_symlink():
+        return False
+    content = _regular_bytes(path, label="HQ Beads config").decode("utf-8")
+    values: dict[str, str] = {}
+    for raw in content.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        values[key.strip()] = value.strip().strip("'\"")
+    return values.get("gc.endpoint_origin") == "city_canonical"
+
+
+def rollback(
+    source_arg: Path,
+    city_arg: Path,
+    transaction_arg: Path,
+    endpoint_rollback_receipt: Path | None,
+) -> dict[str, Any]:
+    source = _canonical_existing(source_arg, label="source root")
+    if source != SOURCE_ROOT:
+        raise ProvisionError("source root must be the provisioner's own verified bundle")
+    _, _, entries = _manifest_contract(source)
+    city = _canonical_existing(city_arg, label="city root")
+    transaction = _canonical_existing(transaction_arg, label="transaction directory")
+    descriptor = os.open(
+        transaction / ".provision.lock", os.O_RDWR | os.O_NOFOLLOW
+    )
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        _, intent = _load_private_json(
+            transaction / "intent.json", label="provisioning intent"
+        )
+        _assert_intent(intent, source, city, transaction)
+        before = {item["destination"]: item for item in intent["before"]}
+        receipt_path = transaction / "control-rollback-receipt.json"
+        if receipt_path.exists() or receipt_path.is_symlink():
+            _, receipt = _load_private_json(
+                receipt_path, label="control rollback receipt"
+            )
+            for state in before.values():
+                if not _state_matches(
+                    city / state["destination"], state, root=city
+                ):
+                    raise ProvisionError(
+                        "completed control rollback no longer matches its anchored prestate"
+                    )
+            if intent["topology_action"] == "initialized_external" and any(
+                city.iterdir()
+            ):
+                raise ProvisionError(
+                    "completed initialized-city rollback no longer matches its empty prestate"
+                )
+            return {"status": "already-restored", "receipt": receipt}
+
+        stage = _validate_stage(
+            city,
+            transaction,
+            entries,
+            intent["source_manifest_sha256"],
+            enforce_deferred=False,
+            enforce_installed=False,
+        )
+        staged_deferred = {
+            item["destination"]: item for item in stage["deferred_state"]
+        }
+
+        gc = city / "bin" / "gc"
+        if not gc.exists():
+            gc = source / "artifacts" / "gc"
+        supervisor = _supervisor_stopped(gc, city)
+        endpoint_rollback: dict[str, Any] | None = None
+        if (
+            (transaction / "final-receipt.json").exists()
+            or _hq_metadata_is_external(city)
+        ):
+            endpoint_rollback = _validate_endpoint_rollback_receipt(
+                city, endpoint_rollback_receipt
+            )
+        elif endpoint_rollback_receipt is not None:
+            endpoint_rollback = _validate_endpoint_rollback_receipt(
+                city, endpoint_rollback_receipt
+            )
+
+        preserved_evidence = (
+            _preserve_initialized_city_evidence(city, transaction)
+            if intent["topology_action"] == "initialized_external"
+            else {}
+        )
+
+        by_destination = {record["destination"]: record for record in entries}
+        restore_order = [
+            *sorted(
+                by_destination,
+                key=lambda relative: (
+                    relative.startswith("bin/"),
+                    relative.startswith("aegis_foundation/"),
+                    relative,
+                ),
+            ),
+            "runtime-lock.json",
+            "control-plane-manifest.json",
+        ]
+        for relative in restore_order:
+            prior = before[relative]
+            destination = city / relative
+            current = _path_state(destination, root=city)
+            if current == prior:
+                continue
+            if relative in by_destination:
+                record = by_destination[relative]
+                if (
+                    current.get("present") is not True
+                    or current.get("sha256") != record["sha256"]
+                    or current.get("mode") != int(record["destination_mode"], 8)
+                ):
+                    staged = staged_deferred.get(relative)
+                    if staged is None or current != staged:
+                        raise ProvisionError(
+                            f"control destination drift prevents rollback: {relative}"
+                        )
+            elif relative == "control-plane-manifest.json":
+                source_content = _regular_bytes(
+                    source / relative, label=f"source {relative}"
+                )
+                if (
+                    current.get("present") is not True
+                    or current.get("sha256") != _sha256(source_content)
+                    or current.get("mode") != 0o644
+                ):
+                    raise ProvisionError(
+                        "control-plane manifest drift prevents rollback"
+                    )
+            else:
+                if current.get("present") is not True or current.get("mode") != 0o600:
+                    raise ProvisionError("runtime-lock drift prevents rollback")
+                deployed_lock = _strict_json(
+                    _regular_bytes(destination, label="deployed runtime lock"),
+                    label="deployed runtime lock",
+                )
+                manifest_content = _regular_bytes(
+                    city / "control-plane-manifest.json",
+                    label="deployed control-plane manifest",
+                )
+                if deployed_lock.get("control_plane_manifest") != {
+                    "path": "control-plane-manifest.json",
+                    "sha256": _sha256(manifest_content),
+                }:
+                    raise ProvisionError("runtime-lock no longer binds the installed manifest")
+            if prior["present"]:
+                backup = transaction / "backup" / relative
+                content = _regular_bytes(
+                    backup,
+                    label=f"control backup {relative}",
+                    expected_mode=0o600,
+                    private=True,
+                )
+                if (
+                    len(content) != prior["size"]
+                    or _sha256(content) != prior["sha256"]
+                ):
+                    raise ProvisionError(f"control backup drift: {relative}")
+                _atomic_write(destination, content, prior["mode"], replace=True)
+            else:
+                _remove_installed_file(
+                    destination, label=f"installed control destination {relative}"
+                )
+        city_prestate = "managed"
+        if intent["topology_action"] == "initialized_external":
+            _clear_initialized_city(city)
+            city_prestate = "empty"
+        receipt = {
+            "schema_version": 1,
+            "kind": "gas-city-control-plane-rollback",
+            "status": "restored",
+            "created_at": _utc_now(),
+            "city_root": city.as_posix(),
+            "transaction_dir": transaction.as_posix(),
+            "intent_sha256": _sha256(
+                _regular_bytes(transaction / "intent.json", label="intent")
+            ),
+            "endpoint_rollback": endpoint_rollback,
+            "supervisor": supervisor,
+            "restored": [before[name] for name in sorted(before)],
+            "city_prestate": city_prestate,
+            "preserved_evidence": preserved_evidence,
+            "managed_service_started": False,
+        }
+        _atomic_write(receipt_path, _json_bytes(receipt), 0o600, replace=False)
+        return {
+            "status": "restored",
+            "rollback_receipt": receipt_path.as_posix(),
+        }
+    finally:
+        os.close(descriptor)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest="command", required=True)
+    for name in ("prepare", "activate-topology", "finalize", "rollback"):
+        command = commands.add_parser(name)
+        command.add_argument("--source-root", type=Path, default=SOURCE_ROOT)
+        command.add_argument("--city-root", type=Path, required=True)
+        command.add_argument("--transaction-dir", type=Path, required=True)
+        if name == "finalize":
+            command.add_argument("--endpoint-transition-receipt", type=Path)
+        if name == "rollback":
+            command.add_argument("--endpoint-rollback-receipt", type=Path)
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    try:
+        if args.command == "prepare":
+            result = prepare(args.source_root, args.city_root, args.transaction_dir)
+        elif args.command == "activate-topology":
+            result = activate_topology(
+                args.source_root, args.city_root, args.transaction_dir
+            )
+        elif args.command == "finalize":
+            result = finalize(
+                args.source_root,
+                args.city_root,
+                args.transaction_dir,
+                args.endpoint_transition_receipt,
+            )
+        else:
+            result = rollback(
+                args.source_root,
+                args.city_root,
+                args.transaction_dir,
+                args.endpoint_rollback_receipt,
+            )
+    except (ProvisionError, OSError, ValueError) as exc:
+        print(f"provision-control-plane: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(result, indent=2, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

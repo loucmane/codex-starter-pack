@@ -1,0 +1,1632 @@
+#!/usr/bin/python3
+"""Host-side Git metadata broker for one isolated Aegis worker session.
+
+The AI container receives the assigned worktree files read/write, but it never
+receives a writable bind of the repository's real Git administrative area.
+This broker creates a session-private Git directory whose object database uses
+the real object store only as a read-only alternate.  After a successful,
+model-verified worker exit it imports objects and compare-and-swaps exactly the
+Bead branch authorized by the frozen pre-provider startup receipt.
+
+The baseline and promotion records live outside every container mount.  A
+failed or interrupted worker keeps its private Git directory and worktree for
+an idempotent retry while leaving every real ref unchanged.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import stat
+import subprocess
+import sys
+import tempfile
+import uuid
+from typing import Any, Iterable, Mapping, Sequence
+
+
+GIT = Path("/usr/bin/git")
+SCHEMA_VERSION = 1
+ZERO_OID = "0" * 40
+MAX_JSON_BYTES = 1024 * 1024
+MAX_PRIVATE_GIT_ENTRIES = 1_000_000
+OID_RE = re.compile(r"[0-9a-f]{40}\Z")
+SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
+IMAGE_ID_RE = re.compile(r"sha256:[0-9a-f]{64}\Z")
+SAFE_AGENT_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}\Z")
+SAFE_SOURCE_BRANCH_RE = re.compile(r"gc-[A-Za-z0-9][A-Za-z0-9._/-]{0,180}\Z")
+SAFE_BEAD_RE = re.compile(r"ags-[A-Za-z0-9][A-Za-z0-9._-]{0,126}\Z")
+PRIVATE_CONTAINER_GIT_DIR = "/run/gas-city-git/private.git"
+BROKER_CONTAINER_RECEIPT = "/run/gas-city-trusted/git-broker.json"
+FROZEN_STARTUP_CONTAINER_RECEIPT = (
+    "/run/gas-city/aegis-startup-receipt.json"
+)
+MODEL_ATTESTATION_SCOPE = "isolated-zero-tool-invocation-preflight-gates-session"
+MODEL_PREFLIGHT_LOCATORS = {
+    "claude": "in-memory:claude-stream-json",
+    "codex": "in-memory:codex-exec-jsonl+server-model-log",
+}
+
+
+class BrokerError(RuntimeError):
+    """The broker boundary cannot safely continue."""
+
+
+def _now() -> str:
+    return dt.datetime.now(dt.timezone.utc).isoformat()
+
+
+def _sha256(content: bytes) -> str:
+    return hashlib.sha256(content).hexdigest()
+
+
+def _strict_json(content: bytes, label: str) -> dict[str, Any]:
+    def pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
+        value: dict[str, Any] = {}
+        for key, item in items:
+            if key in value:
+                raise BrokerError(f"{label} contains duplicate key {key!r}")
+            value[key] = item
+        return value
+
+    try:
+        value = json.loads(
+            content.decode("utf-8"),
+            object_pairs_hook=pairs,
+            parse_constant=lambda item: (_ for _ in ()).throw(
+                BrokerError(f"{label} contains non-finite value {item!r}")
+            ),
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
+        raise BrokerError(f"{label} is not strict UTF-8 JSON") from exc
+    if not isinstance(value, dict):
+        raise BrokerError(f"{label} must be one JSON object")
+    return value
+
+
+def _secure_file(
+    path: Path,
+    label: str,
+    *,
+    modes: set[int],
+    maximum: int = MAX_JSON_BYTES,
+) -> bytes:
+    if not path.is_absolute() or ".." in path.parts:
+        raise BrokerError(f"{label} path is not a safe absolute path")
+    no_follow = getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_CLOEXEC | no_follow)
+    except OSError as exc:
+        raise BrokerError(f"{label} cannot be opened") from exc
+    try:
+        before = os.fstat(descriptor)
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or before.st_uid != os.geteuid()
+            or stat.S_IMODE(before.st_mode) not in modes
+            or before.st_nlink != 1
+            or before.st_size <= 0
+            or before.st_size > maximum
+        ):
+            raise BrokerError(f"{label} has unsafe type, owner, mode, links, or size")
+        chunks: list[bytes] = []
+        total = 0
+        while True:
+            chunk = os.read(descriptor, min(65536, maximum + 1 - total))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            total += len(chunk)
+            if total > maximum:
+                raise BrokerError(f"{label} exceeds its size bound")
+        after = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    identity_before = (
+        before.st_dev,
+        before.st_ino,
+        before.st_size,
+        before.st_mtime_ns,
+        before.st_ctime_ns,
+    )
+    identity_after = (
+        after.st_dev,
+        after.st_ino,
+        after.st_size,
+        after.st_mtime_ns,
+        after.st_ctime_ns,
+    )
+    content = b"".join(chunks)
+    if identity_before != identity_after or len(content) != after.st_size:
+        raise BrokerError(f"{label} changed while it was read")
+    return content
+
+
+def _secure_directory(path: Path, label: str, *, create: bool = False) -> Path:
+    if not path.is_absolute() or ".." in path.parts:
+        raise BrokerError(f"{label} path is not a safe absolute path")
+    if create and not path.exists() and not path.is_symlink():
+        try:
+            path.mkdir(mode=0o700)
+        except OSError as exc:
+            raise BrokerError(f"could not create {label}") from exc
+    try:
+        info = path.lstat()
+    except OSError as exc:
+        raise BrokerError(f"{label} is missing") from exc
+    if (
+        stat.S_ISLNK(info.st_mode)
+        or not stat.S_ISDIR(info.st_mode)
+        or info.st_uid != os.geteuid()
+        or stat.S_IMODE(info.st_mode) != 0o700
+    ):
+        raise BrokerError(f"{label} must be one owner-only real directory")
+    return path.resolve(strict=True)
+
+
+def _validate_private_git_tree(private_git: Path) -> Path:
+    """Reject every link or special-file escape in provider-writable Git state.
+
+    The provider container has stopped before the host calls this routine.  A
+    complete no-follow walk can therefore establish that Git will not traverse
+    a provider-created symlink or hard link when the broker subsequently reads
+    refs, config, or objects.
+    """
+
+    root = _secure_directory(private_git, "session-private Git directory")
+    stack = [root]
+    entries = 0
+    while stack:
+        directory = stack.pop()
+        try:
+            children = list(os.scandir(directory))
+        except OSError as exc:
+            raise BrokerError("could not enumerate session-private Git state") from exc
+        for child in children:
+            entries += 1
+            if entries > MAX_PRIVATE_GIT_ENTRIES:
+                raise BrokerError("session-private Git state exceeds its entry bound")
+            try:
+                info = child.stat(follow_symlinks=False)
+            except OSError as exc:
+                raise BrokerError("could not inspect session-private Git state") from exc
+            mode = stat.S_IMODE(info.st_mode)
+            if info.st_uid != os.geteuid() or mode & 0o022:
+                raise BrokerError(
+                    "session-private Git state is not owner-controlled"
+                )
+            if stat.S_ISDIR(info.st_mode):
+                stack.append(Path(child.path))
+            elif stat.S_ISREG(info.st_mode):
+                if info.st_nlink != 1:
+                    raise BrokerError(
+                        "session-private Git state contains a hard-link escape"
+                    )
+            else:
+                raise BrokerError(
+                    "session-private Git state contains a link or special-file escape"
+                )
+    return root
+
+
+def _atomic_write(path: Path, content: bytes, mode: int) -> None:
+    parent = _secure_directory(path.parent, "broker state directory")
+    descriptor: int | None = None
+    temporary: Path | None = None
+    try:
+        descriptor, raw = tempfile.mkstemp(prefix=f".{path.name}.", dir=parent)
+        temporary = Path(raw)
+        os.fchmod(descriptor, mode)
+        offset = 0
+        while offset < len(content):
+            written = os.write(descriptor, content[offset:])
+            if written <= 0:
+                raise OSError("short broker state write")
+            offset += written
+        os.fsync(descriptor)
+        os.close(descriptor)
+        descriptor = None
+        if path.is_symlink():
+            raise BrokerError("broker state destination is a symlink")
+        os.replace(temporary, path)
+        temporary = None
+        directory_fd = os.open(parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    except OSError as exc:
+        raise BrokerError(f"could not atomically write {path.name}") from exc
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+def _json_bytes(value: Mapping[str, Any]) -> bytes:
+    return json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8") + b"\n"
+
+
+def _git_environment(*, git_dir: Path | None = None, worktree: Path | None = None) -> dict[str, str]:
+    environment = {
+        "PATH": "/usr/bin:/bin",
+        "HOME": "/nonexistent",
+        "LANG": "C.UTF-8",
+        "LC_ALL": "C.UTF-8",
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_GLOBAL": "/dev/null",
+        "GIT_TERMINAL_PROMPT": "0",
+        "GIT_OPTIONAL_LOCKS": "0",
+    }
+    if git_dir is not None:
+        environment["GIT_DIR"] = str(git_dir)
+    if worktree is not None:
+        environment["GIT_WORK_TREE"] = str(worktree)
+    return environment
+
+
+def _run(
+    arguments: Sequence[str],
+    *,
+    cwd: Path,
+    environment: Mapping[str, str] | None = None,
+    allowed: set[int] | None = None,
+    input_bytes: bytes | None = None,
+    maximum: int = 8 * 1024 * 1024,
+) -> bytes:
+    command = [str(GIT), "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", *arguments]
+    try:
+        result = subprocess.run(
+            command,
+            cwd=cwd,
+            env=dict(environment or _git_environment()),
+            input=input_bytes,
+            stdin=None if input_bytes is not None else subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=180,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise BrokerError(f"Git broker command could not execute: {arguments[0]}") from exc
+    if len(result.stdout) > maximum or len(result.stderr) > maximum:
+        raise BrokerError(f"Git broker command exceeded its output bound: {arguments[0]}")
+    if result.returncode not in (allowed or {0}):
+        detail = result.stderr.decode("utf-8", errors="replace").strip().splitlines()
+        suffix = detail[0][:300] if detail else f"exit {result.returncode}"
+        raise BrokerError(f"Git broker command failed: {arguments[0]}: {suffix}")
+    return result.stdout
+
+
+def _text(*args: Any, **kwargs: Any) -> str:
+    content = _run(*args, **kwargs)
+    try:
+        return content.decode("utf-8").strip()
+    except UnicodeDecodeError as exc:
+        raise BrokerError("Git broker command returned non-UTF-8 output") from exc
+
+
+def _canonical_from_git(worktree: Path, argument: str) -> Path:
+    value = _text(["-C", str(worktree), "rev-parse", "--path-format=absolute", argument], cwd=worktree)
+    try:
+        return Path(value).resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        raise BrokerError(f"could not canonicalize Git path for {argument}") from exc
+
+
+def _refs(git_dir: Path, worktree: Path | None = None) -> dict[str, str]:
+    output = _run(
+        ["for-each-ref", "--format=%(refname)%00%(objectname)"],
+        cwd=worktree or git_dir,
+        environment=_git_environment(git_dir=git_dir, worktree=worktree),
+        maximum=32 * 1024 * 1024,
+    )
+    result: dict[str, str] = {}
+    for raw in output.splitlines():
+        try:
+            ref_raw, oid_raw = raw.split(b"\0", 1)
+            ref = ref_raw.decode("utf-8")
+            oid = oid_raw.decode("ascii")
+        except (ValueError, UnicodeDecodeError) as exc:
+            raise BrokerError("Git ref inventory has an unsafe encoding") from exc
+        if (
+            not ref.startswith("refs/")
+            or ".." in ref
+            or "@{" in ref
+            or OID_RE.fullmatch(oid) is None
+            or ref in result
+        ):
+            raise BrokerError("Git ref inventory contains an unsafe record")
+        result[ref] = oid
+    return dict(sorted(result.items()))
+
+
+def _tree_fingerprint(path: Path, label: str) -> str:
+    """Hash a metadata tree without following links or accepting special files."""
+
+    digest = hashlib.sha256()
+    if not path.exists() and not path.is_symlink():
+        digest.update(b"missing\0")
+        return digest.hexdigest()
+    root = path.parent
+    stack = [path]
+    while stack:
+        current = stack.pop()
+        try:
+            info = current.lstat()
+        except OSError as exc:
+            raise BrokerError(f"could not inspect {label}") from exc
+        relative = current.relative_to(root).as_posix().encode("utf-8")
+        mode = stat.S_IMODE(info.st_mode)
+        if stat.S_ISLNK(info.st_mode):
+            raise BrokerError(f"{label} contains a symbolic link")
+        if stat.S_ISDIR(info.st_mode):
+            digest.update(b"D\0" + relative + b"\0" + f"{mode:04o}".encode() + b"\0")
+            try:
+                children = sorted(current.iterdir(), key=lambda item: item.name, reverse=True)
+            except OSError as exc:
+                raise BrokerError(f"could not enumerate {label}") from exc
+            stack.extend(children)
+        elif stat.S_ISREG(info.st_mode):
+            content = current.read_bytes()
+            digest.update(
+                b"F\0"
+                + relative
+                + b"\0"
+                + f"{mode:04o}".encode()
+                + b"\0"
+                + _sha256(content).encode("ascii")
+                + b"\0"
+            )
+        else:
+            raise BrokerError(f"{label} contains a special file")
+    return digest.hexdigest()
+
+
+def _marker_record(worktree: Path) -> dict[str, Any]:
+    marker = worktree / ".git"
+    content = _secure_file(marker, "linked-worktree Git marker", modes={0o600, 0o644}, maximum=4096)
+    try:
+        info = marker.lstat()
+    except OSError as exc:  # pragma: no cover - descriptor read already checked.
+        raise BrokerError("could not restat linked-worktree Git marker") from exc
+    if not content.startswith(b"gitdir: ") or content.count(b"\n") > 1:
+        raise BrokerError("assigned Aegis worktree must use one linked-worktree Git marker")
+    return {
+        "path": str(marker),
+        "sha256": _sha256(content),
+        "mode": f"{stat.S_IMODE(info.st_mode):04o}",
+        "device": info.st_dev,
+        "inode": info.st_ino,
+    }
+
+
+def _source_snapshot(worktree: Path, expected_common: Path, base_branch: str) -> dict[str, Any]:
+    try:
+        resolved_worktree = worktree.resolve(strict=True)
+        common = expected_common.resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        raise BrokerError("could not canonicalize assigned Git boundary") from exc
+    if resolved_worktree != worktree:
+        raise BrokerError("assigned worktree path was not canonical")
+    top = _canonical_from_git(worktree, "--show-toplevel")
+    git_dir = _canonical_from_git(worktree, "--git-dir")
+    observed_common = _canonical_from_git(worktree, "--git-common-dir")
+    if top != worktree or observed_common != common:
+        raise BrokerError("assigned worktree does not share the exact expected common directory")
+    if git_dir == common or common not in git_dir.parents:
+        raise BrokerError("assigned Aegis path is not one linked worktree of the expected repository")
+    branch = _text(["-C", str(worktree), "branch", "--show-current"], cwd=worktree)
+    if SAFE_SOURCE_BRANCH_RE.fullmatch(branch) is None:
+        raise BrokerError("assigned worktree is not on one Gas City pool branch")
+    head = _text(["-C", str(worktree), "rev-parse", "HEAD"], cwd=worktree)
+    if OID_RE.fullmatch(head) is None:
+        raise BrokerError("assigned worktree HEAD is not one SHA-1 commit")
+    base_ref = f"refs/remotes/origin/{base_branch}"
+    base_oid = _text(["-C", str(worktree), "rev-parse", "--verify", base_ref], cwd=worktree)
+    if OID_RE.fullmatch(base_oid) is None:
+        raise BrokerError("assigned worktree lacks the exact remote base ref")
+    ancestor = subprocess.run(
+        [str(GIT), "-c", "core.hooksPath=/dev/null", "-C", str(worktree), "merge-base", "--is-ancestor", head, base_oid],
+        cwd=worktree,
+        env=_git_environment(),
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    ).returncode
+    if ancestor not in {0, 1}:
+        raise BrokerError("could not compare pool worktree and remote base history")
+    dirty = _text(
+        ["-C", str(worktree), "status", "--porcelain=v1", "--untracked-files=all"],
+        cwd=worktree,
+    )
+    if dirty:
+        raise BrokerError("assigned worktree must be clean before private Git preparation")
+    origin = _text(["-C", str(worktree), "remote", "get-url", "origin"], cwd=worktree)
+    if not origin or "\n" in origin or "\0" in origin or len(origin) > 4096:
+        raise BrokerError("assigned worktree origin is missing or unsafe")
+    refs = _refs(git_dir, worktree)
+    marker = _marker_record(worktree)
+    return {
+        "worktree": str(worktree),
+        "source_git_dir": str(git_dir),
+        "source_common_dir": str(common),
+        "source_objects_dir": str((common / "objects").resolve(strict=True)),
+        "source_branch": branch,
+        "source_ref": f"refs/heads/{branch}",
+        "starting_oid": head,
+        "base_branch": base_branch,
+        "base_ref": base_ref,
+        "base_oid": base_oid,
+        "origin_url": origin,
+        "refs": refs,
+        "refs_sha256": _sha256(_json_bytes(refs)),
+        "common_config_sha256": _tree_fingerprint(common / "config", "Git common config"),
+        "common_hooks_sha256": _tree_fingerprint(common / "hooks", "Git common hooks"),
+        "worktree_config_sha256": _tree_fingerprint(
+            git_dir / "config.worktree", "linked-worktree Git config"
+        ),
+        "worktree_marker": marker,
+        "worktree_head_sha256": _tree_fingerprint(git_dir / "HEAD", "linked-worktree HEAD"),
+    }
+
+
+def _set_config(private_git: Path, key: str, value: str) -> None:
+    _run(
+        ["config", "--file", str(private_git / "config"), "--replace-all", key, value],
+        cwd=private_git,
+        environment=_git_environment(),
+    )
+
+
+def _initialize_private(private_git: Path, source: Mapping[str, Any]) -> None:
+    if private_git.exists() or private_git.is_symlink():
+        raise BrokerError("new broker session collided with existing private Git state")
+    try:
+        private_git.mkdir(mode=0o700)
+    except OSError as exc:
+        raise BrokerError("could not create private Git directory") from exc
+    _run(["init", "--bare", str(private_git)], cwd=private_git.parent)
+    private_git.chmod(0o700)
+    _set_config(private_git, "core.bare", "false")
+    _set_config(private_git, "core.worktree", str(source["worktree"]))
+    _set_config(private_git, "core.logAllRefUpdates", "true")
+    _set_config(private_git, "core.hooksPath", "/dev/null")
+    _set_config(private_git, "core.fsmonitor", "false")
+    _set_config(private_git, "core.untrackedCache", "false")
+    _set_config(private_git, "gc.auto", "0")
+    _set_config(private_git, "remote.origin.url", str(source["origin_url"]))
+    _set_config(private_git, "remote.origin.fetch", "+refs/heads/*:refs/remotes/origin/*")
+    # Do not copy the source config.  Only two inert identity strings are
+    # selected, with safe fallbacks, so includeIf/hooks/filters cannot cross.
+    source_worktree = Path(str(source["worktree"]))
+    for key, fallback in (
+        ("user.name", "Gas City Aegis Worker"),
+        ("user.email", "gas-city-aegis@localhost.invalid"),
+    ):
+        value = _text(
+            ["-C", str(source_worktree), "config", "--get", key],
+            cwd=source_worktree,
+            allowed={0, 1},
+        )
+        if not value:
+            value = fallback
+        if "\n" in value or "\0" in value or len(value) > 512:
+            raise BrokerError(f"source {key} is unsafe")
+        _set_config(private_git, key, value)
+    alternates = private_git / "objects/info/alternates"
+    alternates.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    alternates.write_text(str(source["source_objects_dir"]) + "\n", encoding="utf-8")
+    alternates.chmod(0o600)
+    environment = _git_environment(git_dir=private_git, worktree=source_worktree)
+    commands = bytearray()
+    for ref, oid in dict(source["refs"]).items():
+        commands.extend(f"update {ref} {oid}\n".encode("ascii"))
+    _run(["update-ref", "--stdin"], cwd=source_worktree, environment=environment, input_bytes=bytes(commands))
+    _run(
+        ["symbolic-ref", "HEAD", str(source["source_ref"])],
+        cwd=source_worktree,
+        environment=environment,
+    )
+    _run(["read-tree", str(source["starting_oid"])], cwd=source_worktree, environment=environment)
+    observed = _text(
+        ["status", "--porcelain=v1", "--untracked-files=all"],
+        cwd=source_worktree,
+        environment=environment,
+    )
+    if observed:
+        raise BrokerError("new private Git index does not exactly match the assigned worktree")
+    _validate_private_git_tree(private_git)
+
+
+def _baseline_path(state: Path) -> Path:
+    return state / "baseline.json"
+
+
+def _broker_receipt_path(state: Path) -> Path:
+    return state / "broker-receipt.json"
+
+
+def _frozen_startup_path(state: Path) -> Path:
+    return state / "startup-receipt.json"
+
+
+def _load_baseline(state: Path) -> tuple[dict[str, Any], bytes]:
+    content = _secure_file(_baseline_path(state), "Git broker baseline", modes={0o600})
+    value = _strict_json(content, "Git broker baseline")
+    if value.get("schema_version") != SCHEMA_VERSION or value.get("kind") != "aegis-private-git-baseline":
+        raise BrokerError("Git broker baseline has the wrong protocol identity")
+    return value, content
+
+
+def _validate_broker_receipt(
+    state: Path, baseline: Mapping[str, Any]
+) -> dict[str, Any]:
+    content = _secure_file(
+        _broker_receipt_path(state), "Git broker receipt", modes={0o400}
+    )
+    if _sha256(content) != baseline.get("broker_receipt_sha256"):
+        raise BrokerError("Git broker receipt digest changed")
+    value = _strict_json(content, "Git broker receipt")
+    source = baseline.get("source")
+    if not isinstance(source, dict):
+        raise BrokerError("Git broker baseline source record is invalid")
+    required = {
+        "schema_version": SCHEMA_VERSION,
+        "kind": "aegis-private-git-broker",
+        "status": "prepared",
+        "broker_id": baseline.get("broker_id"),
+        "agent": baseline.get("agent"),
+        "session_id_sha256": baseline.get("session_id_sha256"),
+        "worktree": source.get("worktree"),
+        "source_git_dir": source.get("source_git_dir"),
+        "source_common_dir": source.get("source_common_dir"),
+        "source_branch": source.get("source_branch"),
+        "source_ref": source.get("source_ref"),
+        "starting_oid": source.get("starting_oid"),
+        "base_branch": source.get("base_branch"),
+        "base_ref": source.get("base_ref"),
+        "base_oid": source.get("base_oid"),
+        "host_private_git_dir": baseline.get("private_git_dir"),
+        "container_private_git_dir": PRIVATE_CONTAINER_GIT_DIR,
+        "container_receipt_path": BROKER_CONTAINER_RECEIPT,
+        "frozen_startup_receipt_path": FROZEN_STARTUP_CONTAINER_RECEIPT,
+        "source_refs_sha256": source.get("refs_sha256"),
+        "worktree_marker_sha256": source.get("worktree_marker", {}).get("sha256"),
+        "created_at": baseline.get("created_at"),
+    }
+    if set(value) != set(required) or any(
+        value.get(key) != expected for key, expected in required.items()
+    ):
+        raise BrokerError("Git broker receipt no longer matches its host baseline")
+    return value
+
+
+def _validate_marker(source: Mapping[str, Any]) -> None:
+    observed = _marker_record(Path(str(source["worktree"])))
+    if observed != source["worktree_marker"]:
+        raise BrokerError("linked-worktree Git marker changed after broker preparation")
+
+
+def _validate_source(
+    baseline: Mapping[str, Any], *, target_ref: str | None = None, target_oid: str | None = None
+) -> None:
+    source = baseline["source"]
+    if not isinstance(source, dict):
+        raise BrokerError("Git broker baseline source record is invalid")
+    worktree = Path(str(source["worktree"]))
+    common = Path(str(source["source_common_dir"]))
+    git_dir = Path(str(source["source_git_dir"]))
+    if _canonical_from_git(worktree, "--git-common-dir") != common.resolve(strict=True):
+        raise BrokerError("assigned worktree Git common directory changed")
+    if _canonical_from_git(worktree, "--git-dir") != git_dir.resolve(strict=True):
+        raise BrokerError("assigned linked-worktree Git directory changed")
+    _validate_marker(source)
+    if _tree_fingerprint(common / "config", "Git common config") != source["common_config_sha256"]:
+        raise BrokerError("primary/common Git config changed during isolated work")
+    if _tree_fingerprint(common / "hooks", "Git common hooks") != source["common_hooks_sha256"]:
+        raise BrokerError("primary/common Git hooks changed during isolated work")
+    if (
+        _tree_fingerprint(
+            git_dir / "config.worktree", "linked-worktree Git config"
+        )
+        != source["worktree_config_sha256"]
+    ):
+        raise BrokerError("assigned linked-worktree Git config changed during isolated work")
+    refs = _refs(git_dir, worktree)
+    expected = dict(source["refs"])
+    if target_ref is not None:
+        expected_target = expected.pop(target_ref, None)
+        observed_target = refs.pop(target_ref, None)
+        permitted = target_oid if target_oid is not None else expected_target
+        if observed_target != permitted:
+            raise BrokerError("assigned branch changed outside the broker compare-and-swap")
+    if refs != expected:
+        raise BrokerError("a protected primary/common Git ref changed during isolated work")
+    head_text = _text(
+        ["--git-dir", str(git_dir), "symbolic-ref", "-q", "HEAD"],
+        cwd=worktree,
+        environment=_git_environment(),
+        allowed={0, 1},
+    )
+    permitted_heads = {str(source["source_ref"])}
+    if target_ref is not None and target_oid is not None:
+        permitted_heads.add(target_ref)
+    if head_text not in permitted_heads:
+        raise BrokerError("assigned linked-worktree HEAD changed outside the broker")
+
+
+def _validate_source_connectivity(source: Mapping[str, Any]) -> None:
+    """Prove that protected refs still have a complete reachable object graph."""
+
+    common = Path(str(source["source_common_dir"]))
+    worktree = Path(str(source["worktree"]))
+    _run(
+        [
+            "--git-dir",
+            str(common),
+            "fsck",
+            "--connectivity-only",
+            "--strict",
+            "--no-dangling",
+            "--no-reflogs",
+        ],
+        cwd=worktree,
+        environment=_git_environment(),
+        maximum=32 * 1024 * 1024,
+    )
+
+
+def _private_config_sha(private_git: Path) -> str:
+    return _tree_fingerprint(private_git / "config", "private Git config")
+
+
+def _validate_alternates(private_git: Path, source: Mapping[str, Any]) -> None:
+    alternates = private_git / "objects/info/alternates"
+    content = _secure_file(alternates, "private Git alternates", modes={0o600}, maximum=8192)
+    expected = (str(source["source_objects_dir"]) + "\n").encode("utf-8")
+    if content != expected:
+        raise BrokerError("private Git alternates escaped the canonical read-only object store")
+
+
+def _retry_source_allowance(
+    baseline: Mapping[str, Any], private_git: Path
+) -> tuple[str | None, str | None]:
+    """Allow only pre-CAS state or the exact recoverable post-CAS target."""
+
+    if baseline.get("status") not in {"frozen", "preserved"}:
+        return None, None
+    if (
+        baseline.get("status") == "preserved"
+        and baseline.get("authorization_kind") is None
+    ):
+        # Startup may fail before any branch authorization exists.  Such a
+        # preserved session resumes the original prepared source snapshot.
+        return None, None
+    authorized_ref = baseline.get("authorized_ref")
+    if not isinstance(authorized_ref, str) or not authorized_ref.startswith("refs/heads/"):
+        raise BrokerError("retry authorization ref is invalid")
+    source = baseline.get("source")
+    if not isinstance(source, dict):
+        raise BrokerError("retry source baseline is invalid")
+    worktree = Path(str(source["worktree"]))
+    source_git_dir = Path(str(source["source_git_dir"]))
+    private_head, _ = _private_head(private_git, worktree)
+    current_target = _refs(source_git_dir, worktree).get(authorized_ref)
+    if current_target not in {baseline.get("target_expected_oid"), private_head}:
+        raise BrokerError("authorized branch raced before broker retry")
+    return authorized_ref, current_target
+
+
+def _private_head(private_git: Path, worktree: Path) -> tuple[str, str | None]:
+    environment = _git_environment(git_dir=private_git, worktree=worktree)
+    oid = _text(["rev-parse", "HEAD"], cwd=worktree, environment=environment)
+    if OID_RE.fullmatch(oid) is None:
+        raise BrokerError("private Git HEAD is not one commit")
+    branch = _text(
+        ["symbolic-ref", "-q", "--short", "HEAD"],
+        cwd=worktree,
+        environment=environment,
+        allowed={0, 1},
+    )
+    return oid, branch or None
+
+
+def _is_ancestor(private_git: Path, worktree: Path, ancestor: str, descendant: str) -> bool:
+    result = subprocess.run(
+        [str(GIT), "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "merge-base", "--is-ancestor", ancestor, descendant],
+        cwd=worktree,
+        env=_git_environment(git_dir=private_git, worktree=worktree),
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+        timeout=60,
+    )
+    if result.returncode not in {0, 1}:
+        raise BrokerError("could not prove private Git fast-forward ancestry")
+    return result.returncode == 0
+
+
+def _write_baseline(state: Path, baseline: Mapping[str, Any]) -> None:
+    _atomic_write(_baseline_path(state), _json_bytes(baseline), 0o600)
+
+
+def prepare(args: argparse.Namespace) -> dict[str, Any]:
+    state_parent = _secure_directory(Path(args.state_dir).parent, "Git broker state parent")
+    state = Path(args.state_dir)
+    if state.parent.resolve(strict=True) != state_parent:
+        raise BrokerError("Git broker state escaped its owner-only parent")
+    if not state.exists() and not state.is_symlink():
+        state.mkdir(mode=0o700)
+    state = _secure_directory(state, "Git broker session state")
+    if SAFE_AGENT_RE.fullmatch(args.agent) is None:
+        raise BrokerError("Git broker agent identity is unsafe")
+    if not args.session_id:
+        raise BrokerError("Git broker session identity is required")
+    worktree = Path(args.worktree).resolve(strict=True)
+    expected_common = Path(args.expected_common).resolve(strict=True)
+    private_git = state / "private.git"
+    baseline_path = _baseline_path(state)
+    if baseline_path.exists() and not baseline_path.is_symlink():
+        baseline, _ = _load_baseline(state)
+        baseline_status = baseline.get("status")
+        if baseline_status not in {
+            "prepared",
+            "frozen",
+            "preserved",
+            "no_work",
+            "promoted",
+        }:
+            raise BrokerError("completed Git broker session cannot be reused")
+        if (
+            baseline.get("agent") != args.agent
+            or baseline.get("session_id_sha256") != _sha256(args.session_id.encode("utf-8"))
+            or baseline.get("private_git_dir") != str(private_git)
+            or baseline.get("container_private_git_dir") != PRIVATE_CONTAINER_GIT_DIR
+            or baseline.get("source", {}).get("worktree") != str(worktree)
+            or baseline.get("source", {}).get("source_common_dir") != str(expected_common)
+        ):
+            raise BrokerError("Git broker retry identity does not match its durable baseline")
+        _validate_broker_receipt(state, baseline)
+        private_git = _validate_private_git_tree(private_git)
+        _validate_alternates(private_git, baseline["source"])
+        if baseline_status == "promoted":
+            promoted_oid = baseline.get("promoted_oid")
+            authorized_ref = baseline.get("authorized_ref")
+            if (
+                not isinstance(promoted_oid, str)
+                or OID_RE.fullmatch(promoted_oid) is None
+                or not isinstance(authorized_ref, str)
+            ):
+                raise BrokerError("completed Git promotion identity is invalid")
+            _load_completed_promotion(state, baseline)
+            _validate_source(
+                baseline,
+                target_ref=authorized_ref,
+                target_oid=promoted_oid,
+            )
+            _validate_source_connectivity(baseline["source"])
+            return {
+                "status": "already_promoted",
+                "state_dir": str(state),
+                "private_git_dir": str(private_git),
+                "broker_receipt": str(_broker_receipt_path(state)),
+            }
+        if baseline_status == "no_work":
+            _validate_frozen(baseline, state)
+            _validate_source(baseline)
+            _validate_source_connectivity(baseline["source"])
+            return {
+                "status": "already_no_work",
+                "state_dir": str(state),
+                "private_git_dir": str(private_git),
+                "broker_receipt": str(_broker_receipt_path(state)),
+            }
+        config_baseline = baseline.get(
+            "private_config_sha256_at_freeze",
+            baseline.get("private_config_sha256_at_prepare"),
+        )
+        if (
+            not isinstance(config_baseline, str)
+            or _private_config_sha(private_git) != config_baseline
+        ):
+            raise BrokerError("private Git config changed before broker retry")
+        if baseline.get("authorization_kind") in {
+            "polecat-startup",
+            "assigned-source-branch",
+        }:
+            _validate_private_refs(baseline, _refs(private_git, worktree))
+        target_ref, current_target = _retry_source_allowance(baseline, private_git)
+        _validate_source(
+            baseline,
+            target_ref=target_ref,
+            target_oid=current_target,
+        )
+        _validate_source_connectivity(baseline["source"])
+        refreshed = dict(baseline)
+        refreshed["status"] = "prepared"
+        refreshed["retry_source_ref"] = target_ref
+        refreshed["retry_source_oid"] = current_target
+        refreshed["retry_count"] = int(baseline.get("retry_count", 0)) + 1
+        refreshed["last_prepared_at"] = _now()
+        _write_baseline(state, refreshed)
+        return {
+            "status": "resumed",
+            "state_dir": str(state),
+            "private_git_dir": str(private_git),
+            "broker_receipt": str(_broker_receipt_path(state)),
+        }
+
+    if any(state.iterdir()):
+        raise BrokerError("new Git broker session directory is not empty")
+    source = _source_snapshot(worktree, expected_common, args.base_branch)
+    _initialize_private(private_git, source)
+    broker_id = str(uuid.uuid4())
+    receipt = {
+        "schema_version": SCHEMA_VERSION,
+        "kind": "aegis-private-git-broker",
+        "status": "prepared",
+        "broker_id": broker_id,
+        "agent": args.agent,
+        "session_id_sha256": _sha256(args.session_id.encode("utf-8")),
+        "worktree": str(worktree),
+        "source_git_dir": source["source_git_dir"],
+        "source_common_dir": source["source_common_dir"],
+        "source_branch": source["source_branch"],
+        "source_ref": source["source_ref"],
+        "starting_oid": source["starting_oid"],
+        "base_branch": source["base_branch"],
+        "base_ref": source["base_ref"],
+        "base_oid": source["base_oid"],
+        "host_private_git_dir": str(private_git),
+        "container_private_git_dir": PRIVATE_CONTAINER_GIT_DIR,
+        "container_receipt_path": BROKER_CONTAINER_RECEIPT,
+        "frozen_startup_receipt_path": FROZEN_STARTUP_CONTAINER_RECEIPT,
+        "source_refs_sha256": source["refs_sha256"],
+        "worktree_marker_sha256": source["worktree_marker"]["sha256"],
+        "created_at": _now(),
+    }
+    receipt_content = _json_bytes(receipt)
+    _atomic_write(_broker_receipt_path(state), receipt_content, 0o400)
+    baseline = {
+        "schema_version": SCHEMA_VERSION,
+        "kind": "aegis-private-git-baseline",
+        "status": "prepared",
+        "broker_id": broker_id,
+        "agent": args.agent,
+        "session_id_sha256": receipt["session_id_sha256"],
+        "created_at": receipt["created_at"],
+        "private_git_dir": str(private_git),
+        "container_private_git_dir": PRIVATE_CONTAINER_GIT_DIR,
+        "broker_receipt_sha256": _sha256(receipt_content),
+        "source": source,
+        "private_refs_at_prepare": _refs(private_git, worktree),
+        "private_config_sha256_at_prepare": _private_config_sha(private_git),
+        "retry_count": 0,
+    }
+    _write_baseline(state, baseline)
+    return {
+        "status": "prepared",
+        "state_dir": str(state),
+        "private_git_dir": str(private_git),
+        "broker_receipt": str(_broker_receipt_path(state)),
+    }
+
+
+def _validate_startup(
+    value: Mapping[str, Any], baseline: Mapping[str, Any], content: bytes
+) -> tuple[str | None, str | None]:
+    source = baseline["source"]
+    receipt_sha = baseline["broker_receipt_sha256"]
+    required = {
+        "schema_version": 1,
+        "kind": "aegis-polecat-pre-provider-startup",
+        "rig": "aegis",
+        "template": "aegis/gastown.polecat",
+        "route": "aegis/gastown.polecat",
+        "git_broker_receipt_sha256": receipt_sha,
+        "git_broker_id": baseline["broker_id"],
+        "git_source_branch": source["source_branch"],
+        "git_starting_oid": source["starting_oid"],
+        "git_source_common_dir": source["source_common_dir"],
+        "git_private_common_dir": PRIVATE_CONTAINER_GIT_DIR,
+    }
+    if any(value.get(key) != expected for key, expected in required.items()):
+        raise BrokerError("startup receipt does not bind the exact Git broker baseline")
+    status_value = value.get("status")
+    if status_value == "no_work":
+        return None, None
+    if status_value not in {"prepared", "resumed"}:
+        raise BrokerError("startup receipt has an unsupported status")
+    source_id = value.get("source_work_id")
+    branch = value.get("branch")
+    head = value.get("git_head")
+    if (
+        not isinstance(source_id, str)
+        or SAFE_BEAD_RE.fullmatch(source_id) is None
+        or branch != f"polecat/{source_id}"
+        or value.get("work_dir") != source["worktree"]
+        or value.get("base_branch") != source["base_branch"]
+        or not isinstance(head, str)
+        or OID_RE.fullmatch(head) is None
+    ):
+        raise BrokerError("startup receipt does not authorize one exact Bead branch")
+    if len(content) <= 0:
+        raise BrokerError("startup receipt is empty")
+    return branch, head
+
+
+def freeze(args: argparse.Namespace) -> dict[str, Any]:
+    state = _secure_directory(Path(args.state_dir), "Git broker session state")
+    baseline, _ = _load_baseline(state)
+    if baseline.get("status") != "prepared":
+        raise BrokerError("Git broker startup can only freeze a prepared baseline")
+    _validate_broker_receipt(state, baseline)
+    retry_ref = baseline.get("retry_source_ref")
+    retry_oid = baseline.get("retry_source_oid")
+    if retry_ref is not None and not isinstance(retry_ref, str):
+        raise BrokerError("Git broker retry ref is invalid")
+    if retry_oid is not None and (
+        not isinstance(retry_oid, str) or OID_RE.fullmatch(retry_oid) is None
+    ):
+        raise BrokerError("Git broker retry oid is invalid")
+    _validate_source(baseline, target_ref=retry_ref, target_oid=retry_oid)
+    startup_content = _secure_file(
+        Path(args.startup_receipt),
+        "pre-provider startup receipt",
+        modes={0o600},
+    )
+    startup = _strict_json(startup_content, "pre-provider startup receipt")
+    branch, startup_head = _validate_startup(startup, baseline, startup_content)
+    if retry_ref is not None:
+        expected_retry_ref = f"refs/heads/{branch}" if branch is not None else None
+        if retry_ref != expected_retry_ref or (
+            retry_oid is not None and retry_oid != startup_head
+        ):
+            raise BrokerError("startup receipt changed the retried Git authorization")
+    private_git = _validate_private_git_tree(Path(str(baseline["private_git_dir"])))
+    source = baseline["source"]
+    worktree = Path(str(source["worktree"]))
+    _validate_alternates(private_git, source)
+    observed_head, observed_branch = _private_head(private_git, worktree)
+    if branch is None:
+        if observed_head != source["starting_oid"]:
+            raise BrokerError("no-work startup changed private Git HEAD")
+    elif observed_head != startup_head or observed_branch != branch:
+        raise BrokerError("startup receipt branch/head do not match private Git state")
+    frozen_path = _frozen_startup_path(state)
+    _atomic_write(frozen_path, startup_content, 0o400)
+    refreshed = dict(baseline)
+    refreshed.update(
+        {
+            "status": "no_work" if branch is None else "frozen",
+            "authorization_kind": "polecat-startup",
+            "startup_receipt_sha256": _sha256(startup_content),
+            "startup_status": startup.get("status"),
+            "authorized_branch": branch,
+            "authorized_ref": f"refs/heads/{branch}" if branch else None,
+            "authorized_source_work_id": startup.get("source_work_id"),
+            "startup_head": startup_head,
+            "target_expected_oid": (
+                source["refs"].get(f"refs/heads/{branch}") if branch else None
+            ),
+            "private_refs_at_freeze": _refs(private_git, worktree),
+            "private_config_sha256_at_freeze": _private_config_sha(private_git),
+            "frozen_at": _now(),
+        }
+    )
+    _write_baseline(state, refreshed)
+    return {
+        "status": refreshed["status"],
+        "frozen_startup_receipt": str(frozen_path),
+        "authorized_branch": branch,
+    }
+
+
+def freeze_generic(args: argparse.Namespace) -> dict[str, Any]:
+    """Freeze the already-assigned pool branch for a non-polecat Aegis worker."""
+
+    state = _secure_directory(Path(args.state_dir), "Git broker session state")
+    baseline, _ = _load_baseline(state)
+    if baseline.get("status") != "prepared":
+        raise BrokerError("generic Git authorization requires a prepared baseline")
+    _validate_broker_receipt(state, baseline)
+    retry_ref = baseline.get("retry_source_ref")
+    retry_oid = baseline.get("retry_source_oid")
+    if retry_ref not in {None, baseline.get("source", {}).get("source_ref")}:
+        raise BrokerError("generic retry ref changed its assigned authorization")
+    _validate_source(baseline, target_ref=retry_ref, target_oid=retry_oid)
+    source = baseline["source"]
+    private_git = _validate_private_git_tree(Path(str(baseline["private_git_dir"])))
+    worktree = Path(str(source["worktree"]))
+    _validate_alternates(private_git, source)
+    head, branch = _private_head(private_git, worktree)
+    if head != source["starting_oid"] or branch != source["source_branch"]:
+        raise BrokerError("generic private Git state drifted before authorization")
+    refreshed = dict(baseline)
+    refreshed.update(
+        {
+            "status": "frozen",
+            "authorization_kind": "assigned-source-branch",
+            "startup_receipt_sha256": None,
+            "startup_status": None,
+            "authorized_branch": source["source_branch"],
+            "authorized_ref": source["source_ref"],
+            "authorized_source_work_id": None,
+            "startup_head": source["starting_oid"],
+            "target_expected_oid": source["starting_oid"],
+            "private_refs_at_freeze": _refs(private_git, worktree),
+            "private_config_sha256_at_freeze": _private_config_sha(private_git),
+            "frozen_at": _now(),
+        }
+    )
+    _write_baseline(state, refreshed)
+    return {
+        "status": "frozen",
+        "authorization_kind": "assigned-source-branch",
+        "authorized_branch": source["source_branch"],
+    }
+
+
+def _validate_frozen(baseline: Mapping[str, Any], state: Path) -> dict[str, Any]:
+    if baseline.get("authorization_kind") == "assigned-source-branch":
+        source = baseline["source"]
+        if (
+            baseline.get("authorized_branch") != source.get("source_branch")
+            or baseline.get("authorized_ref") != source.get("source_ref")
+            or baseline.get("startup_head") != source.get("starting_oid")
+            or baseline.get("target_expected_oid") != source.get("starting_oid")
+            or baseline.get("startup_receipt_sha256") is not None
+        ):
+            raise BrokerError("generic assigned-branch authorization changed")
+        return {}
+    if baseline.get("authorization_kind") != "polecat-startup":
+        raise BrokerError("Git broker authorization kind is invalid")
+    content = _secure_file(_frozen_startup_path(state), "frozen startup receipt", modes={0o400})
+    if _sha256(content) != baseline.get("startup_receipt_sha256"):
+        raise BrokerError("frozen startup receipt digest changed")
+    value = _strict_json(content, "frozen startup receipt")
+    branch, head = _validate_startup(value, baseline, content)
+    if branch != baseline.get("authorized_branch") or head != baseline.get("startup_head"):
+        raise BrokerError("frozen startup receipt no longer matches the baseline")
+    return value
+
+
+def _validate_host_model_evidence(
+    *,
+    git_state: Path,
+    git_baseline: Mapping[str, Any],
+    git_baseline_content: bytes,
+    model_state_path: Path,
+    provider: str,
+    provider_exit: int,
+) -> str:
+    """Validate only host-owned evidence that was never mounted in the worker."""
+
+    if provider not in MODEL_PREFLIGHT_LOCATORS:
+        raise BrokerError("provider has no locked model preflight contract")
+    model_state = _secure_directory(model_state_path, "host model evidence state")
+    if model_state.parent != git_state or model_state.name != "model-evidence":
+        raise BrokerError("host model evidence escaped the exact Git broker session")
+    model_baseline_content = _secure_file(
+        model_state / "baseline.json", "host model evidence baseline", modes={0o600}
+    )
+    model_baseline = _strict_json(
+        model_baseline_content, "host model evidence baseline"
+    )
+    expected_model = "gpt-5.6-sol" if provider == "codex" else "claude-fable-5"
+    expected_effort = "xhigh" if provider == "codex" else None
+    source = git_baseline.get("source")
+    if not isinstance(source, dict):
+        raise BrokerError("Git source binding is invalid during model verification")
+    if (
+        model_baseline.get("schema_version") != 1
+        or model_baseline.get("kind") != "host-model-evidence-baseline"
+        or model_baseline.get("status") != "evidence_recorded"
+        or model_baseline.get("provider") != provider
+        or model_baseline.get("expected_model") != expected_model
+        or model_baseline.get("expected_effort") != expected_effort
+        or model_baseline.get("model_attestation_scope")
+        != MODEL_ATTESTATION_SCOPE
+        or model_baseline.get("session_id_sha256")
+        != git_baseline.get("session_id_sha256")
+        or model_baseline.get("git_broker_id") != git_baseline.get("broker_id")
+        or model_baseline.get("git_broker_receipt_sha256")
+        != git_baseline.get("broker_receipt_sha256")
+        or model_baseline.get("git_baseline_sha256_at_begin")
+        != _sha256(git_baseline_content)
+        or model_baseline.get("git_startup_receipt_sha256")
+        != git_baseline.get("startup_receipt_sha256")
+        or model_baseline.get("git_source_starting_oid") != source.get("starting_oid")
+        or model_baseline.get("git_authorized_ref")
+        != git_baseline.get("authorized_ref")
+        or not isinstance(model_baseline.get("worker_image_id"), str)
+        or IMAGE_ID_RE.fullmatch(model_baseline["worker_image_id"]) is None
+        or not isinstance(model_baseline.get("run_generation"), int)
+        or model_baseline.get("run_generation", 0) < 1
+    ):
+        raise BrokerError("host model evidence baseline does not bind the frozen Git run")
+
+    receipt_fields = {
+        "schema_version",
+        "kind",
+        "status",
+        "phase",
+        "provider",
+        "expected_model",
+        "expected_effort",
+        "observed_model",
+        "observed_effort",
+        "provider_exit_code",
+        "event_sha256",
+        "transcript_sha256",
+        "transcript_locator",
+        "tool_free",
+        "challenge_sha256",
+        "container_name",
+        "container_image_id",
+        "container_boundary",
+        "model_source_phase",
+        "model_attestation_scope",
+        "evidence_id",
+        "run_generation",
+        "run_id_sha256",
+        "session_id_sha256",
+        "git_broker_id",
+        "git_broker_receipt_sha256",
+        "git_startup_receipt_sha256",
+        "git_source_starting_oid",
+        "git_authorized_ref",
+        "container_init_host_pid",
+        "supervisor_host_pid",
+        "supervisor_host_uid",
+        "supervisor_host_gid",
+        "supervisor_starttime_ticks",
+        "preflight_receipt_sha256",
+        "recorded_at",
+    }
+    binding_fields = {
+        "evidence_id",
+        "run_generation",
+        "run_id_sha256",
+        "session_id_sha256",
+        "git_broker_id",
+        "git_broker_receipt_sha256",
+        "git_startup_receipt_sha256",
+        "git_source_starting_oid",
+        "git_authorized_ref",
+    }
+
+    receipts: dict[str, tuple[dict[str, Any], bytes]] = {}
+    for phase in ("preflight", "session"):
+        content = _secure_file(
+            model_state / f"{phase}-receipt.json",
+            f"host {phase} model evidence receipt",
+            modes={0o400},
+        )
+        value = _strict_json(content, f"host {phase} model evidence receipt")
+        expected_container = model_baseline.get(f"{phase}_container")
+        if (
+            set(value) != receipt_fields
+            or value.get("schema_version") != 1
+            or value.get("kind") != "host-model-evidence-receipt"
+            or value.get("status") != "verified"
+            or value.get("phase") != phase
+            or value.get("provider") != provider
+            or value.get("expected_model") != expected_model
+            or value.get("observed_model") != expected_model
+            or value.get("expected_effort") != expected_effort
+            or value.get("observed_effort") != expected_effort
+            or value.get("container_name") != expected_container
+            or value.get("container_image_id")
+            != model_baseline.get("worker_image_id")
+            or value.get("container_boundary")
+            != ("model-preflight" if phase == "preflight" else "isolated-worker")
+            or value.get("model_source_phase") != "preflight"
+            or value.get("model_attestation_scope")
+            != MODEL_ATTESTATION_SCOPE
+            or any(
+                value.get(key) != model_baseline.get(key) for key in binding_fields
+            )
+        ):
+            raise BrokerError("host model receipt is stale or has the wrong run identity")
+        for digest_name in (
+            "event_sha256",
+            "transcript_sha256",
+            "challenge_sha256",
+        ):
+            digest = value.get(digest_name)
+            if not isinstance(digest, str) or SHA256_RE.fullmatch(digest) is None:
+                raise BrokerError("host model receipt has an invalid evidence digest")
+        for identity_name in (
+            "container_init_host_pid",
+            "supervisor_host_pid",
+            "supervisor_starttime_ticks",
+        ):
+            identity = value.get(identity_name)
+            if not isinstance(identity, int) or isinstance(identity, bool) or identity <= 0:
+                raise BrokerError("host model receipt has an invalid process identity")
+        for identity_name in ("supervisor_host_uid", "supervisor_host_gid"):
+            identity = value.get(identity_name)
+            if not isinstance(identity, int) or isinstance(identity, bool) or identity < 0:
+                raise BrokerError("host model receipt has an invalid owner identity")
+        receipts[phase] = (value, content)
+
+    preflight, preflight_content = receipts["preflight"]
+    session, session_content = receipts["session"]
+    preflight_sha = _sha256(preflight_content)
+    session_sha = _sha256(session_content)
+    if (
+        model_baseline.get("preflight_receipt_sha256") != preflight_sha
+        or model_baseline.get("session_receipt_sha256") != session_sha
+        or preflight.get("provider_exit_code") != 0
+        or preflight.get("tool_free") is not True
+        or preflight.get("transcript_locator") != MODEL_PREFLIGHT_LOCATORS[provider]
+        or preflight.get("preflight_receipt_sha256") is not None
+        or session.get("expected_model") != preflight.get("expected_model")
+        or session.get("expected_effort") != preflight.get("expected_effort")
+        or session.get("observed_model") != preflight.get("observed_model")
+        or session.get("observed_effort") != preflight.get("observed_effort")
+        or session.get("event_sha256") != preflight.get("event_sha256")
+        or session.get("provider_exit_code") != provider_exit
+        or session.get("tool_free") is not False
+        or not isinstance(session.get("transcript_locator"), str)
+        or not session["transcript_locator"].startswith("/home/worker/")
+        or session.get("preflight_receipt_sha256") != preflight_sha
+    ):
+        raise BrokerError("provider exit is not bound to current host model evidence")
+    return session_sha
+
+
+def _validate_private_refs(baseline: Mapping[str, Any], observed: Mapping[str, str]) -> None:
+    expected = dict(baseline["private_refs_at_freeze"])
+    target_ref = str(baseline["authorized_ref"])
+    expected.pop(target_ref, None)
+    actual = dict(observed)
+    actual.pop(target_ref, None)
+    if actual != expected:
+        raise BrokerError("private Git changed a non-authorized ref")
+
+
+def _import_objects(private_git: Path, source_common: Path, worktree: Path, target: str, base: str) -> None:
+    producer_command = [
+        str(GIT),
+        "-c",
+        "core.hooksPath=/dev/null",
+        "-c",
+        "core.fsmonitor=false",
+        "pack-objects",
+        "--stdout",
+        "--revs",
+    ]
+    consumer_command = [
+        str(GIT),
+        "-c",
+        "core.hooksPath=/dev/null",
+        "--git-dir",
+        str(source_common),
+        "unpack-objects",
+        "-r",
+    ]
+    private_environment = _git_environment(git_dir=private_git, worktree=worktree)
+    source_environment = _git_environment(git_dir=source_common)
+    try:
+        producer = subprocess.Popen(
+            producer_command,
+            cwd=worktree,
+            env=private_environment,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        assert producer.stdin is not None and producer.stdout is not None
+        producer.stdin.write(f"{target}\n^{base}\n".encode("ascii"))
+        producer.stdin.close()
+        consumer = subprocess.run(
+            consumer_command,
+            cwd=worktree,
+            env=source_environment,
+            stdin=producer.stdout,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=180,
+        )
+        producer.stdout.close()
+        producer_stderr = producer.stderr.read(1024 * 1024 + 1) if producer.stderr else b""
+        producer_code = producer.wait(timeout=180)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise BrokerError("could not transfer private Git objects") from exc
+    if (
+        producer_code != 0
+        or consumer.returncode != 0
+        or len(producer_stderr) > 1024 * 1024
+        or len(consumer.stderr) > 1024 * 1024
+    ):
+        raise BrokerError("private Git object transfer failed")
+
+
+def _write_promotion(
+    state: Path,
+    baseline: Mapping[str, Any],
+    *,
+    target_oid: str,
+    model_sha256: str,
+    recovered: bool,
+) -> dict[str, Any]:
+    receipt = {
+        "schema_version": 1,
+        "kind": "aegis-private-git-promotion",
+        "status": "promoted",
+        "broker_id": baseline["broker_id"],
+        "worktree": baseline["source"]["worktree"],
+        "source_branch": baseline["source"]["source_branch"],
+        "source_starting_oid": baseline["source"]["starting_oid"],
+        "base_oid": baseline["source"]["base_oid"],
+        "promoted_branch": baseline["authorized_branch"],
+        "previous_branch_oid": baseline.get("target_expected_oid"),
+        "promoted_oid": target_oid,
+        "startup_receipt_sha256": baseline["startup_receipt_sha256"],
+        "host_model_evidence_receipt_sha256": model_sha256,
+        "protected_refs_sha256": baseline["source"]["refs_sha256"],
+        "recovered_after_cas": recovered,
+        "promoted_at": _now(),
+    }
+    content = _json_bytes(receipt)
+    _atomic_write(state / "promotion.json", content, 0o600)
+    refreshed = dict(baseline)
+    refreshed.update(
+        {
+            "status": "promoted",
+            "promoted_oid": target_oid,
+            "promotion_receipt_sha256": _sha256(content),
+            "promoted_at": receipt["promoted_at"],
+        }
+    )
+    _write_baseline(state, refreshed)
+    return receipt
+
+
+def _load_completed_promotion(
+    state: Path, baseline: Mapping[str, Any]
+) -> dict[str, Any]:
+    content = _secure_file(
+        state / "promotion.json", "Git promotion receipt", modes={0o600}
+    )
+    if _sha256(content) != baseline.get("promotion_receipt_sha256"):
+        raise BrokerError("Git promotion receipt digest changed")
+    value = _strict_json(content, "Git promotion receipt")
+    required = {
+        "schema_version": 1,
+        "kind": "aegis-private-git-promotion",
+        "status": "promoted",
+        "broker_id": baseline.get("broker_id"),
+        "promoted_oid": baseline.get("promoted_oid"),
+    }
+    if any(value.get(key) != expected for key, expected in required.items()):
+        raise BrokerError("Git promotion receipt no longer matches its host baseline")
+    return value
+
+
+def _preserve(state: Path, baseline: Mapping[str, Any], provider_exit: int, reason: str) -> dict[str, Any]:
+    _validate_source(baseline)
+    _validate_source_connectivity(baseline["source"])
+    record = {
+        "schema_version": 1,
+        "kind": "aegis-private-git-preservation",
+        "status": "preserved",
+        "broker_id": baseline["broker_id"],
+        "provider_exit_code": provider_exit,
+        "reason": reason,
+        "recorded_at": _now(),
+    }
+    content = _json_bytes(record)
+    _atomic_write(state / "preservation.json", content, 0o600)
+    refreshed = dict(baseline)
+    refreshed.update(
+        {
+            "status": "preserved",
+            "last_provider_exit_code": provider_exit,
+            "preservation_receipt_sha256": _sha256(content),
+            "preserved_at": record["recorded_at"],
+        }
+    )
+    _write_baseline(state, refreshed)
+    return record
+
+
+def finalize(args: argparse.Namespace) -> dict[str, Any]:
+    state = _secure_directory(Path(args.state_dir), "Git broker session state")
+    baseline, baseline_content = _load_baseline(state)
+    if baseline.get("status") == "promoted":
+        return _load_completed_promotion(state, baseline)
+    if baseline.get("status") != "frozen":
+        raise BrokerError("only a frozen Git broker session may be finalized")
+    _validate_broker_receipt(state, baseline)
+    _validate_frozen(baseline, state)
+    provider_exit = int(args.provider_exit)
+    if provider_exit != 0:
+        return _preserve(state, baseline, provider_exit, "provider_nonzero_exit")
+    model_sha256 = _validate_host_model_evidence(
+        git_state=state,
+        git_baseline=baseline,
+        git_baseline_content=baseline_content,
+        model_state_path=Path(args.model_evidence_state),
+        provider=args.provider,
+        provider_exit=provider_exit,
+    )
+    source = baseline["source"]
+    worktree = Path(str(source["worktree"]))
+    source_common = Path(str(source["source_common_dir"]))
+    source_git_dir = Path(str(source["source_git_dir"]))
+    private_git = _validate_private_git_tree(Path(str(baseline["private_git_dir"])))
+    _validate_alternates(private_git, source)
+    if _private_config_sha(private_git) != baseline["private_config_sha256_at_freeze"]:
+        raise BrokerError("private Git config changed after trusted startup")
+    private_refs = _refs(private_git, worktree)
+    _validate_private_refs(baseline, private_refs)
+    target_oid, private_branch = _private_head(private_git, worktree)
+    authorized_branch = str(baseline["authorized_branch"])
+    authorized_ref = str(baseline["authorized_ref"])
+    if private_branch not in {None, authorized_branch}:
+        raise BrokerError("private Git HEAD escaped the authorized Bead branch")
+    for ancestor in (
+        str(source["starting_oid"]),
+        str(source["base_oid"]),
+        str(baseline["startup_head"]),
+    ):
+        if not _is_ancestor(private_git, worktree, ancestor, target_oid):
+            raise BrokerError("private Git result is not a fast-forward descendant")
+    private_environment = _git_environment(git_dir=private_git, worktree=worktree)
+    dirty = _text(
+        ["status", "--porcelain=v1", "--untracked-files=all"],
+        cwd=worktree,
+        environment=private_environment,
+    )
+    if dirty:
+        raise BrokerError("private Git worktree is not clean at promotion")
+    _run(["fsck", "--connectivity-only", "--strict", target_oid], cwd=worktree, environment=private_environment)
+
+    expected_target = baseline.get("target_expected_oid")
+    current_refs = _refs(source_git_dir, worktree)
+    current_target = current_refs.get(authorized_ref)
+    recovered = current_target == target_oid
+    if not recovered and current_target != expected_target:
+        raise BrokerError("authorized branch raced before broker promotion")
+    _validate_source(
+        baseline,
+        target_ref=authorized_ref,
+        target_oid=target_oid if recovered else expected_target,
+    )
+    _validate_source_connectivity(source)
+    if not recovered:
+        _import_objects(
+            private_git,
+            source_common,
+            worktree,
+            target_oid,
+            str(source["starting_oid"]),
+        )
+        _run(
+            ["--git-dir", str(source_common), "cat-file", "-e", f"{target_oid}^{{commit}}"],
+            cwd=worktree,
+            environment=_git_environment(),
+        )
+        _validate_source(baseline, target_ref=authorized_ref, target_oid=expected_target)
+        old = str(expected_target) if expected_target is not None else ZERO_OID
+        _run(
+            ["--git-dir", str(source_common), "update-ref", authorized_ref, target_oid, old],
+            cwd=worktree,
+            environment=_git_environment(),
+        )
+
+    # The only original worktree metadata changed by the broker is this linked
+    # worktree's HEAD and index.  No primary/other worktree index is touched.
+    original_environment = _git_environment(git_dir=source_git_dir, worktree=worktree)
+    _run(["symbolic-ref", "HEAD", authorized_ref], cwd=worktree, environment=original_environment)
+    _run(["read-tree", target_oid], cwd=worktree, environment=original_environment)
+    original_dirty = _text(
+        ["status", "--porcelain=v1", "--untracked-files=all"],
+        cwd=worktree,
+        environment=original_environment,
+    )
+    if original_dirty:
+        raise BrokerError("assigned original worktree index does not match the promoted commit")
+    _validate_source(baseline, target_ref=authorized_ref, target_oid=target_oid)
+    _validate_source_connectivity(source)
+    return _write_promotion(
+        state,
+        baseline,
+        target_oid=target_oid,
+        model_sha256=model_sha256,
+        recovered=recovered,
+    )
+
+
+def inspect(args: argparse.Namespace) -> dict[str, Any]:
+    state = _secure_directory(Path(args.state_dir), "Git broker session state")
+    baseline, content = _load_baseline(state)
+    return {
+        "status": baseline.get("status"),
+        "baseline_sha256": _sha256(content),
+        "private_git_dir": baseline.get("private_git_dir"),
+        "broker_receipt": str(_broker_receipt_path(state)),
+        "frozen_startup_receipt": str(_frozen_startup_path(state)),
+    }
+
+
+def preserve(args: argparse.Namespace) -> dict[str, Any]:
+    state = _secure_directory(Path(args.state_dir), "Git broker session state")
+    baseline, _ = _load_baseline(state)
+    if baseline.get("status") not in {"prepared", "frozen", "preserved"}:
+        raise BrokerError("only an active Git broker session can be preserved")
+    _validate_broker_receipt(state, baseline)
+    if baseline.get("status") == "frozen":
+        _validate_frozen(baseline, state)
+    return _preserve(state, baseline, int(args.provider_exit), args.reason)
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="git-worktree-broker")
+    subparsers = parser.add_subparsers(dest="action", required=True)
+    prepare_parser = subparsers.add_parser("prepare")
+    prepare_parser.add_argument("--state-dir", required=True)
+    prepare_parser.add_argument("--worktree", required=True)
+    prepare_parser.add_argument("--expected-common", required=True)
+    prepare_parser.add_argument("--base-branch", default="main")
+    prepare_parser.add_argument("--agent", required=True)
+    prepare_parser.add_argument("--session-id", required=True)
+    freeze_parser = subparsers.add_parser("freeze")
+    freeze_parser.add_argument("--state-dir", required=True)
+    freeze_parser.add_argument("--startup-receipt", required=True)
+    generic_parser = subparsers.add_parser("freeze-generic")
+    generic_parser.add_argument("--state-dir", required=True)
+    finalize_parser = subparsers.add_parser("finalize")
+    finalize_parser.add_argument("--state-dir", required=True)
+    finalize_parser.add_argument("--provider", choices=("claude", "codex"), required=True)
+    finalize_parser.add_argument("--provider-exit", required=True, type=int)
+    finalize_parser.add_argument("--model-evidence-state", required=True)
+    inspect_parser = subparsers.add_parser("inspect")
+    inspect_parser.add_argument("--state-dir", required=True)
+    preserve_parser = subparsers.add_parser("preserve")
+    preserve_parser.add_argument("--state-dir", required=True)
+    preserve_parser.add_argument("--provider-exit", required=True, type=int)
+    preserve_parser.add_argument(
+        "--reason",
+        choices=("startup_failed", "provider_crashed", "promotion_rejected"),
+        required=True,
+    )
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = _parser()
+    args = parser.parse_args(list(argv) if argv is not None else None)
+    actions = {
+        "prepare": prepare,
+        "freeze": freeze,
+        "freeze-generic": freeze_generic,
+        "finalize": finalize,
+        "inspect": inspect,
+        "preserve": preserve,
+    }
+    try:
+        result = actions[args.action](args)
+    except Exception as exc:  # noqa: BLE001 - the host boundary must fail closed.
+        print(f"Git worktree broker rejected {args.action}: {exc}", file=sys.stderr)
+        return 70
+    print(json.dumps(result, sort_keys=True, separators=(",", ":")))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

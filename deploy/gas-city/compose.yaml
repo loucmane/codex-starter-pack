@@ -1,0 +1,210 @@
+name: gas-city
+
+x-dolt-service: &dolt-service
+  image: ${GAS_CITY_DOLT_IMAGE:?run compose-locked with a provisioned runtime lock}
+  restart: unless-stopped
+  read_only: true
+  cap_drop: ["ALL"]
+  security_opt: ["no-new-privileges:true"]
+  pids_limit: 256
+  tmpfs:
+    - /tmp:rw,nosuid,nodev,noexec,size=64m
+
+x-loopback-relay: &loopback-relay
+  image: ${GAS_CITY_EGRESS_PROXY_IMAGE:?run compose-locked with a provisioned runtime lock}
+  restart: unless-stopped
+  read_only: true
+  cap_drop: ["ALL"]
+  security_opt: ["no-new-privileges:true"]
+  pids_limit: 128
+  tmpfs:
+    - /tmp:rw,nosuid,nodev,noexec,size=16m
+
+services:
+  hq-dolt:
+    <<: *dolt-service
+    container_name: gas-city-hq-dolt
+    environment:
+      DOLT_DATABASE: hq
+      DOLT_APP_USER: gas_city_hq
+      DOLT_ROOT_PASSWORD_FILE: /run/secrets/root_password
+      DOLT_APP_PASSWORD_FILE: /run/secrets/app_password
+    secrets:
+      - source: hq_root_password
+        target: root_password
+        uid: "1000"
+        gid: "1000"
+        mode: 0400
+      - source: hq_app_password
+        target: app_password
+        uid: "1000"
+        gid: "1000"
+        mode: 0400
+    volumes:
+      - type: bind
+        source: ${GAS_CITY_HQ_DOLT_DATA_DIR:?set exact owner-only HQ Dolt data directory}
+        target: /var/lib/dolt/data
+      - type: bind
+        source: ${GAS_CITY_HQ_DOLT_BACKUP_DIR:?set owner-only HQ Dolt backup directory}
+        target: ${GAS_CITY_HQ_DOLT_BACKUP_DIR:?set owner-only HQ Dolt backup directory}
+    expose: ["3306"]
+    networks:
+      - hq-control
+    healthcheck:
+      test: ["CMD", "bash", "/opt/gas-city/dolt-healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  aegis-dolt:
+    <<: *dolt-service
+    container_name: gas-city-aegis-dolt
+    environment:
+      DOLT_DATABASE: aegis_beads
+      DOLT_APP_USER: aegis_beads
+      DOLT_ROOT_PASSWORD_FILE: /run/secrets/root_password
+      DOLT_APP_PASSWORD_FILE: /run/secrets/app_password
+    secrets:
+      - source: aegis_root_password
+        target: root_password
+        uid: "1000"
+        gid: "1000"
+        mode: 0400
+      - source: aegis_app_password
+        target: app_password
+        uid: "1000"
+        gid: "1000"
+        mode: 0400
+    volumes:
+      - aegis_dolt_data:/var/lib/dolt/data
+      - type: bind
+        source: ${GAS_CITY_AEGIS_DOLT_BACKUP_DIR:?set owner-only Aegis Dolt backup directory}
+        target: ${GAS_CITY_AEGIS_DOLT_BACKUP_DIR:?set owner-only Aegis Dolt backup directory}
+    expose: ["3306"]
+    # Aegis Dolt is dual-homed so the trusted Mayor can dispatch from the HQ
+    # network without joining Aegis workers to HQ. Credentials and metadata,
+    # not network reachability alone, authorize the second store.
+    networks:
+      - aegis-control
+      - hq-control
+    healthcheck:
+      test: ["CMD", "bash", "/opt/gas-city/dolt-healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  hq-egress-proxy:
+    image: ${GAS_CITY_EGRESS_PROXY_IMAGE:?run compose-locked with a provisioned runtime lock}
+    container_name: gas-city-hq-egress-proxy
+    restart: unless-stopped
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 128
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=32m
+    networks:
+      hq-control:
+      hq-egress:
+
+  aegis-egress-proxy:
+    image: ${GAS_CITY_EGRESS_PROXY_IMAGE:?run compose-locked with a provisioned runtime lock}
+    container_name: gas-city-aegis-egress-proxy
+    restart: unless-stopped
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 128
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=32m
+    networks:
+      aegis-control:
+      aegis-egress:
+
+  hq-dolt-loopback:
+    <<: *loopback-relay
+    container_name: gas-city-hq-dolt-loopback
+    command:
+      - /usr/bin/socat
+      - TCP4-LISTEN:3306,reuseaddr,fork,nodelay
+      - TCP4:hq-dolt:3306,nodelay
+    depends_on:
+      hq-dolt:
+        condition: service_healthy
+        restart: true
+    ports:
+      - "127.0.0.1:33070:3306"
+    networks:
+      - hq-control
+      - hq-loopback-ingress
+
+  aegis-dolt-loopback:
+    <<: *loopback-relay
+    container_name: gas-city-aegis-dolt-loopback
+    command:
+      - /usr/bin/socat
+      - TCP4-LISTEN:3306,reuseaddr,fork,nodelay
+      - TCP4:aegis-dolt:3306,nodelay
+    depends_on:
+      aegis-dolt:
+        condition: service_healthy
+        restart: true
+    ports:
+      - "127.0.0.1:33071:3306"
+    networks:
+      - aegis-control
+      - aegis-loopback-ingress
+
+networks:
+  hq-control:
+    name: gas-city-hq-control
+    internal: true
+    labels:
+      com.gascity.boundary: private-hq-control
+  aegis-control:
+    name: gas-city-aegis-control
+    internal: true
+    labels:
+      com.gascity.boundary: private-aegis-control
+  hq-egress:
+    name: gas-city-hq-egress
+    labels:
+      com.gascity.boundary: filtered-hq-egress
+  aegis-egress:
+    name: gas-city-aegis-egress
+    labels:
+      com.gascity.boundary: filtered-aegis-egress
+  hq-loopback-ingress:
+    name: gas-city-hq-loopback-ingress
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.host_binding_ipv4: "127.0.0.1"
+      com.docker.network.bridge.enable_ip_masquerade: "false"
+      com.docker.network.bridge.enable_icc: "false"
+    labels:
+      com.gascity.boundary: loopback-ingress-hq
+  aegis-loopback-ingress:
+    name: gas-city-aegis-loopback-ingress
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.host_binding_ipv4: "127.0.0.1"
+      com.docker.network.bridge.enable_ip_masquerade: "false"
+      com.docker.network.bridge.enable_icc: "false"
+    labels:
+      com.gascity.boundary: loopback-ingress-aegis
+
+volumes:
+  aegis_dolt_data:
+    name: ${GAS_CITY_AEGIS_DOLT_VOLUME:-gas-city-aegis-dolt-data}
+
+secrets:
+  hq_root_password:
+    file: ${GAS_CITY_SECRETS_DIR:-/home/loucmane/gas-city/runtime/secrets}/hq-root-password
+  hq_app_password:
+    file: ${GAS_CITY_SECRETS_DIR:-/home/loucmane/gas-city/runtime/secrets}/hq-app-password
+  aegis_root_password:
+    file: ${GAS_CITY_SECRETS_DIR:-/home/loucmane/gas-city/runtime/secrets}/aegis-root-password
+  aegis_app_password:
+    file: ${GAS_CITY_SECRETS_DIR:-/home/loucmane/gas-city/runtime/secrets}/aegis-app-password

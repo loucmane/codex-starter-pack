@@ -4,15 +4,19 @@
 
 set -u
 
-python3 - "$@" <<'PY'
+AEGIS_READINESS_SCRIPT="${BASH_SOURCE[0]}" python3 - "$@" <<'PY'
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
+import os
 import re
+import stat
 import subprocess
 import sys
+import types
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,12 +32,31 @@ DEFAULT_SAMPLE_SIZE = 5
 VERBOSE_MAX_LINES = 120
 VERBOSE_MAX_BYTES = 32 * 1024
 VERBOSE_SAMPLE_SIZE = 20
+TASK_AUTHORITY_ENV = "AEGIS_TASK_AUTHORITY_FILE"
+TASK_AUTHORITY_RUNTIME_ENV = "AEGIS_TASK_AUTHORITY_RUNTIME_FILE"
+TASK_AUTHORITY_RUNTIME_SHA256_ENV = "AEGIS_TASK_AUTHORITY_RUNTIME_SHA256"
+BD_EXECUTABLE_ENV = "AEGIS_BD_EXECUTABLE"
+BD_SHA256_ENV = "AEGIS_BD_SHA256"
+SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
+BEAD_ID_RE = re.compile(r"[a-z][a-z0-9-]{0,62}-[A-Za-z0-9][A-Za-z0-9._-]{0,126}\Z")
+PERSISTENT_GAS_CITY_BRANCH_RE = re.compile(
+    r"gc-[a-z0-9][a-z0-9_-]{0,62}-[0-9a-f]{12}\Z"
+)
+POLECAT_BRANCH_RE = re.compile(r"polecat/(?P<bead_id>[^/]+)\Z")
 
 
 @dataclass
 class Check:
     status: str
     message: str
+
+
+@dataclass(frozen=True)
+class TaskAuthorityContext:
+    mode: str
+    explicit: bool
+    receipt: object | None
+    module: object | None
 
 
 def parse_args() -> argparse.Namespace:
@@ -89,6 +112,256 @@ def read_text(path: Path) -> str:
 
 def read_json(path: Path) -> object:
     return json.loads(read_text(path))
+
+
+def _load_task_authority_module(root: Path):
+    raw_path = _required_authority_environment(TASK_AUTHORITY_RUNTIME_ENV)
+    expected_digest = _required_authority_environment(TASK_AUTHORITY_RUNTIME_SHA256_ENV)
+    if not SHA256_RE.fullmatch(expected_digest):
+        raise RuntimeError(
+            f"{TASK_AUTHORITY_RUNTIME_SHA256_ENV} must be a lowercase SHA-256 digest"
+        )
+    configured = Path(raw_path)
+    if not configured.is_absolute() or ".." in configured.parts:
+        raise RuntimeError(f"{TASK_AUTHORITY_RUNTIME_ENV} must be an absolute normalized path")
+    try:
+        resolved = configured.resolve(strict=True)
+        governed_root = root.resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        raise RuntimeError(f"cannot resolve task-authority runtime: {configured}") from exc
+    if resolved != configured or configured.is_symlink():
+        raise RuntimeError(f"{TASK_AUTHORITY_RUNTIME_ENV} must not traverse a symlink")
+    try:
+        resolved.relative_to(governed_root)
+    except ValueError:
+        pass
+    else:
+        raise RuntimeError("task-authority runtime must be outside the writable governed repository")
+    no_follow = getattr(os, "O_NOFOLLOW", None)
+    if no_follow is None:  # pragma: no cover - Gas City workers are Linux.
+        raise RuntimeError("runtime cannot safely open a pinned task-authority module")
+    try:
+        descriptor = os.open(configured, os.O_RDONLY | os.O_CLOEXEC | no_follow)
+    except OSError as exc:
+        raise RuntimeError(f"cannot open task-authority runtime: {configured}") from exc
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode):
+            raise RuntimeError("task-authority runtime must be a regular non-symlink file")
+        with os.fdopen(descriptor, "rb", closefd=False) as handle:
+            content = handle.read(512 * 1024 + 1)
+        after = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    if len(content) > 512 * 1024:
+        raise RuntimeError("task-authority runtime exceeds 512 KiB")
+    before_identity = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+    after_identity = (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+    if before_identity != after_identity or len(content) != after.st_size:
+        raise RuntimeError("task-authority runtime changed while it was being read")
+    if hashlib.sha256(content).hexdigest() != expected_digest:
+        raise RuntimeError("task-authority runtime SHA-256 does not match its pinned digest")
+    module_name = "_aegis_task_authority_readiness"
+    module = types.ModuleType(module_name)
+    module.__file__ = str(configured)
+    module.__package__ = ""
+    sys.modules[module_name] = module
+    try:
+        code = compile(content, str(configured), "exec", dont_inherit=True)
+        exec(code, module.__dict__)
+    except Exception:
+        sys.modules.pop(module_name, None)
+        raise
+    return module
+
+
+def _required_authority_environment(name: str) -> str:
+    value = os.environ.get(name, "").strip()
+    if not value:
+        raise RuntimeError(f"explicit task authority requires {name}")
+    return value
+
+
+def _project_task_authority_contract(root: Path):
+    readiness_path = Path(os.environ.get("AEGIS_READINESS_SCRIPT", __file__)).resolve()
+    module_path = readiness_path.parents[2] / "aegis_foundation" / "task_authority.py"
+    if not module_path.is_file():
+        try:
+            from aegis_foundation import task_authority as module
+        except ImportError as exc:
+            raise RuntimeError(
+                "cannot load the project-enrollment authority contract"
+            ) from exc
+        return module
+    module_name = "_aegis_project_task_authority_readiness"
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("cannot load the project-enrollment authority contract")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)
+    except Exception:
+        sys.modules.pop(module_name, None)
+        raise
+    return module
+
+
+def _project_enrollment_marker_present(root: Path) -> bool:
+    direct = root / ".git" / "aegis-authority-enrollment.json"
+    if os.path.lexists(direct):
+        return True
+    code, output, _error = run_git(
+        root, "rev-parse", "--path-format=absolute", "--git-common-dir"
+    )
+    if code != 0 or not output:
+        return False
+    common = Path(output)
+    if not common.is_absolute():
+        common = root / common
+    return os.path.lexists(common / "aegis-authority-enrollment.json")
+
+
+def load_task_authority(root: Path) -> TaskAuthorityContext:
+    if _project_enrollment_marker_present(root):
+        contract = _project_task_authority_contract(root)
+        contract.validate_project_authority_environment(root, os.environ)
+    if TASK_AUTHORITY_ENV not in os.environ:
+        return TaskAuthorityContext(
+            mode="taskmaster",
+            explicit=False,
+            receipt=None,
+            module=None,
+        )
+    module = _load_task_authority_module(root)
+    selected = module.load_authority_from_environment(
+        os.environ,
+        expected_rig=_required_authority_environment("GC_RIG"),
+        expected_beads_prefix=_required_authority_environment("GC_BEADS_PREFIX"),
+        expected_database=_required_authority_environment("BEADS_DOLT_SERVER_DATABASE"),
+    )
+    return TaskAuthorityContext(
+        mode=str(selected.mode.value),
+        explicit=bool(selected.explicit),
+        receipt=selected.receipt,
+        module=module,
+    )
+
+
+def _private_pinned_bd_executable() -> tuple[Path, str]:
+    raw_path = _required_authority_environment(BD_EXECUTABLE_ENV)
+    expected_digest = _required_authority_environment(BD_SHA256_ENV)
+    if not SHA256_RE.fullmatch(expected_digest):
+        raise RuntimeError(f"{BD_SHA256_ENV} must be a lowercase SHA-256 digest")
+    configured = Path(raw_path)
+    if not configured.is_absolute() or ".." in configured.parts:
+        raise RuntimeError(f"{BD_EXECUTABLE_ENV} must be an absolute normalized path")
+    try:
+        resolved = configured.resolve(strict=True)
+        before = configured.stat(follow_symlinks=False)
+    except (OSError, RuntimeError) as exc:
+        raise RuntimeError(f"cannot inspect configured bd executable: {configured}") from exc
+    if resolved != configured or configured.is_symlink():
+        raise RuntimeError(f"{BD_EXECUTABLE_ENV} must not traverse a symlink")
+    if not stat.S_ISREG(before.st_mode) or not os.access(configured, os.X_OK):
+        raise RuntimeError(f"configured bd is not an executable regular file: {configured}")
+    if stat.S_IMODE(before.st_mode) & 0o022:
+        raise RuntimeError("configured bd must not be group- or world-writable")
+    digest = hashlib.sha256()
+    try:
+        with configured.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        after = configured.stat(follow_symlinks=False)
+    except OSError as exc:
+        raise RuntimeError(f"cannot hash configured bd executable: {configured}") from exc
+    before_identity = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+    after_identity = (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+    if before_identity != after_identity:
+        raise RuntimeError("configured bd executable changed while it was being hashed")
+    if digest.hexdigest() != expected_digest:
+        raise RuntimeError("configured bd executable SHA-256 does not match AEGIS_BD_SHA256")
+    return configured, expected_digest
+
+
+def _run_pinned_bd(executable: Path, root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    try:
+        return subprocess.run(
+            [str(executable), "--json", "--readonly", "-C", str(root), *args],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=20,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise RuntimeError(f"pinned read-only bd command failed to execute: {exc}") from exc
+
+
+def check_beads_task(
+    root: Path,
+    bead_id: str,
+    authority: TaskAuthorityContext,
+    checks: list[Check],
+) -> None:
+    receipt = authority.receipt
+    prefix = str(getattr(receipt, "beads_prefix", ""))
+    if not BEAD_ID_RE.fullmatch(bead_id) or not bead_id.startswith(f"{prefix}-"):
+        checks.append(
+            Check(BLOCKED, f"Bead ID {bead_id!r} does not use authority prefix {prefix!r}")
+        )
+        return
+    try:
+        executable, digest = _private_pinned_bd_executable()
+        version = subprocess.run(
+            [str(executable), "--version"],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=10,
+            check=False,
+        )
+    except (RuntimeError, OSError, subprocess.TimeoutExpired) as exc:
+        checks.append(Check(BLOCKED, f"could not validate pinned bd executable: {exc}"))
+        return
+    if version.returncode != 0 or not version.stdout.strip().startswith("bd version "):
+        detail = version.stderr.strip() or version.stdout.strip() or f"exit {version.returncode}"
+        checks.append(Check(BLOCKED, f"pinned bd version check failed: {detail}"))
+        return
+    result = _run_pinned_bd(executable, root, "show", "--id", bead_id)
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        checks.append(Check(BLOCKED, f"read-only bd show failed for {bead_id}: {detail}"))
+        return
+    try:
+        payload = json.loads(result.stdout)
+    except (json.JSONDecodeError, RecursionError) as exc:
+        checks.append(Check(BLOCKED, f"read-only bd show returned invalid JSON: {exc}"))
+        return
+    if not isinstance(payload, list) or len(payload) != 1 or not isinstance(payload[0], dict):
+        checks.append(Check(BLOCKED, "read-only bd show must return exactly one issue object"))
+        return
+    issue = payload[0]
+    if issue.get("id") != bead_id:
+        checks.append(
+            Check(BLOCKED, f"read-only bd show returned issue {issue.get('id')!r}, expected {bead_id!r}")
+        )
+        return
+    if issue.get("status") != "in_progress":
+        checks.append(
+            Check(
+                BLOCKED,
+                f"authoritative Bead {bead_id} status is {issue.get('status')!r}, expected 'in_progress'",
+            )
+        )
+        return
+    checks.append(
+        Check(
+            READY,
+            f"authoritative Bead {bead_id} is in_progress via pinned read-only bd "
+            f"{version.stdout.strip()} ({digest[:12]})",
+        )
+    )
 
 
 def task_id_from_branch(branch: str) -> str | None:
@@ -467,6 +740,121 @@ def build_observation_checks(root: Path, branch: str, aegis_work: object) -> tup
     return work_id, checks
 
 
+def _beads_current_work_identity(
+    aegis_work: object,
+    authority: TaskAuthorityContext,
+    checks: list[Check],
+) -> str | None:
+    if not isinstance(aegis_work, dict):
+        checks.append(Check(BLOCKED, "Beads authority requires Aegis current work state"))
+        return None
+    task = aegis_work_task(aegis_work)
+    if task is None:
+        checks.append(Check(BLOCKED, "Beads current work state has an unsupported task shape"))
+        return None
+    bead_id = str(task.get("id") or "").strip()
+    if not bead_id:
+        checks.append(Check(BLOCKED, "Beads current work is missing its opaque Bead ID"))
+        return None
+    if str(aegis_work.get("status") or "").strip() != "in-progress":
+        checks.append(
+            Check(
+                BLOCKED,
+                f"Beads current work status is {aegis_work.get('status')!r}, expected 'in-progress'",
+            )
+        )
+    if task.get("status") != "in-progress":
+        checks.append(
+            Check(
+                BLOCKED,
+                f"Beads current work task status is {task.get('status')!r}, expected 'in-progress'",
+            )
+        )
+    if task.get("source") != "beads":
+        checks.append(
+            Check(BLOCKED, f"Beads current work task source is {task.get('source')!r}, expected 'beads'")
+        )
+
+    receipt = authority.receipt
+    module = authority.module
+    authority_record = aegis_work.get("authority")
+    expected_authority = {
+        "mode": "beads",
+        "rig": str(getattr(receipt, "rig", "")),
+        "beads_prefix": str(getattr(receipt, "beads_prefix", "")),
+        "database": str(getattr(receipt, "database", "")),
+        "receipt_generation": getattr(receipt, "generation", None),
+        "receipt_sha256": module.receipt_sha256(receipt) if module is not None else "",
+    }
+    if authority_record != expected_authority:
+        checks.append(
+            Check(
+                BLOCKED,
+                "Beads current work authority record does not exactly match the active receipt",
+            )
+        )
+    else:
+        checks.append(
+            Check(
+                READY,
+                f"Beads current work is bound to authority receipt generation "
+                f"{expected_authority['receipt_generation']}",
+            )
+        )
+    return bead_id
+
+
+def _bead_id_for_branch(
+    branch: str,
+    aegis_work: object,
+    authority: TaskAuthorityContext,
+    checks: list[Check],
+) -> str | None:
+    bead_id = _beads_current_work_identity(aegis_work, authority, checks)
+    polecat_match = POLECAT_BRANCH_RE.fullmatch(branch)
+    if polecat_match:
+        branch_bead_id = polecat_match.group("bead_id")
+        if bead_id is not None and branch_bead_id != bead_id:
+            checks.append(
+                Check(
+                    BLOCKED,
+                    f"polecat branch names Bead {branch_bead_id!r}, but current work names {bead_id!r}",
+                )
+            )
+            return None
+        checks.append(Check(READY, f"branch '{branch}' maps to Bead {branch_bead_id}"))
+        return branch_bead_id
+    if PERSISTENT_GAS_CITY_BRANCH_RE.fullmatch(branch):
+        if bead_id is None:
+            checks.append(
+                Check(BLOCKED, f"persistent Gas City branch '{branch}' has no current Beads work")
+            )
+            return None
+        checks.append(
+            Check(READY, f"persistent Gas City branch '{branch}' uses current-work Bead {bead_id}")
+        )
+        return bead_id
+    checks.append(
+        Check(
+            BLOCKED,
+            f"branch '{branch}' is not polecat/<bead-id> or gc-<agent>-<12hex> for Beads authority",
+        )
+    )
+    return None
+
+
+def _identity_referenced(text: str, identity: str, *, beads_mode: bool) -> bool:
+    if beads_mode:
+        return text_references_work(text, identity)
+    return text_references_task(text, identity)
+
+
+def _active_folder_references_identity(name: str, identity: str, *, beads_mode: bool) -> bool:
+    if beads_mode:
+        return bool(re.search(rf"(?:^|[-_]){re.escape(identity)}(?:[-_]|$)", name))
+    return bool(re.search(rf"(?:^|[-_])task-?{re.escape(identity)}(?:[-_]|$)", name))
+
+
 def build_checks(root: Path) -> tuple[str | None, list[Check]]:
     checks: list[Check] = []
 
@@ -479,6 +867,15 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
     if code != 0 or not branch:
         checks.append(Check(BLOCKED, f"could not determine current git branch: {err or 'empty branch'}"))
         return None, checks
+
+    try:
+        authority = load_task_authority(root)
+    except Exception as exc:  # noqa: BLE001 - explicit authority must fail closed.
+        checks.append(Check(BLOCKED, f"task-authority selection failed: {exc}"))
+        return None, checks
+    beads_mode = authority.mode == "beads"
+    if authority.explicit:
+        checks.append(Check(READY, f"explicit task authority selects {authority.mode}"))
 
     aegis_work_path = root / ".aegis" / "state" / "current-work.json"
     aegis_work: object | None = None
@@ -503,7 +900,7 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
                 return None, checks
 
     source_work = None
-    if not aegis_work_path.is_file():
+    if not beads_mode and not aegis_work_path.is_file():
         try:
             source_module = load_source_workflow_state(root)
             source_work = (
@@ -529,13 +926,22 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
             )
             return build_completed_source_checks(root, task_id, source_work, checks)
 
-    task_id = task_id_from_branch(branch)
-    if not task_id:
-        checks.append(Check(BLOCKED, f"branch '{branch}' does not contain a task ID"))
-        return None, checks
-    checks.append(Check(READY, f"branch '{branch}' maps to Task {task_id}"))
+    if beads_mode:
+        if ignore_current_work_for_readiness:
+            checks.append(Check(BLOCKED, "completed observation state cannot select an active Bead"))
+            return None, checks
+        task_id = _bead_id_for_branch(branch, aegis_work, authority, checks)
+        if task_id is None:
+            return None, checks
+        check_beads_task(root, task_id, authority, checks)
+    else:
+        task_id = task_id_from_branch(branch)
+        if not task_id:
+            checks.append(Check(BLOCKED, f"branch '{branch}' does not contain a task ID"))
+            return None, checks
+        checks.append(Check(READY, f"branch '{branch}' maps to Task {task_id}"))
 
-    if aegis_work_path.is_file() and not ignore_current_work_for_readiness:
+    if not beads_mode and aegis_work_path.is_file() and not ignore_current_work_for_readiness:
         try:
             aegis_work = aegis_work if aegis_work is not None else read_json(aegis_work_path)
             task = aegis_work_task(aegis_work)
@@ -558,9 +964,9 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
                     required=aegis_integration_required(aegis_work, "taskmaster"),
                     checks=checks,
                 )
-    elif (root / ".taskmaster" / "tasks" / "tasks.json").is_file():
+    elif not beads_mode and (root / ".taskmaster" / "tasks" / "tasks.json").is_file():
         check_taskmaster_task(root, task_id, required=True, checks=checks)
-    else:
+    elif not beads_mode:
         checks.append(Check(BLOCKED, "no Taskmaster tasks file or Aegis current work state found"))
 
     session_current = root / "sessions" / "current"
@@ -571,10 +977,11 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
         checks.append(Check(BLOCKED, f"sessions/current points to missing file: {session_target}"))
     else:
         session_text = read_text(session_path)
-        if not text_references_task(session_text, task_id):
-            checks.append(Check(BLOCKED, f"active session does not reference Task {task_id}"))
+        identity_label = "Bead" if beads_mode else "Task"
+        if not _identity_referenced(session_text, task_id, beads_mode=beads_mode):
+            checks.append(Check(BLOCKED, f"active session does not reference {identity_label} {task_id}"))
         else:
-            checks.append(Check(READY, f"active session references Task {task_id}"))
+            checks.append(Check(READY, f"active session references {identity_label} {task_id}"))
 
         state_path = root / "sessions" / "state.json"
         if not state_path.is_file():
@@ -605,10 +1012,11 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
         checks.append(Check(BLOCKED, f"plans/current points to missing file: {plan_target}"))
     else:
         plan_text = read_text(plan_path)
-        if not text_references_task(plan_text, task_id):
-            checks.append(Check(BLOCKED, f"active plan does not reference Task {task_id}"))
+        identity_label = "Bead" if beads_mode else "Task"
+        if not _identity_referenced(plan_text, task_id, beads_mode=beads_mode):
+            checks.append(Check(BLOCKED, f"active plan does not reference {identity_label} {task_id}"))
         else:
-            checks.append(Check(READY, f"active plan references Task {task_id}"))
+            checks.append(Check(READY, f"active plan references {identity_label} {task_id}"))
 
     active_root = root / "docs" / "ai" / "work-tracking" / "active"
     tracker_text: str | None = None
@@ -620,20 +1028,23 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
             checks.append(Check(BLOCKED, f"expected exactly one ACTIVE work-tracking folder, found {len(active_folders)}"))
         else:
             active_folder = active_folders[0]
-            if not re.search(rf"(?:^|[-_])task-?{re.escape(task_id)}(?:[-_]|$)", active_folder.name):
-                checks.append(Check(BLOCKED, f"ACTIVE folder '{active_folder.name}' does not match Task {task_id}"))
+            identity_label = "Bead" if beads_mode else "Task"
+            if not _active_folder_references_identity(
+                active_folder.name, task_id, beads_mode=beads_mode
+            ):
+                checks.append(Check(BLOCKED, f"ACTIVE folder '{active_folder.name}' does not match {identity_label} {task_id}"))
             else:
-                checks.append(Check(READY, f"ACTIVE folder '{active_folder.name}' matches Task {task_id}"))
+                checks.append(Check(READY, f"ACTIVE folder '{active_folder.name}' matches {identity_label} {task_id}"))
 
             tracker_path = active_folder / "TRACKER.md"
             if not tracker_path.is_file():
                 checks.append(Check(BLOCKED, f"{tracker_path.relative_to(root)} missing"))
             else:
                 tracker_text = read_text(tracker_path)
-                if not text_references_task(tracker_text, task_id):
-                    checks.append(Check(BLOCKED, f"active tracker does not reference Task {task_id}"))
+                if not _identity_referenced(tracker_text, task_id, beads_mode=beads_mode):
+                    checks.append(Check(BLOCKED, f"active tracker does not reference {identity_label} {task_id}"))
                 else:
-                    checks.append(Check(READY, f"active tracker references Task {task_id}"))
+                    checks.append(Check(READY, f"active tracker references {identity_label} {task_id}"))
 
     if plan_text is not None and tracker_text is not None:
         alignment_issues = check_plan_tracker_alignment(plan_text, tracker_text)

@@ -27,6 +27,7 @@ if str(REPO_ROOT) not in sys.path:
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 from aegis_foundation import mcp_registration
+from aegis_foundation import task_authority as _task_authority
 from _repo_structure import DEFAULT_REPO_STRUCTURE, RepoStructure, load_repo_structure
 from _aegis_installer import (
     AEGIS_LOG_SURFACES,
@@ -48,6 +49,7 @@ from _aegis_installer import (
     inspect_project as aegis_inspect_project,
     install as aegis_install,
     kickoff as aegis_kickoff,
+    kickoff_bead as aegis_kickoff_bead,
     list_profiles as aegis_list_profiles,
     log_work as aegis_log_work,
     next_action as aegis_next_action,
@@ -946,7 +948,30 @@ def handle_aegis_certify_release(args: argparse.Namespace) -> None:
 
 def handle_aegis_kickoff(args: argparse.Namespace) -> None:
     try:
-        if args.local:
+        if args.bead is not None:
+            conflicts = [
+                option
+                for option, present in (
+                    ("--task", bool(args.task)),
+                    ("--local", bool(args.local)),
+                    ("--slug", bool(args.slug)),
+                    ("--title", bool(args.title)),
+                    ("--no-create-branch", bool(args.no_create_branch)),
+                )
+                if present
+            ]
+            if conflicts:
+                raise AegisError(
+                    "aegis kickoff --bead derives title/slug and preserves the Gas City "
+                    f"workspace branch; incompatible options: {', '.join(conflicts)}"
+                )
+            payload = aegis_kickoff_bead(
+                args.target_dir,
+                bead_id=args.bead,
+                goals=list(args.goal or []),
+                source_root=REPO_ROOT,
+            )
+        elif args.local:
             if not args.title:
                 raise AegisError("aegis kickoff --local requires --title")
             payload = aegis_start_local_work(
@@ -2584,6 +2609,16 @@ def handle_hooks_verify(args: argparse.Namespace) -> None:
 
 
 def handle_taskmaster_generate_one(args: argparse.Namespace) -> None:
+    try:
+        enrollment = _task_authority.validate_project_authority_environment(
+            REPO_ROOT, os.environ
+        )
+    except _task_authority.TaskAuthorityError as exc:
+        raise TaskError(f"Taskmaster mutation refused invalid project authority: {exc}") from exc
+    if enrollment is not None:
+        raise TaskError(
+            "Taskmaster mutation refused: authoritative Beads enrollment makes .taskmaster rollback evidence"
+        )
     task_id = str(args.task_id)
     try:
         int(task_id)
@@ -18715,6 +18750,13 @@ def build_parser() -> argparse.ArgumentParser:
     aegis_kickoff_parser = aegis_sub.add_parser("kickoff", help="Create Aegis-native session, plan, and work-tracking state")
     aegis_kickoff_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
     aegis_kickoff_parser.add_argument("--task", help="Numeric task/work id")
+    aegis_kickoff_parser.add_argument(
+        "--bead",
+        help=(
+            "Authoritative opaque Aegis work Bead ID; requires the exact existing "
+            "polecat/<bead-id> Gas City workspace branch"
+        ),
+    )
     aegis_kickoff_parser.add_argument("--slug", help="Short lowercase work slug")
     aegis_kickoff_parser.add_argument("--title", help="Human-readable work title")
     aegis_kickoff_parser.add_argument("--local", action="store_true", help="Allocate a local Aegis task id from --title")

@@ -1,0 +1,146 @@
+#!/usr/bin/env python3
+"""Build the deterministic, offline Aegis worker runtime wheel."""
+
+from __future__ import annotations
+
+import base64
+import csv
+import hashlib
+import io
+import json
+import os
+from pathlib import Path
+import stat
+import sys
+import tempfile
+import zipfile
+
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+CITY_SOURCE = REPOSITORY_ROOT / "deploy/gas-city"
+OUTPUT = CITY_SOURCE / "artifacts/aegis-runtime.whl"
+LOCK = CITY_SOURCE / "runtime-lock.json"
+SOURCE_FILES = (
+    "aegis_foundation/__init__.py",
+    "aegis_foundation/cli.py",
+    "aegis_foundation/codex_remote_trust.py",
+    "aegis_foundation/codex_topology.py",
+    "aegis_foundation/legacy_projection.py",
+    "aegis_foundation/managed_update.py",
+    "aegis_foundation/mcp_registration.py",
+    "aegis_foundation/obsidian_vault.py",
+    "aegis_foundation/output_budget.py",
+    "aegis_foundation/resources.py",
+    "aegis_foundation/task_authority.py",
+    "aegis_foundation/version.py",
+    "scripts/__init__.py",
+    "scripts/_aegis_installer.py",
+)
+SOURCE_TREES = ("aegis_foundation/assets",)
+DIST_INFO = "aegis_foundation-0.1.0.dist-info"
+ZIP_TIMESTAMP = (2026, 7, 15, 20, 0, 0)
+
+
+def _source_files() -> dict[str, bytes]:
+    payload: dict[str, bytes] = {}
+    for relative in SOURCE_FILES:
+        path = REPOSITORY_ROOT / relative
+        metadata = path.lstat()
+        if not stat.S_ISREG(metadata.st_mode) or stat.S_ISLNK(metadata.st_mode):
+            raise SystemExit(f"runtime source file is missing or unsafe: {relative}")
+        payload[relative] = path.read_bytes()
+    for directory_name in SOURCE_TREES:
+        directory = REPOSITORY_ROOT / directory_name
+        if not directory.is_dir() or directory.is_symlink():
+            raise SystemExit(f"runtime source directory is missing or unsafe: {directory}")
+        for path in sorted(directory.rglob("*")):
+            relative = path.relative_to(REPOSITORY_ROOT).as_posix()
+            if "__pycache__" in path.parts or path.suffix in {".pyc", ".pyo"}:
+                continue
+            metadata = path.lstat()
+            if stat.S_ISLNK(metadata.st_mode):
+                raise SystemExit(f"runtime source contains a symlink: {relative}")
+            if stat.S_ISDIR(metadata.st_mode):
+                continue
+            if not stat.S_ISREG(metadata.st_mode):
+                raise SystemExit(f"runtime source contains a special file: {relative}")
+            payload[relative] = path.read_bytes()
+    payload[f"{DIST_INFO}/METADATA"] = (
+        "Metadata-Version: 2.1\n"
+        "Name: aegis-foundation\n"
+        "Version: 0.1.0\n"
+        "Summary: Immutable offline Gas City Aegis runtime\n"
+        "Requires-Python: >=3.11\n\n"
+    ).encode("utf-8")
+    payload[f"{DIST_INFO}/WHEEL"] = (
+        "Wheel-Version: 1.0\n"
+        "Generator: aegis-deterministic-runtime/1\n"
+        "Root-Is-Purelib: true\n"
+        "Tag: py3-none-any\n\n"
+    ).encode("utf-8")
+    payload[f"{DIST_INFO}/entry_points.txt"] = (
+        "[console_scripts]\n"
+        "aegis = aegis_foundation.cli:main\n"
+    ).encode("utf-8")
+    payload[f"{DIST_INFO}/top_level.txt"] = b"aegis_foundation\nscripts\n"
+    record = io.StringIO(newline="")
+    writer = csv.writer(record, lineterminator="\n")
+    for name, content in sorted(payload.items()):
+        digest = base64.urlsafe_b64encode(hashlib.sha256(content).digest()).rstrip(b"=")
+        writer.writerow((name, f"sha256={digest.decode('ascii')}", str(len(content))))
+    writer.writerow((f"{DIST_INFO}/RECORD", "", ""))
+    payload[f"{DIST_INFO}/RECORD"] = record.getvalue().encode("utf-8")
+    return payload
+
+
+def _zip_info(name: str, *, executable: bool) -> zipfile.ZipInfo:
+    info = zipfile.ZipInfo(name, ZIP_TIMESTAMP)
+    info.compress_type = zipfile.ZIP_DEFLATED
+    info.create_system = 3
+    mode = 0o555 if executable else 0o444
+    info.external_attr = (stat.S_IFREG | mode) << 16
+    return info
+
+
+def _build() -> str:
+    payload = _source_files()
+    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(prefix=".aegis-runtime.", dir=OUTPUT.parent)
+    os.close(descriptor)
+    temporary = Path(temporary_name)
+    try:
+        with zipfile.ZipFile(
+            temporary,
+            mode="w",
+            compression=zipfile.ZIP_DEFLATED,
+            compresslevel=9,
+            strict_timestamps=True,
+        ) as archive:
+            for name, content in sorted(payload.items()):
+                source = REPOSITORY_ROOT / name
+                executable = source.is_file() and bool(source.stat().st_mode & 0o111)
+                archive.writestr(_zip_info(name, executable=executable), content)
+        content = temporary.read_bytes()
+        digest = hashlib.sha256(content).hexdigest()
+        temporary.chmod(0o444)
+        os.replace(temporary, OUTPUT)
+        return digest
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def main() -> int:
+    if len(sys.argv) != 1:
+        print("build-aegis-runtime takes no arguments", file=sys.stderr)
+        return 64
+    digest = _build()
+    lock = json.loads(LOCK.read_text(encoding="utf-8"))
+    expected = lock.get("aegis_polecat_startup", {}).get("runtime_artifact_sha256")
+    status = "matches runtime-lock" if digest == expected else "UPDATE runtime-lock and Dockerfile"
+    print(f"{digest}  {OUTPUT}")
+    print(status)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

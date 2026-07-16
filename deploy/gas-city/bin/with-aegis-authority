@@ -1,0 +1,173 @@
+#!/usr/bin/env python3
+"""Launch a pinned subscription CLI with one enrolled project's authority."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+from pathlib import Path
+import stat
+import sys
+import types
+
+
+def fail(message: str) -> "NoReturn":
+    raise SystemExit(f"Gas City manual authority launcher refused startup: {message}")
+
+
+def project_root(start: Path) -> Path:
+    current = start.resolve(strict=True)
+    if current.is_file():
+        current = current.parent
+    for candidate in (current, *current.parents):
+        try:
+            (candidate / ".git").lstat()
+        except FileNotFoundError:
+            continue
+        return candidate
+    fail("current directory is not inside a Git worktree")
+
+
+def strict_lock(path: Path) -> dict[str, object]:
+    no_follow = getattr(os, "O_NOFOLLOW", None)
+    if no_follow is None:
+        fail("runtime cannot safely open the runtime lock")
+    try:
+        resolved = path.resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        fail(f"cannot resolve runtime lock: {exc}")
+    if resolved != path:
+        fail("runtime lock must not traverse a symlink")
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NONBLOCK | no_follow)
+    except OSError as exc:
+        fail(f"cannot open runtime lock: {exc}")
+    try:
+        before = os.fstat(descriptor)
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or before.st_uid != os.geteuid()
+            or before.st_nlink != 1
+            or stat.S_IMODE(before.st_mode) & 0o022
+            or before.st_size > 1024 * 1024
+        ):
+            fail("runtime lock is not one safe owner-controlled regular file")
+        with os.fdopen(os.dup(descriptor), "rb") as handle:
+            content = handle.read(1024 * 1024 + 1)
+        after = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    identity_before = (
+        before.st_dev,
+        before.st_ino,
+        before.st_size,
+        before.st_mtime_ns,
+        before.st_mode,
+        before.st_uid,
+        before.st_nlink,
+    )
+    identity_after = (
+        after.st_dev,
+        after.st_ino,
+        after.st_size,
+        after.st_mtime_ns,
+        after.st_mode,
+        after.st_uid,
+        after.st_nlink,
+    )
+    if identity_before != identity_after or len(content) != after.st_size:
+        fail("runtime lock changed while it was being read")
+
+    def strict_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        value: dict[str, object] = {}
+        for key, item in pairs:
+            if key in value:
+                raise ValueError(f"duplicate key: {key}")
+            value[key] = item
+        return value
+
+    try:
+        value = json.loads(
+            content.decode("utf-8"),
+            object_pairs_hook=strict_pairs,
+            parse_constant=lambda item: (_ for _ in ()).throw(ValueError(item)),
+        )
+    except (UnicodeError, ValueError, json.JSONDecodeError) as exc:
+        fail(f"runtime lock is invalid: {exc}")
+    if not isinstance(value, dict):
+        fail("runtime lock must contain one JSON object")
+    return value
+
+
+def load_runtime(city_root: Path):
+    lock = strict_lock(city_root / "runtime-lock.json")
+    authority = lock.get("task_authority_runtime")
+    if not isinstance(authority, dict):
+        fail("runtime lock has no task-authority binding")
+    expected = authority.get("sha256")
+    if not isinstance(expected, str) or len(expected) != 64:
+        fail("runtime lock task-authority digest is invalid")
+    runtime = city_root / "runtime" / "authority" / "task-authority.py"
+    no_follow = getattr(os, "O_NOFOLLOW", None)
+    if no_follow is None:
+        fail("runtime cannot safely open the task-authority module")
+    try:
+        if runtime.resolve(strict=True) != runtime:
+            fail("task-authority runtime must not traverse a symlink")
+    except (OSError, RuntimeError) as exc:
+        fail(f"cannot resolve task-authority runtime: {exc}")
+    try:
+        descriptor = os.open(runtime, os.O_RDONLY | os.O_CLOEXEC | no_follow)
+    except OSError as exc:
+        fail(f"cannot open task-authority runtime: {exc}")
+    try:
+        before = os.fstat(descriptor)
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or stat.S_IMODE(before.st_mode) != 0o444
+            or before.st_uid != os.geteuid()
+            or before.st_nlink != 1
+            or before.st_size > 512 * 1024
+        ):
+            fail("task-authority runtime metadata is unsafe")
+        with os.fdopen(os.dup(descriptor), "rb") as handle:
+            content = handle.read(512 * 1024 + 1)
+        after = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    identity_before = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+    identity_after = (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+    if identity_before != identity_after or len(content) != after.st_size:
+        fail("task-authority runtime changed while it was being read")
+    if hashlib.sha256(content).hexdigest() != expected:
+        fail("task-authority runtime does not match the deployed runtime lock")
+    name = "_gas_city_manual_task_authority"
+    module = types.ModuleType(name)
+    module.__file__ = str(runtime)
+    module.__package__ = ""
+    sys.modules[name] = module
+    try:
+        exec(compile(content, str(runtime), "exec", dont_inherit=True), module.__dict__)
+    except Exception as exc:
+        sys.modules.pop(name, None)
+        fail(f"task-authority runtime could not be loaded: {type(exc).__name__}")
+    return module
+
+
+def main() -> int:
+    if len(sys.argv) < 2 or sys.argv[1] not in {"claude", "codex"}:
+        fail("usage: with-aegis-authority {claude|codex} [provider arguments ...]")
+    provider = sys.argv[1]
+    script = Path(__file__).resolve(strict=True)
+    city_root = script.parent.parent
+    runtime = load_runtime(city_root)
+    try:
+        runtime.exec_manual_provider(project_root(Path.cwd()), provider, sys.argv[2:], os.environ)
+    except runtime.TaskAuthorityError as exc:
+        fail(str(exc))
+    return 70  # os.execve never returns.
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

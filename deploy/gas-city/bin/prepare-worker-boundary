@@ -1,0 +1,494 @@
+#!/usr/bin/env python3
+"""Prepare non-secret worker endpoint overlays with fail-closed validation."""
+
+from __future__ import annotations
+
+import argparse
+import copy
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import secrets
+import stat
+import sys
+import tomllib
+from typing import Any
+
+
+MAX_CITY_BYTES = 512 * 1024
+MAX_METADATA_BYTES = 64 * 1024
+SAFE_PROJECT_ID = re.compile(
+    r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\Z"
+)
+METADATA_KEYS = frozenset(
+    {
+        "backend",
+        "database",
+        "dolt_database",
+        "dolt_mode",
+        "dolt_server_host",
+        "dolt_server_port",
+        "dolt_server_user",
+        "project_id",
+    }
+)
+HOST_HQ_ENDPOINT = ("127.0.0.1", 33070)
+WORKER_HQ_ENDPOINT = ("gas-city-hq-dolt", 3306)
+HOST_AEGIS_ENDPOINT = ("127.0.0.1", "33071")
+WORKER_AEGIS_ENDPOINT = ("gas-city-aegis-dolt", "3306")
+CUSTOM_TYPES = (
+    "molecule,convoy,message,event,gate,merge-request,agent,role,rig,session,"
+    "spec,convergence,step"
+)
+HQ_CONFIG_OVERLAY = (
+    "issue_prefix: gc\n"
+    "issue-prefix: gc\n"
+    "dolt.auto-start: false\n"
+    "dolt.host: gas-city-hq-dolt\n"
+    "dolt.port: 3306\n"
+    "dolt.user: gas_city_hq\n"
+    "dolt:\n"
+    "  disable-event-flush: true\n"
+    "export.auto: false\n"
+    "backup.enabled: false\n"
+    "gc.endpoint_origin: city_canonical\n"
+    "gc.endpoint_status: verified\n"
+    f"types.custom: {CUSTOM_TYPES}\n"
+).encode("utf-8")
+AEGIS_CONFIG_OVERLAY = (
+    "issue_prefix: ags\n"
+    "issue-prefix: ags\n"
+    "dolt.auto-start: false\n"
+    "dolt.host: gas-city-aegis-dolt\n"
+    "dolt.port: 3306\n"
+    "dolt.user: aegis_beads\n"
+    "dolt:\n"
+    "  disable-event-flush: true\n"
+    "export.auto: false\n"
+    "backup.enabled: false\n"
+    "gc.endpoint_origin: explicit\n"
+    "gc.endpoint_status: verified\n"
+    f"types.custom: {CUSTOM_TYPES}\n"
+).encode("utf-8")
+
+
+class BoundaryError(RuntimeError):
+    """The worker boundary cannot be proven safe."""
+
+
+def _read_secure(
+    path: Path,
+    label: str,
+    *,
+    allowed_modes: frozenset[int],
+    maximum_bytes: int,
+) -> bytes:
+    if not path.is_absolute():
+        raise BoundaryError(f"{label} path must be absolute")
+    no_follow = getattr(os, "O_NOFOLLOW", None)
+    if no_follow is None:  # pragma: no cover - production is Linux.
+        raise BoundaryError(f"{label} cannot be opened without O_NOFOLLOW")
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_CLOEXEC | no_follow)
+    except OSError as exc:
+        raise BoundaryError(f"{label} must be one readable non-symlink file") from exc
+    try:
+        before = os.fstat(descriptor)
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or before.st_uid != os.geteuid()
+            or stat.S_IMODE(before.st_mode) not in allowed_modes
+            or before.st_nlink != 1
+            or before.st_size <= 0
+            or before.st_size > maximum_bytes
+        ):
+            raise BoundaryError(f"{label} has unsafe ownership, mode, links, or size")
+        chunks: list[bytes] = []
+        remaining = maximum_bytes + 1
+        while remaining:
+            chunk = os.read(descriptor, min(65536, remaining))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        content = b"".join(chunks)
+        after = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    before_identity = (
+        before.st_dev,
+        before.st_ino,
+        before.st_size,
+        before.st_mtime_ns,
+        before.st_ctime_ns,
+    )
+    after_identity = (
+        after.st_dev,
+        after.st_ino,
+        after.st_size,
+        after.st_mtime_ns,
+        after.st_ctime_ns,
+    )
+    if before_identity != after_identity or len(content) != after.st_size:
+        raise BoundaryError(f"{label} changed while it was read")
+    return content
+
+
+def _private_directory(path: Path, label: str) -> None:
+    try:
+        info = path.lstat()
+        resolved = path.resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        raise BoundaryError(f"cannot inspect {label}") from exc
+    if (
+        resolved != path
+        or not stat.S_ISDIR(info.st_mode)
+        or info.st_uid != os.geteuid()
+        or stat.S_IMODE(info.st_mode) != 0o700
+    ):
+        raise BoundaryError(f"{label} must be one owner-only real directory")
+
+
+def _strict_json(content: bytes, label: str) -> dict[str, Any]:
+    def pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
+        value: dict[str, Any] = {}
+        for key, item in items:
+            if key in value:
+                raise BoundaryError(f"{label} contains duplicate key {key!r}")
+            value[key] = item
+        return value
+
+    try:
+        value = json.loads(
+            content.decode("utf-8"),
+            object_pairs_hook=pairs,
+            parse_constant=lambda item: (_ for _ in ()).throw(
+                BoundaryError(f"{label} contains non-finite value {item}")
+            ),
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise BoundaryError(f"{label} is not strict UTF-8 JSON") from exc
+    if not isinstance(value, dict):
+        raise BoundaryError(f"{label} must contain one JSON object")
+    return value
+
+
+def _city_config(content: bytes, label: str) -> dict[str, Any]:
+    try:
+        value = tomllib.loads(content.decode("utf-8"))
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
+        raise BoundaryError(f"{label} is not strict UTF-8 TOML") from exc
+    if not isinstance(value, dict):  # pragma: no cover - tomllib always maps root.
+        raise BoundaryError(f"{label} must contain one TOML table")
+    return value
+
+
+def _one_aegis_rig(city: dict[str, Any], label: str) -> dict[str, Any]:
+    rigs = city.get("rigs")
+    if not isinstance(rigs, list):
+        raise BoundaryError(f"{label} must define a rigs array")
+    matches = [rig for rig in rigs if isinstance(rig, dict) and rig.get("name") == "aegis"]
+    if len(matches) != 1:
+        raise BoundaryError(f"{label} must define exactly one Aegis rig")
+    return matches[0]
+
+
+def _normalize_endpoints(city: dict[str, Any], label: str, *, worker: bool) -> dict[str, Any]:
+    value = copy.deepcopy(city)
+    dolt = value.get("dolt")
+    if not isinstance(dolt, dict):
+        raise BoundaryError(f"{label} must define the city Dolt table")
+    expected_hq = WORKER_HQ_ENDPOINT if worker else HOST_HQ_ENDPOINT
+    if (dolt.get("host"), dolt.get("port")) != expected_hq:
+        raise BoundaryError(f"{label} has an unexpected HQ Dolt endpoint")
+    dolt["host"] = "__HQ_DOLT_HOST__"
+    dolt["port"] = "__HQ_DOLT_PORT__"
+
+    rig = _one_aegis_rig(value, label)
+    expected_aegis = WORKER_AEGIS_ENDPOINT if worker else HOST_AEGIS_ENDPOINT
+    if (rig.get("dolt_host"), rig.get("dolt_port")) != expected_aegis:
+        raise BoundaryError(f"{label} has an unexpected Aegis Dolt endpoint")
+    rig["dolt_host"] = "__AEGIS_DOLT_HOST__"
+    rig["dolt_port"] = "__AEGIS_DOLT_PORT__"
+    return value
+
+
+def verify_city_pair(host_content: bytes, worker_content: bytes) -> None:
+    host = _normalize_endpoints(
+        _city_config(host_content, "host city configuration"),
+        "host city configuration",
+        worker=False,
+    )
+    worker = _normalize_endpoints(
+        _city_config(worker_content, "worker city configuration"),
+        "worker city configuration",
+        worker=True,
+    )
+    if host != worker:
+        raise BoundaryError(
+            "worker city configuration differs from host configuration outside endpoints"
+        )
+
+
+def project_aegis_metadata(content: bytes) -> bytes:
+    value = _strict_json(content, "Aegis Beads metadata")
+    if frozenset(value) != METADATA_KEYS:
+        raise BoundaryError("Aegis Beads metadata fields are not exact")
+    expected = {
+        "backend": "dolt",
+        "database": "dolt",
+        "dolt_database": "aegis_beads",
+        "dolt_mode": "server",
+        "dolt_server_host": "127.0.0.1",
+        "dolt_server_port": 33071,
+        "dolt_server_user": "aegis_beads",
+    }
+    if any(value.get(key) != wanted for key, wanted in expected.items()):
+        raise BoundaryError("Aegis Beads metadata does not name the host loopback store")
+    project_id = value.get("project_id")
+    if not isinstance(project_id, str) or SAFE_PROJECT_ID.fullmatch(project_id) is None:
+        raise BoundaryError("Aegis Beads project_id is not one canonical lowercase UUIDv4")
+    projected = dict(value)
+    projected["dolt_server_host"] = "gas-city-aegis-dolt"
+    projected["dolt_server_port"] = 3306
+    return (json.dumps(projected, indent=2, sort_keys=True) + "\n").encode("utf-8")
+
+
+def _unquote_simple_yaml(value: str) -> str:
+    value = value.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        return value[1:-1]
+    return value
+
+
+def validate_beads_config_source(
+    content: bytes,
+    label: str,
+    *,
+    prefix: str,
+    host_port: int,
+    user: str,
+    allowed_origins: frozenset[str],
+) -> None:
+    """Reject persisted secrets and endpoint drift before masking the source."""
+
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise BoundaryError(f"{label} is not UTF-8") from exc
+    if "\x00" in text:
+        raise BoundaryError(f"{label} contains a NUL byte")
+    observed: dict[str, list[str]] = {}
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        lowered = line.casefold()
+        if any(word in lowered for word in ("password", "credential", "secret")):
+            raise BoundaryError(f"{label} contains a persisted credential setting")
+        if ":" not in line:
+            continue
+        key, raw_value = line.split(":", 1)
+        key = key.strip()
+        value = _unquote_simple_yaml(raw_value.split(" #", 1)[0])
+        observed.setdefault(key, []).append(value)
+    for key in ("issue_prefix", "issue-prefix"):
+        if key in observed and set(observed[key]) != {prefix}:
+            raise BoundaryError(f"{label} has a different issue prefix")
+    allowed_endpoint_values = {
+        "dolt.host": {"127.0.0.1", "localhost"},
+        "dolt.port": {str(host_port)},
+        "dolt.user": {user},
+        "gc.endpoint_origin": set(allowed_origins),
+        "gc.endpoint_status": {"verified"},
+    }
+    for key, allowed in allowed_endpoint_values.items():
+        if key in observed and not set(observed[key]).issubset(allowed):
+            raise BoundaryError(f"{label} has a drifted persisted setting: {key}")
+
+
+def _publish_exact(path: Path, content: bytes) -> None:
+    if path.parent.resolve(strict=True) != path.parent:
+        raise BoundaryError("boundary output parent must not traverse a symlink")
+    temporary = path.with_name(f".{path.name}.{secrets.token_hex(12)}.tmp")
+    descriptor: int | None = None
+    try:
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(temporary, flags, 0o600)
+        offset = 0
+        while offset < len(content):
+            written = os.write(descriptor, content[offset:])
+            if written <= 0:
+                raise OSError("short boundary artifact write")
+            offset += written
+        os.fsync(descriptor)
+        os.close(descriptor)
+        descriptor = None
+        try:
+            os.link(temporary, path, follow_symlinks=False)
+        except FileExistsError:
+            observed = _read_secure(
+                path,
+                f"existing {path.name}",
+                allowed_modes=frozenset({0o600}),
+                maximum_bytes=max(MAX_CITY_BYTES, MAX_METADATA_BYTES),
+            )
+            if observed != content:
+                raise BoundaryError(f"existing {path.name} does not match this launch")
+        else:
+            directory_fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+    except OSError as exc:
+        raise BoundaryError(f"could not publish {path.name}") from exc
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+        try:
+            temporary.unlink()
+        except FileNotFoundError:
+            pass
+
+
+def prepare(args: argparse.Namespace) -> None:
+    output_dir = Path(args.output_dir)
+    _private_directory(output_dir, "worker boundary output directory")
+    host_path = Path(args.host_city)
+    worker_path = Path(args.worker_city)
+    host_content = _read_secure(
+        host_path,
+        "host city configuration",
+        allowed_modes=frozenset({0o600, 0o640, 0o644}),
+        maximum_bytes=MAX_CITY_BYTES,
+    )
+    worker_content = _read_secure(
+        worker_path,
+        "worker city configuration",
+        allowed_modes=frozenset({0o600, 0o640, 0o644}),
+        maximum_bytes=MAX_CITY_BYTES,
+    )
+    verify_city_pair(host_content, worker_content)
+    # The in-container verifier compares this exact validated snapshot to the
+    # root-owned worker template. Keeping it in the per-session receipt mount
+    # avoids overlapping a second bind underneath /run/gas-city.
+    _publish_exact(output_dir / "host-city.toml", host_content)
+
+    hq_config_source_sha256: str | None = None
+    hq_config_projected_sha256: str | None = None
+    aegis_config_source_sha256: str | None = None
+    aegis_config_projected_sha256: str | None = None
+    metadata_source_sha256: str | None = None
+    metadata_projected_sha256: str | None = None
+
+    if args.role in {"hq", "mayor"}:
+        if args.hq_beads_config is None:
+            raise BoundaryError(f"{args.role} workers require the HQ Beads config")
+        hq_config_path = Path(args.hq_beads_config)
+        _private_directory(hq_config_path.parent, "HQ Beads directory")
+        if (hq_config_path.parent / ".env").exists() or (hq_config_path.parent / ".env").is_symlink():
+            raise BoundaryError("HQ .beads/.env must not exist")
+        hq_config = _read_secure(
+            hq_config_path,
+            "HQ Beads config",
+            allowed_modes=frozenset({0o600}),
+            maximum_bytes=MAX_METADATA_BYTES,
+        )
+        validate_beads_config_source(
+            hq_config,
+            "HQ Beads config",
+            prefix="gc",
+            host_port=33070,
+            user="gas_city_hq",
+            allowed_origins=frozenset({"managed_city", "city_canonical"}),
+        )
+        _publish_exact(output_dir / "hq-config.yaml", HQ_CONFIG_OVERLAY)
+        hq_config_source_sha256 = hashlib.sha256(hq_config).hexdigest()
+        hq_config_projected_sha256 = hashlib.sha256(HQ_CONFIG_OVERLAY).hexdigest()
+    elif args.hq_beads_config is not None:
+        raise BoundaryError("Aegis workers must not receive the HQ Beads config")
+
+    if args.role == "hq":
+        if args.aegis_metadata is not None or args.aegis_beads_config is not None:
+            raise BoundaryError("ordinary HQ workers must not receive Aegis metadata")
+    else:
+        if args.aegis_metadata is None or args.aegis_beads_config is None:
+            raise BoundaryError(f"{args.role} workers require Aegis Beads metadata and config")
+        metadata_path = Path(args.aegis_metadata)
+        _private_directory(metadata_path.parent, "Aegis Beads directory")
+        if (metadata_path.parent / ".env").exists() or (metadata_path.parent / ".env").is_symlink():
+            raise BoundaryError("Aegis .beads/.env must not exist")
+        metadata_content = _read_secure(
+            metadata_path,
+            "Aegis Beads metadata",
+            allowed_modes=frozenset({0o600}),
+            maximum_bytes=MAX_METADATA_BYTES,
+        )
+        projected = project_aegis_metadata(metadata_content)
+        _publish_exact(output_dir / "aegis-metadata.json", projected)
+        metadata_source_sha256 = hashlib.sha256(metadata_content).hexdigest()
+        metadata_projected_sha256 = hashlib.sha256(projected).hexdigest()
+        aegis_config_path = Path(args.aegis_beads_config)
+        if aegis_config_path.parent != metadata_path.parent:
+            raise BoundaryError("Aegis Beads config and metadata must share one directory")
+        aegis_config = _read_secure(
+            aegis_config_path,
+            "Aegis Beads config",
+            allowed_modes=frozenset({0o600}),
+            maximum_bytes=MAX_METADATA_BYTES,
+        )
+        validate_beads_config_source(
+            aegis_config,
+            "Aegis Beads config",
+            prefix="ags",
+            host_port=33071,
+            user="aegis_beads",
+            allowed_origins=frozenset({"explicit"}),
+        )
+        _publish_exact(output_dir / "aegis-config.yaml", AEGIS_CONFIG_OVERLAY)
+        aegis_config_source_sha256 = hashlib.sha256(aegis_config).hexdigest()
+        aegis_config_projected_sha256 = hashlib.sha256(AEGIS_CONFIG_OVERLAY).hexdigest()
+
+    receipt = {
+        "schema_version": 1,
+        "kind": "gas-city-worker-boundary",
+        "role": args.role,
+        "host_city_sha256": hashlib.sha256(host_content).hexdigest(),
+        "worker_city_sha256": hashlib.sha256(worker_content).hexdigest(),
+        "hq_config_source_sha256": hq_config_source_sha256,
+        "hq_config_projected_sha256": hq_config_projected_sha256,
+        "aegis_config_source_sha256": aegis_config_source_sha256,
+        "aegis_config_projected_sha256": aegis_config_projected_sha256,
+        "aegis_metadata_source_sha256": metadata_source_sha256,
+        "aegis_metadata_projected_sha256": metadata_projected_sha256,
+    }
+    receipt_content = (json.dumps(receipt, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    _publish_exact(output_dir / "worker-boundary.json", receipt_content)
+
+
+def parser() -> argparse.ArgumentParser:
+    result = argparse.ArgumentParser(description=__doc__)
+    result.add_argument("--role", choices=("hq", "aegis", "mayor"), required=True)
+    result.add_argument("--host-city", required=True)
+    result.add_argument("--worker-city", required=True)
+    result.add_argument("--output-dir", required=True)
+    result.add_argument("--hq-beads-config")
+    result.add_argument("--aegis-beads-config")
+    result.add_argument("--aegis-metadata")
+    return result
+
+
+def main(argv: list[str] | None = None) -> int:
+    try:
+        prepare(parser().parse_args(argv))
+    except BoundaryError as exc:
+        print(f"worker boundary rejected: {exc}", file=sys.stderr)
+        return 66
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

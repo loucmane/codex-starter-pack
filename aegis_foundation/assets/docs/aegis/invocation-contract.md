@@ -1,5 +1,21 @@
 # Aegis Invocation Contract
 
+## External project task authority
+
+A project enrolled into an external Gas City authority must be launched with
+its complete owner-controlled binding. Enrollment is represented by a strict
+pointer in the repository's Git common directory and an identity-keyed binding
+under the deployed city; task-store directory presence is never enrollment.
+Because linked worktrees share the Git common directory, the primary checkout
+and every worktree share one enrollment state.
+
+When the marker exists, missing or mismatched authority environment is a hard
+stop for readiness, Claude gates, Codex validation, numeric/local kickoff, and
+Taskmaster mutation helpers, including in advisory mode. Use
+`~/gas-city/bin/aegis-claude` or `~/gas-city/bin/aegis-codex`; do not source an
+environment file or add authority variables to a shell profile. Unenrolled
+repositories retain the legacy implicit-Taskmaster behavior.
+
 This document defines the supported V1 ways to run Aegis from a project that is not the Aegis source checkout.
 
 ## Public Flow
@@ -97,6 +113,38 @@ aegis kickoff --target-dir . --task <id> --slug <slug> --title "<title>"
 Taskmaster MCP discovery may be used instead of the CLI when it is available: `help`, `get_tasks`, `next_task`, and `get_task` are treated as read-only even while readiness is `BLOCKED` before kickoff. Taskmaster MCP mutations and unknown Taskmaster MCP tools remain blocked until readiness is `READY`, except for the narrow post-closeout completion bookkeeping path for the matching task.
 
 For Taskmaster-backed work, Aegis creates the same branch, current-work file, session, plan, and active work-tracking scaffold as `aegis start`, but it does not create `.aegis/state/local-tasks.json` for that task. `aegis start` refuses to bypass an available Taskmaster task. After implementation, verification, strict verification, closeout, and read-only `aegis doctor` pass, mark the Taskmaster task done and refresh the targeted generated task file.
+
+Start authoritative Beads work only after Gas City has claimed the assignment,
+derived exactly one child work Bead when the assignment is a convoy or molecule,
+created its workspace, and changed directory to the resulting polecat worktree:
+
+```bash
+./.aegis/bin/aegis kickoff --target-dir . --bead '<verified-work-bead-id>'
+```
+
+The current branch must be exactly `polecat/<verified-work-bead-id>`. The command
+does not read or infer from `GC_BEAD_ID`, because upstream may use that variable for
+the enclosing convoy or molecule rather than the work Bead. It accepts no caller
+title or slug: it validates the explicit generation-2 Beads authority receipt through
+the pinned external task-authority runtime, invokes the pinned `bd` executable only as
+`bd --json --readonly -C <repo> show --id <bead>`, requires the issue to be
+an assigned, non-ephemeral `in_progress` source-work `task`, and derives both
+fields from that authoritative issue. Its assignee must equal the current Gas City
+identity using `BEADS_ACTOR`, `GC_SESSION_NAME`, `GC_SESSION_ID`, then `GC_AGENT`
+precedence. Workspace setup must already have recorded exact
+`metadata.branch=\"polecat/<bead>\"` and canonical `metadata.work_dir=<target-root>`.
+Convoy, epic, formula, molecule, wisp, unassigned, or differently assigned records
+are rejected. The resulting
+current-work task has `source: "beads"` and is bound to the exact receipt generation
+and SHA-256 plus the validated assignee, type, branch, work directory, and pinned
+`bd` digest. Taskmaster remains read-only rollback evidence; this path never invokes
+or mutates it.
+
+The Gas City integration point is deliberately narrow: before current-work exists,
+the formula may perform only its exact claim, convoy-status/single-child derivation,
+and workspace-setup operations. After it has entered the exact polecat branch, it
+passes the verified child ID explicitly to `kickoff --bead`. This contract is not a
+general readiness bypass.
 
 Claude Code hook activation has a session boundary. If `aegis init` or `aegis install` creates or modifies `.claude/settings.json` or `.claude/scripts/*`, the install report includes `client_reload.required=true` and Aegis writes `.aegis/state/client-reload-required.json`. MCP `aegis.init` / `aegis.install` surface this as a blocked hard-stop response: `ok=false`, `error.code=client_reload_required`, `error.status=blocked`, and `details.must_stop=true`, while preserving the applied install report under `details.report`. In that state, `aegis.start` and `aegis.kickoff` are blocked, and the current Claude session must not edit source, run project verification, mutate Taskmaster, or attempt closeout. Stop, restart Claude in the project, let the installed `PreToolUse` hook clear the marker, run `aegis next`, and continue only after the installed hooks are active.
 

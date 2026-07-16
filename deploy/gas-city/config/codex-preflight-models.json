@@ -1,0 +1,50 @@
+{
+  "models": [
+    {
+      "slug": "gpt-5.6-sol",
+      "display_name": "GPT-5.6-Sol model preflight",
+      "description": "Gas City identity-only preflight metadata for the pinned Codex CLI.",
+      "default_reasoning_level": "xhigh",
+      "supported_reasoning_levels": [
+        {
+          "effort": "xhigh",
+          "description": "Pinned Gas City preflight effort"
+        }
+      ],
+      "shell_type": "disabled",
+      "visibility": "none",
+      "supported_in_api": true,
+      "priority": 1,
+      "availability_nux": null,
+      "upgrade": null,
+      "base_instructions": "This is an isolated model identity preflight. Reply with exactly READY. Do not invoke any tool.",
+      "include_skills_usage_instructions": false,
+      "supports_reasoning_summaries": true,
+      "default_reasoning_summary": "none",
+      "support_verbosity": false,
+      "default_verbosity": null,
+      "apply_patch_tool_type": null,
+      "web_search_tool_type": "text",
+      "truncation_policy": {
+        "mode": "tokens",
+        "limit": 10000
+      },
+      "supports_parallel_tool_calls": false,
+      "supports_image_detail_original": false,
+      "context_window": 372000,
+      "max_context_window": 372000,
+      "auto_compact_token_limit": null,
+      "comp_hash": "gas-city-codex-preflight-v1",
+      "effective_context_window_percent": 95,
+      "experimental_supported_tools": [],
+      "input_modalities": [
+        "text"
+      ],
+      "supports_search_tool": false,
+      "use_responses_lite": true,
+      "auto_review_model_override": null,
+      "tool_mode": "direct",
+      "multi_agent_version": "disabled"
+    }
+  ]
+}

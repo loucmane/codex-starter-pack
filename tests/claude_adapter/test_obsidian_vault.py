@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
+import re
 import subprocess
 
 import pytest
@@ -11,6 +13,44 @@ from aegis_foundation import cli as aegis_cli
 from aegis_foundation import obsidian_vault
 
 SOURCE_ROOT = Path(__file__).resolve().parents[2]
+
+
+@pytest.fixture(autouse=True)
+def _fake_read_only_bd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Expose a deterministic bd executable that enforces the production argv."""
+
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    executable = bin_dir / "bd"
+    executable.write_text(
+        "#!/usr/bin/env python3\n"
+        "from pathlib import Path\n"
+        "import hashlib, json, sys\n"
+        "if sys.argv[1:] == ['--version']:\n"
+        "    print('bd version 1.1.0 (8e4e59d39)')\n"
+        "    raise SystemExit(0)\n"
+        "if len(sys.argv) >= 5 and '-C' in sys.argv:\n"
+        "    root = Path(sys.argv[sys.argv.index('-C') + 1])\n"
+        "else:\n"
+        "    print('missing repository', file=sys.stderr)\n"
+        "    raise SystemExit(8)\n"
+        "source = root / '.beads' / 'test-export.jsonl'\n"
+        "if not source.is_file():\n"
+        "    print('authoritative Beads export unavailable', file=sys.stderr)\n"
+        "    raise SystemExit(9)\n"
+        "if sys.argv[1:] == ['--readonly', '-C', str(root), 'export']:\n"
+        "    sys.stdout.write(source.read_text(encoding='utf-8'))\n"
+        "    raise SystemExit(0)\n"
+        "if sys.argv[1:5] == ['--json', '--readonly', '-C', str(root)] and sys.argv[5] == 'sql':\n"
+        "    head = hashlib.sha256(source.read_bytes()).hexdigest()[:32]\n"
+        "    print(json.dumps({'rows': [{'head': head}]}))\n"
+        "    raise SystemExit(0)\n"
+        "print('unexpected bd invocation: ' + ' '.join(sys.argv[1:]), file=sys.stderr)\n"
+        "raise SystemExit(8)\n",
+        encoding="utf-8",
+    )
+    executable.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
 
 
 def _run(*args: str, cwd: Path) -> str:
@@ -23,6 +63,68 @@ def _run(*args: str, cwd: Path) -> str:
     )
     assert result.returncode == 0, result.stderr or result.stdout
     return result.stdout.strip()
+
+
+def _bead_issue(
+    issue_id: str,
+    *,
+    title: str | None = None,
+    external_ref: str | None = None,
+    status: str = "open",
+    priority: int = 1,
+    issue_type: str = "task",
+    dependencies: list[dict[str, str]] | None = None,
+) -> dict[str, object]:
+    return {
+        "_type": "issue",
+        "id": issue_id,
+        "title": title or f"Bead {issue_id} title",
+        "description": f"Bounded description for {issue_id}",
+        "status": status,
+        "priority": priority,
+        "issue_type": issue_type,
+        "external_ref": external_ref,
+        "dependencies": dependencies or [],
+    }
+
+
+def _relationship(source_id: str, target_id: str, relation_type: str) -> dict[str, str]:
+    return {
+        "issue_id": source_id,
+        "depends_on_id": target_id,
+        "type": relation_type,
+    }
+
+
+def _write_beads_export(root: Path, issues: list[dict[str, object]]) -> None:
+    beads_dir = root / ".beads"
+    beads_dir.mkdir(exist_ok=True)
+    (beads_dir / "test-export.jsonl").write_text(
+        "".join(json.dumps(issue, sort_keys=True) + "\n" for issue in issues),
+        encoding="utf-8",
+    )
+
+
+def _fixture_issues(task_count: int) -> list[dict[str, object]]:
+    issues: list[dict[str, object]] = []
+    for task_id in range(1, task_count + 1):
+        issue_id = f"ags-{task_id}"
+        dependencies: list[dict[str, str]] = []
+        if task_id > 1:
+            dependencies.append(_relationship(issue_id, f"ags-{task_id - 1}", "blocks"))
+        if task_id == 2:
+            dependencies.append(_relationship(issue_id, "ags-1", "parent-child"))
+        issues.append(
+            _bead_issue(
+                issue_id,
+                title=f"Task {task_id} title",
+                external_ref=f"taskmaster:master:{task_id}",
+                status="in-progress" if task_id == 1 else "open",
+                issue_type="epic" if task_id == 1 else "task",
+                dependencies=dependencies,
+            )
+        )
+    return issues
 
 
 def _repo(tmp_path: Path, *, task_count: int = 2) -> Path:
@@ -50,6 +152,7 @@ def _repo(tmp_path: Path, *, task_count: int = 2) -> Path:
         json.dumps({"master": {"tasks": tasks}}, indent=2) + "\n",
         encoding="utf-8",
     )
+    _write_beads_export(root, _fixture_issues(task_count))
     capsule_dir = root / ".aegis" / "capsule"
     capsule_dir.mkdir(parents=True)
     (capsule_dir / "current.json").write_text(
@@ -149,7 +252,7 @@ def _events(root: Path) -> list[dict[str, object]]:
             "handler": "github:delivery",
             "outcome": "pass",
             "paths": [],
-            "extra": {"task_id": "1", "pr_number": 42, "action": "merged"},
+            "extra": {"task_id": "ags-2", "pr_number": 42, "action": "merged"},
         },
         {
             **base,
@@ -184,6 +287,10 @@ def _tree_digest(root: Path) -> str:
     return digest.hexdigest()
 
 
+def _fake_bd_path() -> Path:
+    return Path(os.environ["PATH"].split(os.pathsep, 1)[0]) / "bd"
+
+
 def test_builds_deterministic_bounded_graph_and_preserves_legacy_context(tmp_path: Path) -> None:
     root = _repo(tmp_path)
     events = _events(root)
@@ -194,9 +301,22 @@ def test_builds_deterministic_bounded_graph_and_preserves_legacy_context(tmp_pat
     assert first["status"] == "built"
     assert first["changed"] is True
     before = _tree_digest(output)
+    task_source = snapshot["task_source"]
+    fake_bd = Path(task_source["binary"])
+    assert task_source["binary_sha256"] == hashlib.sha256(fake_bd.read_bytes()).hexdigest()
+    assert task_source["version"].startswith("bd version 1.1.0 (")
+    assert task_source["raw_export_sha256"] == hashlib.sha256(
+        (root / ".beads" / "test-export.jsonl").read_bytes()
+    ).hexdigest()
+    assert re.fullmatch(r"[0-9a-f]{32}", task_source["dolt_main_head"])
+    manifest = json.loads((output / obsidian_vault.MANIFEST_NAME).read_text())
+    assert manifest["task_bd_binary_sha256"] == task_source["binary_sha256"]
+    assert manifest["task_raw_export_sha256"] == task_source["raw_export_sha256"]
+    assert manifest["task_dolt_main_head"] == task_source["dolt_main_head"]
 
     assert (output / "Home.md").is_file()
-    assert (output / "Tasks" / "task-1.md").is_file()
+    assert (output / "Tasks" / "task-ags-1.md").is_file()
+    assert (output / "Tasks" / "task-ags-2.md").is_file()
     assert (output / "Views" / "Tasks.base").is_file()
     assert list((output / "Evidence" / "witness").glob("*.md"))
     assert list((output / "Evidence" / "verification").glob("*.md"))
@@ -207,7 +327,15 @@ def test_builds_deterministic_bounded_graph_and_preserves_legacy_context(tmp_pat
     all_text = "\n".join(
         path.read_text(encoding="utf-8") for path in output.rglob("*") if path.is_file()
     )
-    assert "[[Tasks/task-1|Task 1]]" in all_text
+    assert "[[Tasks/task-ags-1|Bead ags-1 (Taskmaster 1)]]" in all_text
+    assert "[[Tasks/task-ags-2|Bead ags-2]]" in all_text
+    assert "taskmaster:master:1` (non-authoritative)" in all_text
+    first_task = (output / "Tasks" / "task-ags-1.md").read_text(encoding="utf-8")
+    second_task = (output / "Tasks" / "task-ags-2.md").read_text(encoding="utf-8")
+    assert "## Blocks\n- [[Tasks/task-ags-2|Bead ags-2]]" in first_task
+    assert "## Children\n- [[Tasks/task-ags-2|Bead ags-2]]" in first_task
+    assert "## Blocked by\n- [[Tasks/task-ags-1|Bead ags-1]]" in second_task
+    assert "## Parents\n- [[Tasks/task-ags-1|Bead ags-1]]" in second_task
     assert "Parent agent: agent-parent" in all_text
     assert "agent-low-level-only" in all_text
     assert "Human-authored nonblank lines: 3" in all_text
@@ -259,6 +387,33 @@ def test_builds_deterministic_bounded_graph_and_preserves_legacy_context(tmp_pat
     ]
     changed_snapshot = obsidian_vault.collect_snapshot(root, high_signal_change)
     assert changed_snapshot["source_digest"] != snapshot["source_digest"]
+
+
+def test_collection_rejects_wrong_or_mutable_beads_binary(tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    with pytest.raises(obsidian_vault.VaultError, match="does not match the projection pin"):
+        obsidian_vault.collect_snapshot(
+            root,
+            [],
+            bd_executable=_fake_bd_path(),
+            expected_bd_sha256="0" * 64,
+        )
+
+    _fake_bd_path().chmod(0o775)
+    with pytest.raises(obsidian_vault.VaultError, match="group- or world-writable"):
+        obsidian_vault.collect_snapshot(root, [], bd_executable=_fake_bd_path())
+
+
+def test_collection_rejects_dolt_head_change(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = _repo(tmp_path)
+    heads = iter(("a" * 32, "b" * 32))
+    monkeypatch.setattr(obsidian_vault, "_beads_head", lambda *args, **kwargs: next(heads))
+
+    with pytest.raises(obsidian_vault.VaultError, match="main head changed"):
+        obsidian_vault.collect_snapshot(root, [], bd_executable=_fake_bd_path())
 
 
 def test_refuses_in_repo_unknown_or_tampered_destinations(tmp_path: Path) -> None:
@@ -333,6 +488,26 @@ def test_atomic_replace_restores_previous_vault_when_publish_fails(
     )["ok"]
 
 
+def test_atomic_refresh_removes_deleted_bead_notes_and_keeps_exact_inventory(
+    tmp_path: Path,
+) -> None:
+    root = _repo(tmp_path)
+    output = tmp_path / "deletion-vault"
+    initial = obsidian_vault.collect_snapshot(root, _events(root))
+    obsidian_vault.build_vault(initial, output, target_dir=root)
+    assert (output / "Tasks" / "task-ags-2.md").is_file()
+
+    _write_beads_export(root, _fixture_issues(1))
+    refreshed = obsidian_vault.collect_snapshot(root, _events(root))
+    result = obsidian_vault.build_vault(refreshed, output, target_dir=root)
+
+    assert result["status"] == "built"
+    assert not (output / "Tasks" / "task-ags-2.md").exists()
+    assert obsidian_vault.check_vault(
+        output, expected_source_digest=refreshed["source_digest"]
+    )["ok"]
+
+
 def test_limits_fail_closed_before_rendering_unbounded_task_graph(tmp_path: Path) -> None:
     root = _repo(tmp_path, task_count=2)
     with pytest.raises(obsidian_vault.VaultError, match="exceeds task limit"):
@@ -347,6 +522,102 @@ def test_limits_fail_closed_before_rendering_unbounded_task_graph(tmp_path: Path
             _events(root),
             limits=obsidian_vault.VaultLimits(max_agents=1),
         )
+
+
+def test_beads_is_the_only_task_authority_and_export_failures_stop_the_build(
+    tmp_path: Path,
+) -> None:
+    root = _repo(tmp_path)
+    baseline = obsidian_vault.collect_snapshot(root, [])
+
+    taskmaster = root / ".taskmaster" / "tasks" / "tasks.json"
+    taskmaster.write_text(
+        json.dumps(
+            {
+                "master": {
+                    "tasks": [
+                        {
+                            "id": 999,
+                            "title": "This decoy must never enter the vault",
+                            "status": "pending",
+                        }
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    after_taskmaster_change = obsidian_vault.collect_snapshot(root, [])
+    assert after_taskmaster_change["tasks"] == baseline["tasks"]
+    assert after_taskmaster_change["source_digest"] == baseline["source_digest"]
+    assert all(task["id"] != "999" for task in after_taskmaster_change["tasks"])
+
+    (root / ".beads" / "test-export.jsonl").unlink()
+    with pytest.raises(obsidian_vault.VaultError, match="read-only Beads command failed"):
+        obsidian_vault.collect_snapshot(root, [])
+
+
+def test_beads_jsonl_validation_alias_rules_and_mixed_id_sort_are_fail_closed(
+    tmp_path: Path,
+) -> None:
+    root = _repo(tmp_path)
+    mixed = [
+        _bead_issue("z-2", external_ref="taskmaster:master:7"),
+        _bead_issue("10", external_ref="taskmaster:other:10"),
+        _bead_issue("a-1", external_ref="https://example.invalid/issues/1"),
+        _bead_issue("a-1.2", external_ref="taskmaster:master:7.1"),
+        _bead_issue("2", external_ref=None),
+    ]
+    _write_beads_export(root, mixed)
+    snapshot = obsidian_vault.collect_snapshot(root, [])
+
+    assert [task["id"] for task in snapshot["tasks"]] == [
+        "2",
+        "10",
+        "a-1",
+        "a-1.2",
+        "z-2",
+    ]
+    assert {
+        task["id"]: task["taskmaster_alias"] for task in snapshot["tasks"]
+    } == {"2": "", "10": "", "a-1": "", "a-1.2": "7.1", "z-2": "7"}
+
+    export_path = root / ".beads" / "test-export.jsonl"
+    export_path.write_text("{not-json}\n", encoding="utf-8")
+    with pytest.raises(obsidian_vault.VaultError, match="invalid Beads export line 1"):
+        obsidian_vault.collect_snapshot(root, [])
+
+    export_path.write_text(
+        '{"_type":"issue","id":"x-1","id":"x-2"}\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(obsidian_vault.VaultError, match="duplicate JSON object key 'id'"):
+        obsidian_vault.collect_snapshot(root, [])
+
+    export_path.write_text(
+        '{"_type":"issue","id":"x-1","title":"X","status":"open",'
+        '"priority":NaN,"dependencies":[]}\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(obsidian_vault.VaultError, match="non-finite JSON number"):
+        obsidian_vault.collect_snapshot(root, [])
+
+    _write_beads_export(root, [mixed[0], mixed[0]])
+    with pytest.raises(obsidian_vault.VaultError, match="duplicate issue id z-2"):
+        obsidian_vault.collect_snapshot(root, [])
+
+    duplicate_alias = _bead_issue("x-1", external_ref="taskmaster:master:7")
+    _write_beads_export(root, [mixed[0], duplicate_alias])
+    with pytest.raises(obsidian_vault.VaultError, match="duplicate Taskmaster alias 7"):
+        obsidian_vault.collect_snapshot(root, [])
+
+    invalid_edge = _bead_issue(
+        "x-2",
+        dependencies=[_relationship("wrong-source", "x-1", "blocks")],
+    )
+    _write_beads_export(root, [invalid_edge])
+    with pytest.raises(obsidian_vault.VaultError, match="issue_id does not match"):
+        obsidian_vault.collect_snapshot(root, [])
 
 
 def test_linked_worktree_uses_common_repository_name_and_identity(tmp_path: Path) -> None:
@@ -368,6 +639,8 @@ def test_cli_build_and_check_use_explicit_out_of_repo_destination(
 ) -> None:
     root = _repo(tmp_path)
     output = tmp_path / "cli-vault"
+    fake_bd = _fake_bd_path()
+    fake_bd_sha256 = hashlib.sha256(fake_bd.read_bytes()).hexdigest()
     args = [
         "--source-root",
         str(SOURCE_ROOT),
@@ -377,6 +650,10 @@ def test_cli_build_and_check_use_explicit_out_of_repo_destination(
         str(root),
         "--output",
         str(output),
+        "--bd-executable",
+        str(fake_bd),
+        "--expected-bd-sha256",
+        fake_bd_sha256,
     ]
     assert aegis_cli.main(args) == 0
     built = json.loads(capsys.readouterr().out)
@@ -393,6 +670,10 @@ def test_cli_build_and_check_use_explicit_out_of_repo_destination(
         str(root),
         "--output",
         str(output),
+        "--bd-executable",
+        str(fake_bd),
+        "--expected-bd-sha256",
+        fake_bd_sha256,
     ]
     assert aegis_cli.main(check_args) == 0
     checked = json.loads(capsys.readouterr().out)

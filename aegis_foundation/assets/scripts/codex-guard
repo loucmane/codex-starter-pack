@@ -9,8 +9,10 @@ import importlib.util
 import json
 import os
 import re
+import stat
 import subprocess
 import sys
+import types
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from datetime import datetime
@@ -63,6 +65,10 @@ LAST_UPDATED_PATTERN = re.compile(r"\*\*Last Updated\*\*: (\d{4}-\d{2}-\d{2})")
 SERENA_MEMORY_PATTERN = re.compile(r"serena/memory|memories/\d{4}-\d{2}-\d{2}_", re.IGNORECASE)
 TASKMASTER_TASKS_REL = REPO_STRUCTURE.taskmaster_tasks_dir.relative_to(REPO_ROOT).as_posix()
 TASKMASTER_TASKS_JSON_REL = REPO_STRUCTURE.taskmaster_tasks_json.relative_to(REPO_ROOT).as_posix()
+TASK_AUTHORITY_ENV = "AEGIS_TASK_AUTHORITY_FILE"
+TASK_AUTHORITY_RUNTIME_ENV = "AEGIS_TASK_AUTHORITY_RUNTIME_FILE"
+TASK_AUTHORITY_RUNTIME_SHA256_ENV = "AEGIS_TASK_AUTHORITY_RUNTIME_SHA256"
+TASKMASTER_ROOT_REL = Path(".taskmaster")
 TASKMASTER_ACTIVITY_PATTERN = re.compile(
     rf"task-master(?::|`|\b)|{re.escape(TASKMASTER_TASKS_REL)}/(tasks\.json|task_\d+\.txt)",
     re.IGNORECASE,
@@ -1725,6 +1731,186 @@ def validate_runtime_artifacts(changed_paths: Iterable[Path]) -> List[Validation
     return issues
 
 
+def _load_task_authority_module():
+    raw_path = _required_task_authority_environment(TASK_AUTHORITY_RUNTIME_ENV)
+    expected_digest = _required_task_authority_environment(
+        TASK_AUTHORITY_RUNTIME_SHA256_ENV
+    )
+    if not re.fullmatch(r"[0-9a-f]{64}", expected_digest):
+        raise RuntimeError(
+            f"{TASK_AUTHORITY_RUNTIME_SHA256_ENV} must be a lowercase SHA-256 digest"
+        )
+    configured = Path(raw_path)
+    if not configured.is_absolute() or ".." in configured.parts:
+        raise RuntimeError(f"{TASK_AUTHORITY_RUNTIME_ENV} must be an absolute normalized path")
+    try:
+        resolved = configured.resolve(strict=True)
+        governed_root = REPO_ROOT.resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        raise RuntimeError(f"cannot resolve task-authority runtime: {configured}") from exc
+    if resolved != configured or configured.is_symlink():
+        raise RuntimeError(f"{TASK_AUTHORITY_RUNTIME_ENV} must not traverse a symlink")
+    try:
+        resolved.relative_to(governed_root)
+    except ValueError:
+        pass
+    else:
+        raise RuntimeError("task-authority runtime must be outside the writable governed repository")
+    no_follow = getattr(os, "O_NOFOLLOW", None)
+    if no_follow is None:  # pragma: no cover - Gas City workers are Linux.
+        raise RuntimeError("runtime cannot safely open a pinned task-authority module")
+    try:
+        descriptor = os.open(configured, os.O_RDONLY | os.O_CLOEXEC | no_follow)
+    except OSError as exc:
+        raise RuntimeError(f"cannot open task-authority runtime: {configured}") from exc
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode):
+            raise RuntimeError("task-authority runtime must be a regular non-symlink file")
+        with os.fdopen(descriptor, "rb", closefd=False) as handle:
+            content = handle.read(512 * 1024 + 1)
+        after = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    if len(content) > 512 * 1024:
+        raise RuntimeError("task-authority runtime exceeds 512 KiB")
+    before_identity = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+    after_identity = (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+    if before_identity != after_identity or len(content) != after.st_size:
+        raise RuntimeError("task-authority runtime changed while it was being read")
+    if hashlib.sha256(content).hexdigest() != expected_digest:
+        raise RuntimeError("task-authority runtime SHA-256 does not match its pinned digest")
+    module_name = "_aegis_task_authority_codex_guard"
+    module = types.ModuleType(module_name)
+    module.__file__ = str(configured)
+    module.__package__ = ""
+    sys.modules[module_name] = module
+    try:
+        code = compile(content, str(configured), "exec", dont_inherit=True)
+        exec(code, module.__dict__)
+    except Exception:
+        sys.modules.pop(module_name, None)
+        raise
+    return module
+
+
+def _required_task_authority_environment(name: str) -> str:
+    value = os.environ.get(name, "").strip()
+    if not value:
+        raise RuntimeError(f"explicit task authority requires {name}")
+    return value
+
+
+def _project_task_authority_contract():
+    module_path = REPO_ROOT / "aegis_foundation" / "task_authority.py"
+    if not module_path.is_file():
+        try:
+            from aegis_foundation import task_authority as module
+        except ImportError as exc:
+            raise RuntimeError(
+                "cannot load the project-enrollment authority contract"
+            ) from exc
+        return module
+    module_name = "_aegis_project_task_authority_codex_guard"
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("cannot load the project-enrollment authority contract")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)
+    except Exception:
+        sys.modules.pop(module_name, None)
+        raise
+    return module
+
+
+def selected_task_authority_mode() -> str:
+    contract = _project_task_authority_contract()
+    contract.validate_project_authority_environment(REPO_ROOT, os.environ)
+    if TASK_AUTHORITY_ENV not in os.environ:
+        return "taskmaster"
+    module = _load_task_authority_module()
+    selected = module.load_authority_from_environment(
+        os.environ,
+        expected_rig=_required_task_authority_environment("GC_RIG"),
+        expected_beads_prefix=_required_task_authority_environment("GC_BEADS_PREFIX"),
+        expected_database=_required_task_authority_environment("BEADS_DOLT_SERVER_DATABASE"),
+    )
+    return str(selected.mode.value)
+
+
+def _taskmaster_changed_paths(changed_paths: Iterable[Path]) -> List[Path]:
+    result: List[Path] = []
+    for path in changed_paths:
+        try:
+            relative = path.relative_to(REPO_ROOT)
+        except ValueError:
+            continue
+        if relative == TASKMASTER_ROOT_REL or TASKMASTER_ROOT_REL in relative.parents:
+            result.append(relative)
+    return result
+
+
+def _decode_git_status_path(value: str) -> str:
+    clean = value.strip()
+    if len(clean) >= 2 and clean.startswith('"') and clean.endswith('"'):
+        try:
+            decoded = json.loads(clean)
+        except (json.JSONDecodeError, TypeError):
+            return clean
+        return decoded if isinstance(decoded, str) else clean
+    return clean
+
+
+def _taskmaster_status_entry_paths(entries: Iterable[tuple[str, str]]) -> List[Path]:
+    result: List[Path] = []
+    seen: Set[Path] = set()
+    for _status, path_fragment in entries:
+        for raw_path in _status_entry_paths(path_fragment):
+            relative = Path(_decode_git_status_path(raw_path))
+            if relative == TASKMASTER_ROOT_REL or TASKMASTER_ROOT_REL in relative.parents:
+                if relative not in seen:
+                    seen.add(relative)
+                    result.append(relative)
+    return result
+
+
+def _validate_task_authority_paths(taskmaster_paths: List[Path]) -> List[ValidationIssue]:
+    try:
+        mode = selected_task_authority_mode()
+    except Exception as exc:  # noqa: BLE001 - enrolled/explicit authority must fail closed.
+        return [
+            ValidationIssue(
+                Path(os.environ.get(TASK_AUTHORITY_ENV) or "<project-authority-enrollment>"),
+                f"Explicit task authority could not be validated: {type(exc).__name__}: {exc}",
+                entry="Restore the exact owner-controlled receipt and Gas City rig/prefix/database identity before validation.",
+            )
+        ]
+    if mode != "beads" or not taskmaster_paths:
+        return []
+    return [
+        ValidationIssue(
+            path,
+            "Taskmaster path changed while the explicit authority receipt selects Beads",
+            entry="Revert the .taskmaster diff; Taskmaster remains read-only rollback evidence in Beads mode.",
+        )
+        for path in taskmaster_paths
+    ]
+
+
+def validate_task_authority(changed_paths: Iterable[Path]) -> List[ValidationIssue]:
+    return _validate_task_authority_paths(_taskmaster_changed_paths(changed_paths))
+
+
+def validate_task_authority_entries(
+    entries: Iterable[tuple[str, str]],
+) -> List[ValidationIssue]:
+    """Validate raw porcelain paths before deletion/rename filtering loses evidence."""
+
+    return _validate_task_authority_paths(_taskmaster_status_entry_paths(entries))
+
+
 def validate_taskmaster_activity(changed_paths: Iterable[Path]) -> List[ValidationIssue]:
     issues: List[ValidationIssue] = []
     taskmaster_changed = False
@@ -2316,6 +2502,7 @@ def collect_validation_issues(include_untracked: bool) -> Tuple[List[ValidationI
     baseline_issues: List[ValidationIssue] = []
     baseline_issues.extend(validate_session_state(entries, changed_files))
     baseline_issues.extend(validate_runtime_artifacts(changed_files))
+    baseline_issues.extend(validate_task_authority_entries(entries))
     baseline_issues.extend(validate_taskmaster_activity(changed_files))
     baseline_issues.extend(validate_active_folder_edits(changed_files))
     baseline_issues.extend(validate_session_edit_dates(changed_files))

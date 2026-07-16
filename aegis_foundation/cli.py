@@ -1140,6 +1140,9 @@ def handle_ledger(args: argparse.Namespace) -> int:
 def _vault_inputs(
     source_root: Path,
     target_dir: str | Path,
+    *,
+    bd_executable: str | Path = "bd",
+    expected_bd_sha256: str | None = None,
 ) -> tuple[Any, dict[str, Any], str]:
     """Read a stable vault snapshot without creating or changing ledger state."""
 
@@ -1167,6 +1170,8 @@ def _vault_inputs(
             target_dir,
             events,
             repository_identity=str(identity or "") or None,
+            bd_executable=bd_executable,
+            expected_bd_sha256=expected_bd_sha256,
         )
     except obsidian_vault.VaultError as exc:
         raise _aegis_installer.AegisError(str(exc)) from exc
@@ -1192,7 +1197,12 @@ def handle_vault(args: argparse.Namespace) -> int:
         if args.vault_subcommand == "path":
             print(output.as_posix())
             return 0
-        ledger_lib, snapshot, ledger_status = _vault_inputs(source_root, args.target_dir)
+        ledger_lib, snapshot, ledger_status = _vault_inputs(
+            source_root,
+            args.target_dir,
+            bd_executable=getattr(args, "bd_executable", "bd"),
+            expected_bd_sha256=getattr(args, "expected_bd_sha256", None),
+        )
         output = _vault_output_path(ledger_lib, args.target_dir, getattr(args, "output", None))
         if args.vault_subcommand == "build":
             try:
@@ -1581,7 +1591,33 @@ def handle_certify_release(args: argparse.Namespace) -> int:
 
 def handle_kickoff(args: argparse.Namespace) -> int:
     with _resolve_source_root(args.source_root) as source_root:
-        if args.local:
+        if args.bead is not None:
+            conflicts = [
+                option
+                for option, present in (
+                    ("--task", bool(args.task)),
+                    ("--local", bool(args.local)),
+                    ("--slug", bool(args.slug)),
+                    ("--title", bool(args.title)),
+                    ("--no-create-branch", bool(args.no_create_branch)),
+                )
+                if present
+            ]
+            if conflicts:
+                print(
+                    "aegis kickoff --bead derives title/slug and preserves the Gas City "
+                    f"workspace branch; incompatible options: {', '.join(conflicts)}",
+                    file=sys.stderr,
+                )
+                return 1
+            payload = _aegis_installer.kickoff_bead(
+                args.target_dir,
+                bead_id=args.bead,
+                goals=list(args.goal or []),
+                source_root=source_root,
+                invoking_agent=_aegis_installer.invoking_agent_from_environment(),
+            )
+        elif args.local:
             if not args.title:
                 print("aegis kickoff --local requires --title", file=sys.stderr)
                 return 1
@@ -2481,6 +2517,16 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--output",
         help="Optional explicit out-of-repository vault directory.",
     )
+    vault_build_parser.add_argument(
+        "--bd-executable",
+        default=os.environ.get("AEGIS_BD_EXECUTABLE", "bd"),
+        help="Exact Beads executable used for the read-only export and Dolt-head receipt.",
+    )
+    vault_build_parser.add_argument(
+        "--expected-bd-sha256",
+        default=os.environ.get("AEGIS_BD_SHA256"),
+        help="Optional required SHA-256 for the Beads executable.",
+    )
     vault_build_parser.set_defaults(func=handle_vault)
     vault_check_parser = vault_sub.add_parser(
         "check",
@@ -2490,6 +2536,16 @@ def build_arg_parser() -> argparse.ArgumentParser:
     vault_check_parser.add_argument(
         "--output",
         help="Optional explicit out-of-repository vault directory.",
+    )
+    vault_check_parser.add_argument(
+        "--bd-executable",
+        default=os.environ.get("AEGIS_BD_EXECUTABLE", "bd"),
+        help="Exact Beads executable used to recompute projection freshness.",
+    )
+    vault_check_parser.add_argument(
+        "--expected-bd-sha256",
+        default=os.environ.get("AEGIS_BD_SHA256"),
+        help="Optional required SHA-256 for the Beads executable.",
     )
     vault_check_parser.set_defaults(func=handle_vault)
 
@@ -2742,6 +2798,13 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     kickoff_parser.add_argument("--target-dir", default=".", help="Target repository root.")
     kickoff_parser.add_argument("--task", help="Numeric task/work id.")
+    kickoff_parser.add_argument(
+        "--bead",
+        help=(
+            "Authoritative opaque Aegis work Bead ID. Requires an existing exact "
+            "polecat/<bead-id> Gas City workspace branch."
+        ),
+    )
     kickoff_parser.add_argument("--slug", help="Short lowercase work slug.")
     kickoff_parser.add_argument("--title", help="Human-readable work title.")
     kickoff_parser.add_argument(

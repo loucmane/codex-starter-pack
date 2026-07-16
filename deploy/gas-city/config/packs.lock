@@ -1,0 +1,16 @@
+schema = 1
+
+[packs."https://github.com/gastownhall/gascity-packs/tree/main/gastown"]
+version = "sha:33d3a430a67d1782ad364556cb566bdb01d0afe3"
+commit = "33d3a430a67d1782ad364556cb566bdb01d0afe3"
+fetched = "2026-07-15T18:10:24Z"
+
+[packs."https://github.com/gastownhall/gascity.git//examples/bd"]
+version = "sha:f895c0ff47d6ee9334ed282a416387eb5b084d24"
+commit = "f895c0ff47d6ee9334ed282a416387eb5b084d24"
+fetched = "2026-07-15T18:10:24Z"
+
+[packs."https://github.com/gastownhall/gascity.git//internal/bootstrap/packs/core"]
+version = "sha:f895c0ff47d6ee9334ed282a416387eb5b084d24"
+commit = "f895c0ff47d6ee9334ed282a416387eb5b084d24"
+fetched = "2026-07-15T18:10:24Z"

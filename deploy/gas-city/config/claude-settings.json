@@ -1,0 +1,6 @@
+{
+  "switchModelsOnFlag": false,
+  "disableAllHooks": false,
+  "enableAllProjectMcpServers": false,
+  "skipDangerousModePermissionPrompt": false
+}

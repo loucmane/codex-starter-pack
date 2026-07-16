@@ -1,0 +1,164 @@
+[workspace]
+provider = "claude-container"
+suspended_on_start = true
+max_active_sessions = 4
+
+[agent_defaults]
+append_fragments = ["command-glossary", "operational-awareness"]
+
+[providers]
+
+[providers.claude-container]
+base = "builtin:claude"
+command = "/home/loucmane/gas-city/bin/claude-container"
+path_check = "/home/loucmane/gas-city/bin/claude-container"
+process_names = ["docker"]
+ready_delay_ms = 10000
+options_schema_merge = "by_key"
+option_defaults = { model = "fable-5", effort = "max", permission_mode = "auto-edit" }
+
+[providers.claude-container.permission_modes]
+auto-edit = "--permission-mode acceptEdits"
+plan = "--permission-mode plan"
+full-auto = "--permission-mode auto"
+unrestricted = "--permission-mode acceptEdits"
+
+[[providers.claude-container.options_schema]]
+key = "model"
+label = "Model"
+type = "select"
+default = "fable-5"
+
+[[providers.claude-container.options_schema.choices]]
+value = "fable-5"
+label = "Claude Fable 5"
+flag_args = ["--model", "claude-fable-5"]
+
+[[providers.claude-container.options_schema]]
+key = "permission_mode"
+label = "Permission Mode"
+type = "select"
+default = "auto-edit"
+
+[[providers.claude-container.options_schema.choices]]
+value = "auto-edit"
+label = "Accept edits"
+flag_args = ["--permission-mode", "acceptEdits"]
+
+[[providers.claude-container.options_schema.choices]]
+value = "plan"
+label = "Plan only"
+flag_args = ["--permission-mode", "plan"]
+
+[[providers.claude-container.options_schema.choices]]
+value = "full-auto"
+label = "Full auto in isolated worker"
+flag_args = ["--permission-mode", "auto"]
+
+[providers.claude-auto]
+base = "claude-container"
+options_schema_merge = "by_key"
+option_defaults = { model = "fable-5", effort = "max", permission_mode = "full-auto" }
+
+[providers.codex-container]
+base = "builtin:codex"
+command = "/home/loucmane/gas-city/bin/codex-container"
+path_check = "/home/loucmane/gas-city/bin/codex-container"
+process_names = ["docker"]
+ready_delay_ms = 3000
+resume_command = "/home/loucmane/gas-city/bin/codex-container resume {{.SessionKey}}"
+title_model = "gpt-5.6-sol"
+options_schema_merge = "by_key"
+option_defaults = { model = "gpt-5.6-sol", effort = "xhigh", permission_mode = "auto-edit" }
+
+[providers.codex-container.permission_modes]
+suggest = "--ask-for-approval untrusted --sandbox read-only"
+auto-edit = "--ask-for-approval never --sandbox danger-full-access"
+unrestricted = "--ask-for-approval never --sandbox danger-full-access"
+
+[[providers.codex-container.options_schema]]
+key = "model"
+label = "Model"
+type = "select"
+default = "gpt-5.6-sol"
+
+[[providers.codex-container.options_schema.choices]]
+value = "gpt-5.6-sol"
+label = "GPT-5.6 Sol"
+flag_args = ["--model", "gpt-5.6-sol"]
+flag_aliases = [["-m", "gpt-5.6-sol"]]
+
+[[providers.codex-container.options_schema]]
+key = "effort"
+label = "Reasoning effort"
+type = "select"
+default = "xhigh"
+
+[[providers.codex-container.options_schema.choices]]
+value = "xhigh"
+label = "Extra high"
+flag_args = ["-c", "model_reasoning_effort=xhigh"]
+
+[dolt]
+host = "gas-city-hq-dolt"
+port = 3306
+auto_gc_enabled = true
+archive_level = 0
+max_connections = 128
+read_timeout_millis = 30000
+write_timeout_millis = 300000
+
+[daemon]
+patrol_interval = "30s"
+max_restarts = 5
+restart_window = "1h"
+shutdown_timeout = "10s"
+dolt_stop_timeout = "30s"
+probe_concurrency = 2
+max_wakes_per_tick = 1
+session_circuit_breaker = true
+observe_paths = ["/home/loucmane/gas-city/runtime/state/provider-sessions"]
+
+[defaults.rig.imports.gastown]
+source = "https://github.com/gastownhall/gascity-packs/tree/main/gastown"
+version = "sha:33d3a430a67d1782ad364556cb566bdb01d0afe3"
+
+[[rigs]]
+name = "aegis"
+prefix = "ags"
+default_branch = "main"
+suspended_on_start = true
+max_active_sessions = 2
+dolt_host = "gas-city-aegis-dolt"
+dolt_port = "3306"
+formulas_dir = "formulas/aegis"
+
+[rigs.formula_vars]
+test_command = "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest"
+
+[rigs.imports.gastown]
+source = "https://github.com/gastownhall/gascity-packs/tree/main/gastown"
+version = "sha:33d3a430a67d1782ad364556cb566bdb01d0afe3"
+
+[[rigs.patches]]
+agent = "polecat"
+provider = "codex-container"
+
+[rigs.patches.pool]
+max = 1
+
+[[rigs.patches]]
+agent = "refinery"
+provider = "claude-auto"
+
+[[rigs.patches]]
+agent = "witness"
+provider = "claude-auto"
+
+[[patches.agent]]
+name = "gastown.mayor"
+provider = "claude-auto"
+
+[[patches.agent]]
+name = "gastown.deacon"
+provider = "codex-container"

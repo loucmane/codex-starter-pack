@@ -1,0 +1,9 @@
+/artifacts/*
+!/artifacts/README.md
+/runtime/
+/receipts/
+*.env
+*.secret
+*.password
+__pycache__/
+*.pyc

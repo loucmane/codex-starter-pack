@@ -6,9 +6,11 @@ import os
 import re
 import shlex
 import shutil
+import stat
 import subprocess
 import sys
 import traceback
+import types
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from hashlib import sha1, sha256
@@ -395,6 +397,136 @@ def project_root() -> Path:
     return Path.cwd().resolve()
 
 
+def _load_task_authority_module(root: Path):
+    raw_path = _required_task_authority_environment(TASK_AUTHORITY_RUNTIME_ENV)
+    expected_digest = _required_task_authority_environment(
+        TASK_AUTHORITY_RUNTIME_SHA256_ENV
+    )
+    if not re.fullmatch(r"[0-9a-f]{64}", expected_digest):
+        raise RuntimeError(
+            f"{TASK_AUTHORITY_RUNTIME_SHA256_ENV} must be a lowercase SHA-256 digest"
+        )
+    configured = Path(raw_path)
+    if not configured.is_absolute() or ".." in configured.parts:
+        raise RuntimeError(f"{TASK_AUTHORITY_RUNTIME_ENV} must be an absolute normalized path")
+    try:
+        resolved = configured.resolve(strict=True)
+        governed_root = root.resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        raise RuntimeError(f"cannot resolve task-authority runtime: {configured}") from exc
+    if resolved != configured or configured.is_symlink():
+        raise RuntimeError(f"{TASK_AUTHORITY_RUNTIME_ENV} must not traverse a symlink")
+    try:
+        resolved.relative_to(governed_root)
+    except ValueError:
+        pass
+    else:
+        raise RuntimeError("task-authority runtime must be outside the writable governed repository")
+    no_follow = getattr(os, "O_NOFOLLOW", None)
+    if no_follow is None:  # pragma: no cover - Gas City workers are Linux.
+        raise RuntimeError("runtime cannot safely open a pinned task-authority module")
+    try:
+        descriptor = os.open(configured, os.O_RDONLY | os.O_CLOEXEC | no_follow)
+    except OSError as exc:
+        raise RuntimeError(f"cannot open task-authority runtime: {configured}") from exc
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode):
+            raise RuntimeError("task-authority runtime must be a regular non-symlink file")
+        with os.fdopen(descriptor, "rb", closefd=False) as handle:
+            content = handle.read(512 * 1024 + 1)
+        after = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    if len(content) > 512 * 1024:
+        raise RuntimeError("task-authority runtime exceeds 512 KiB")
+    before_identity = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+    after_identity = (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+    if before_identity != after_identity or len(content) != after.st_size:
+        raise RuntimeError("task-authority runtime changed while it was being read")
+    if sha256(content).hexdigest() != expected_digest:
+        raise RuntimeError("task-authority runtime SHA-256 does not match its pinned digest")
+    module_name = "_aegis_task_authority_gate"
+    module = types.ModuleType(module_name)
+    module.__file__ = str(configured)
+    module.__package__ = ""
+    sys.modules[module_name] = module
+    try:
+        code = compile(content, str(configured), "exec", dont_inherit=True)
+        exec(code, module.__dict__)
+    except Exception:
+        sys.modules.pop(module_name, None)
+        raise
+    return module
+
+
+def _required_task_authority_environment(name: str) -> str:
+    value = os.environ.get(name, "").strip()
+    if not value:
+        raise RuntimeError(f"explicit task authority requires {name}")
+    return value
+
+
+def _project_task_authority_contract(root: Path):
+    source_root = Path(__file__).resolve().parents[2]
+    module_path = source_root / "aegis_foundation" / "task_authority.py"
+    if not module_path.is_file():
+        try:
+            from aegis_foundation import task_authority as module
+        except ImportError as exc:
+            raise RuntimeError(
+                "cannot load the project-enrollment authority contract"
+            ) from exc
+        return module
+    module_name = "_aegis_project_task_authority_gate"
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("cannot load the project-enrollment authority contract")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)
+    except Exception:
+        sys.modules.pop(module_name, None)
+        raise
+    return module
+
+
+def _project_enrollment_marker_present(root: Path) -> bool:
+    direct = root / ".git" / "aegis-authority-enrollment.json"
+    if os.path.lexists(direct):
+        return True
+    result = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "--path-format=absolute", "--git-common-dir"],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        return False
+    common = Path(result.stdout.strip())
+    if not common.is_absolute():
+        common = root / common
+    return os.path.lexists(common / "aegis-authority-enrollment.json")
+
+
+def selected_task_authority_mode(root: Path) -> str:
+    if _project_enrollment_marker_present(root):
+        contract = _project_task_authority_contract(root)
+        contract.validate_project_authority_environment(root, os.environ)
+    if TASK_AUTHORITY_ENV not in os.environ:
+        return "taskmaster"
+    module = _load_task_authority_module(root)
+    selected = module.load_authority_from_environment(
+        os.environ,
+        expected_rig=_required_task_authority_environment("GC_RIG"),
+        expected_beads_prefix=_required_task_authority_environment("GC_BEADS_PREFIX"),
+        expected_database=_required_task_authority_environment("BEADS_DOLT_SERVER_DATABASE"),
+    )
+    return str(selected.mode.value)
+
+
 def _read_json_object(path: Path) -> dict[str, Any]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -556,6 +688,22 @@ RECOVERY_CONTRACT: dict[str, dict[str, str]] = {
         "alt_repair": "For recovery, create a backup branch and use a reviewed revert or repair PR instead of destructive Git.",
         "audit": ".aegis/reports/gate-decisions.jsonl + ledger",
         "escalation": "Human-executed recovery outside the autonomous session. NOT override-eligible.",
+        "override_eligible": "false",
+    },
+    "taskmaster_non_authoritative": {
+        "tier": "c",
+        "repair": "Use the authoritative Beads workflow; retain .taskmaster read-only for rollback evidence.",
+        "alt_repair": "",
+        "audit": ".aegis/reports/gate-decisions.jsonl + task-authority receipt",
+        "escalation": "Transition the owner-controlled authority receipt through the reviewed rollback procedure. NOT override-eligible.",
+        "override_eligible": "false",
+    },
+    "task_authority_invalid": {
+        "tier": "c",
+        "repair": "Restore the exact owner-controlled authority receipt and Gas City identity environment.",
+        "alt_repair": "",
+        "audit": ".aegis/reports/gate-decisions.jsonl + task-authority receipt",
+        "escalation": "Stop task-state mutations until authority identity validates. NOT override-eligible.",
         "override_eligible": "false",
     },
 }
@@ -1002,6 +1150,401 @@ def mcp_path_values(value: Any) -> list[str]:
         for nested in value:
             paths.extend(mcp_path_values(nested))
     return paths
+
+
+def _resolved_repo_relative_path(
+    path_text: str,
+    root: Path,
+    *,
+    cwd: Path | None = None,
+) -> str | None:
+    if not path_text or "\0" in path_text:
+        return None
+    candidate = safe_expanduser(path_text)
+    base = cwd or root
+    try:
+        resolved = candidate.resolve() if candidate.is_absolute() else (base / candidate).resolve()
+        return resolved.relative_to(root.resolve()).as_posix()
+    except (OSError, RuntimeError, ValueError):
+        return None
+
+
+def is_taskmaster_path(
+    path_text: str,
+    root: Path | None = None,
+    *,
+    cwd: Path | None = None,
+) -> bool:
+    governed_root = (root or project_root()).resolve()
+    normalized = _resolved_repo_relative_path(path_text, governed_root, cwd=cwd)
+    return normalized == ".taskmaster" or bool(
+        normalized and normalized.startswith(TASKMASTER_PATH_PREFIX)
+    )
+
+
+def _cwd_is_taskmaster(cwd: Path, root: Path) -> bool:
+    try:
+        relative = cwd.resolve().relative_to(root.resolve()).as_posix()
+    except (OSError, RuntimeError, ValueError):
+        return False
+    return relative == ".taskmaster" or relative.startswith(TASKMASTER_PATH_PREFIX)
+
+
+def _bash_direct_taskmaster_path_mutation(
+    command: str,
+    root: Path,
+    *,
+    starting_cwd: Path | None = None,
+    depth: int = 0,
+) -> bool:
+    if depth > 2:
+        return ".taskmaster" in command
+
+    current_cwd = (starting_cwd or root).resolve()
+    for raw_tokens in hard_policy_shell_segments(command):
+        quote_aware_tokens = strip_hard_policy_prefixes(raw_tokens)
+        if not quote_aware_tokens:
+            continue
+        quote_aware_name = command_name(quote_aware_tokens[0])
+        if quote_aware_name in {"python", "python3", "pypy", "pypy3", "perl", "ruby"} and any(
+            ".taskmaster" in token for token in quote_aware_tokens[1:]
+        ):
+            return True
+    segments = [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]
+    for segment in segments:
+        tokens = strip_hard_policy_prefixes(shlex_tokens(segment))
+        if not tokens:
+            if ".taskmaster" in segment and bash_is_mutation(segment):
+                return True
+            continue
+        nested = nested_shell_command(tokens)
+        if nested is not None and _bash_direct_taskmaster_path_mutation(
+            nested,
+            root,
+            starting_cwd=current_cwd,
+            depth=depth + 1,
+        ):
+            return True
+        name = command_name(tokens[0])
+        if name in {"cd", "pushd"}:
+            destination = next((token for token in tokens[1:] if not token.startswith("-")), "")
+            if destination:
+                candidate = safe_expanduser(destination)
+                try:
+                    current_cwd = (
+                        candidate.resolve()
+                        if candidate.is_absolute()
+                        else (current_cwd / candidate).resolve()
+                    )
+                except (OSError, RuntimeError):
+                    pass
+            continue
+
+        if _cwd_is_taskmaster(current_cwd, root) and not bash_segment_is_read_only(segment):
+            return True
+        if any(
+            is_persistent_redirect_target(target)
+            and is_taskmaster_path(target, root, cwd=current_cwd)
+            for target in redirect_targets(segment)
+        ):
+            return True
+        for match in PYTHON_WRITE_RE.finditer(segment):
+            target = match.group(1)
+            if target and is_taskmaster_path(target, root, cwd=current_cwd):
+                return True
+        if name in {"python", "python3", "pypy", "pypy3", "perl", "ruby"} and ".taskmaster" in segment:
+            return True
+        if name in {"patch", "apply_patch"}:
+            return True
+        if name == "git" and len(tokens) >= 2 and tokens[1] in {"apply", "am"}:
+            return True
+
+        candidates: list[str] = []
+        precise_destination_only = False
+        if name == "sed" and command_has_write_flag(
+            tokens[1:], READ_ONLY_WRITE_FLAG_GUARDS["sed"]
+        ):
+            candidates = [token for token in tokens[1:] if not token.startswith("-")]
+        elif name == "tee":
+            candidates = [token for token in tokens[1:] if not token.startswith("-")]
+        elif name in {
+            "rm",
+            "mv",
+            "touch",
+            "chmod",
+            "chown",
+            "mkdir",
+            "rmdir",
+            "truncate",
+            "ln",
+            "mkfifo",
+            "mknod",
+        }:
+            candidates = [token for token in tokens[1:] if not token.startswith("-")]
+        elif name in {"cp", "install", "rsync"}:
+            precise_destination_only = True
+            positionals = [token for token in tokens[1:] if not token.startswith("-")]
+            candidates = positionals[-1:] if positionals else []
+            for index, token in enumerate(tokens[1:], start=1):
+                if token in {"-t", "--target-directory"} and index + 1 < len(tokens):
+                    candidates.append(tokens[index + 1])
+                elif token.startswith("--target-directory="):
+                    candidates.append(token.split("=", 1)[1])
+        elif name == "dd":
+            precise_destination_only = True
+            candidates = [
+                token.split("=", 1)[1]
+                for token in tokens[1:]
+                if token.startswith("of=") and len(token.split("=", 1)) == 2
+            ]
+        elif name == "find" and "-delete" in tokens[1:]:
+            candidates = [token for token in tokens[1:] if not token.startswith("-")]
+
+        if any(is_taskmaster_path(candidate, root, cwd=current_cwd) for candidate in candidates):
+            return True
+        if precise_destination_only:
+            continue
+        if name in READ_ONLY_SIMPLE_COMMANDS and not command_has_write_flag(
+            tokens[1:], READ_ONLY_WRITE_FLAG_GUARDS.get(name, ())
+        ):
+            continue
+        if not bash_segment_is_read_only(segment) and any(
+            is_taskmaster_path(token, root, cwd=current_cwd)
+            for token in tokens[1:]
+            if not token.startswith("-")
+        ):
+            return True
+    return False
+
+
+def _tokens_invoke_taskmaster_mutating_helper(tokens: list[str]) -> bool:
+    invocation_wrappers = {
+        "npx",
+        "pnpm",
+        "yarn",
+        "bun",
+        "bunx",
+        "command",
+        "env",
+        "python",
+        "python3",
+        "sudo",
+    }
+    first_name = command_name(tokens[0]) if tokens else ""
+    if not tokens:
+        return False
+    taskmaster_indexes = [
+        index for index, token in enumerate(tokens) if command_name(token) == "task-master"
+    ]
+    if taskmaster_indexes and (
+        taskmaster_indexes[-1] == 0 or first_name in invocation_wrappers
+    ):
+        remainder = tokens[taskmaster_indexes[-1] + 1 :]
+        if not remainder or remainder[0] not in READ_ONLY_TASKMASTER_SUBCOMMANDS:
+            return True
+
+    for index, token in enumerate(tokens):
+        name = command_name(token)
+        if index > 0 and first_name not in invocation_wrappers:
+            continue
+        remainder = tokens[index + 1 :]
+        if name == "codex-task" and len(remainder) >= 2:
+            if remainder[0] == "taskmaster" and remainder[1] != "health":
+                return True
+            if remainder[:2] == ["wizard", "kickoff"]:
+                return True
+        if name in {"aegis", ".aegis/bin/aegis"} and remainder:
+            if remainder[0] in {"start", "kickoff", "closeout"}:
+                return True
+            if remainder[0] == "reconcile" and "--apply" in remainder[1:]:
+                return True
+    return False
+
+
+def _command_runner_payload(tokens: list[str]) -> list[str] | None:
+    """Return the command delegated by common shell command runners."""
+
+    stripped = strip_hard_policy_prefixes(tokens)
+    if not stripped:
+        return None
+    name = command_name(stripped[0])
+    if name in {"xargs", "parallel"}:
+        option_values = {
+            "-a",
+            "--arg-file",
+            "-d",
+            "--delimiter",
+            "-E",
+            "--eof",
+            "-I",
+            "--replace",
+            "-L",
+            "--max-lines",
+            "-n",
+            "--max-args",
+            "-P",
+            "--max-procs",
+            "-s",
+            "--max-chars",
+        }
+        index = 1
+        while index < len(stripped):
+            token = stripped[index]
+            if token == "--":
+                index += 1
+                break
+            if not token.startswith("-") or token == "-":
+                break
+            if token in option_values and index + 1 < len(stripped):
+                index += 2
+            else:
+                index += 1
+        return stripped[index:] or None
+    if name == "find":
+        for marker in ("-exec", "-execdir", "-ok", "-okdir"):
+            if marker in stripped:
+                index = stripped.index(marker) + 1
+                delegated = [token for token in stripped[index:] if token not in {";", "+"}]
+                return delegated or None
+    return None
+
+
+def _bash_invokes_taskmaster_mutating_helper(command: str, *, depth: int = 0) -> bool:
+    if depth > 2:
+        lowered = command.lower()
+        return any(
+            marker in lowered
+            for marker in ("task-master", "codex-task", "aegis", ".taskmaster")
+        )
+    if MUTATING_TASKMASTER_RE.search(command):
+        return True
+    if re.search(
+        r"(?:^|[;&|]\s*)(?:python3?\s+)?(?:\./)?scripts/codex-task\s+taskmaster\s+generate-one\b",
+        command,
+        re.IGNORECASE,
+    ):
+        return True
+    if re.search(
+        r"(?:^|[;&|]\s*)(?:python3?\s+)?(?:\./)?scripts/codex-task\s+wizard\s+kickoff\b",
+        command,
+        re.IGNORECASE,
+    ):
+        return True
+    if AEGIS_BOOTSTRAP_RE.search(command) or AEGIS_CLOSEOUT_RE.search(command):
+        return True
+    if re.search(
+        r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+reconcile\b[^\n;&|]*\s--apply\b",
+        command,
+        re.IGNORECASE,
+    ):
+        return True
+    for raw_tokens in hard_policy_shell_segments(command):
+        tokens = strip_hard_policy_prefixes(raw_tokens)
+        if not tokens:
+            continue
+        nested = nested_shell_command(tokens)
+        if nested is not None and _bash_invokes_taskmaster_mutating_helper(
+            nested, depth=depth + 1
+        ):
+            return True
+        delegated = _command_runner_payload(tokens)
+        if delegated:
+            delegated_nested = nested_shell_command(delegated)
+            if delegated_nested is not None and _bash_invokes_taskmaster_mutating_helper(
+                delegated_nested, depth=depth + 1
+            ):
+                return True
+            if _tokens_invoke_taskmaster_mutating_helper(delegated):
+                return True
+        if _tokens_invoke_taskmaster_mutating_helper(tokens):
+            return True
+    return False
+
+
+def _tokens_invoke_git_worktree_mutation(tokens: list[str]) -> bool:
+    """Reject worktree topology changes that can escape the mounted repository boundary."""
+
+    stripped = strip_hard_policy_prefixes(tokens)
+    if not stripped:
+        return False
+    first_name = command_name(stripped[0])
+    wrappers = {"sudo", "command", "env", "nohup"}
+    git_indexes = [
+        index for index, token in enumerate(stripped) if command_name(token) == "git"
+    ]
+    if not git_indexes or (git_indexes[-1] != 0 and first_name not in wrappers):
+        return False
+    remainder = stripped[git_indexes[-1] + 1 :]
+    try:
+        worktree_index = remainder.index("worktree")
+    except ValueError:
+        return False
+    operation = next(
+        (token for token in remainder[worktree_index + 1 :] if not token.startswith("-")),
+        "",
+    )
+    return operation in {"add", "move", "repair"}
+
+
+def _bash_invokes_git_worktree_mutation(command: str, *, depth: int = 0) -> bool:
+    if depth > 2:
+        return bool(
+            re.search(r"\bgit\b[^\n;&|]*\bworktree\s+(?:add|move|repair)\b", command)
+        )
+    for raw_tokens in hard_policy_shell_segments(command):
+        tokens = strip_hard_policy_prefixes(raw_tokens)
+        if not tokens:
+            continue
+        nested = nested_shell_command(tokens)
+        if nested is not None and _bash_invokes_git_worktree_mutation(
+            nested, depth=depth + 1
+        ):
+            return True
+        delegated = _command_runner_payload(tokens)
+        if delegated:
+            delegated_nested = nested_shell_command(delegated)
+            if delegated_nested is not None and _bash_invokes_git_worktree_mutation(
+                delegated_nested, depth=depth + 1
+            ):
+                return True
+            if _tokens_invoke_git_worktree_mutation(delegated):
+                return True
+        if _tokens_invoke_git_worktree_mutation(tokens):
+            return True
+    return False
+
+
+def payload_may_mutate_taskmaster(payload: Payload, root: Path) -> bool:
+    if payload.tool_name in FILE_MUTATION_TOOLS:
+        if payload.tool_name == CODEX_APPLY_PATCH_TOOL:
+            raw_patch = apply_patch_command(payload)
+            raw_paths = APPLY_PATCH_PATH_RE.findall(raw_patch) + APPLY_PATCH_MOVE_RE.findall(
+                raw_patch
+            )
+            if any(is_taskmaster_path(path, root) for path in raw_paths):
+                return True
+        try:
+            return any(is_taskmaster_path(path, root) for path in file_paths_from_payload(payload, root))
+        except ApplyPatchParseError:
+            return False
+    if payload.tool_name == "Bash":
+        command = bash_command(payload)
+        return _bash_invokes_taskmaster_mutating_helper(
+            command
+        ) or _bash_direct_taskmaster_path_mutation(
+            command, root
+        ) or _bash_invokes_git_worktree_mutation(command)
+    if is_mcp_tool(payload.tool_name):
+        if mcp_is_taskmaster_tool(payload.tool_name):
+            return not mcp_is_read_only_taskmaster_discovery(payload)
+        normalized = normalized_mcp_tool_name(payload.tool_name)
+        if "aegis" in normalized and normalized.endswith(
+            ("kickoff", "start", "closeout", "reconcile_apply")
+        ):
+            return True
+        if mcp_is_mutation(payload):
+            return any(is_taskmaster_path(path, root) for path in mcp_path_values(payload.tool_input))
+    return False
 
 
 def mcp_is_mutation(payload: Payload) -> bool:
@@ -3136,6 +3679,34 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
             return 0
         return block_unclassifiable_payload(required_field_issue)
 
+    taskmaster_mutation = payload_may_mutate_taskmaster(payload, root)
+    authority_mode: str | None = None
+    if payload_is_mutation(payload) or taskmaster_mutation:
+        try:
+            authority_mode = selected_task_authority_mode(root)
+        except Exception as exc:  # noqa: BLE001 - enrolled/explicit authority fails closed.
+            return gate_hard_block(
+                root,
+                payload,
+                "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
+                f"Tool: {payload.tool_name}\n"
+                "Reason: explicit task authority could not be validated while evaluating a "
+                f"persistent mutation.\n\nDetails: {type(exc).__name__}: {exc}",
+                reason="task_authority_invalid",
+            )
+    if taskmaster_mutation and authority_mode == "beads":
+        return gate_hard_block(
+            root,
+            payload,
+            "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
+            f"Tool: {payload.tool_name}\n"
+            "Reason: the explicit authority receipt selects Beads, so Taskmaster is "
+            "rollback evidence and cannot be mutated.\n\n"
+            "This denial applies in advisory mode and after Aegis closeout; no break-glass "
+            "token can override task authority.",
+            reason="taskmaster_non_authoritative",
+        )
+
     if payload.tool_name == CODEX_APPLY_PATCH_TOOL:
         try:
             parsed_apply_patch(payload, root)
@@ -3434,6 +4005,10 @@ DELIVERY_COMMAND_RE = re.compile(
     re.IGNORECASE,
 )
 TASKMASTER_TASKS_JSON_SUFFIX = ".taskmaster/tasks/tasks.json"
+TASK_AUTHORITY_ENV = "AEGIS_TASK_AUTHORITY_FILE"
+TASK_AUTHORITY_RUNTIME_ENV = "AEGIS_TASK_AUTHORITY_RUNTIME_FILE"
+TASK_AUTHORITY_RUNTIME_SHA256_ENV = "AEGIS_TASK_AUTHORITY_RUNTIME_SHA256"
+TASKMASTER_PATH_PREFIX = ".taskmaster/"
 CAPSULE_RISK_SEED_SUFFIX = ".aegis/capsule/risk-seed.json"
 AEGIS_BRIEF_REL = ".aegis/brief.json"
 TASK_BRANCH_RE = re.compile(r"task-?(\d+)", re.IGNORECASE)

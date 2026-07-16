@@ -1,0 +1,13 @@
+(^|\.)openai\.com$
+(^|\.)chatgpt\.com$
+(^|\.)oaiusercontent\.com$
+(^|\.)anthropic\.com$
+(^|\.)claude\.ai$
+(^|\.)claude\.com$
+(^|\.)github\.com$
+(^|\.)githubusercontent\.com$
+(^|\.)githubassets\.com$
+(^|\.)pypi\.org$
+(^|\.)pythonhosted\.org$
+(^|\.)npmjs\.org$
+(^|\.)npmjs\.com$

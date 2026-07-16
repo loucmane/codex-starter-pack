@@ -1,0 +1,7 @@
+# Machine-local binding. Install as ~/gas-city/.gc/site.toml; do not commit the
+# generated live file because future machines may bind the same rig elsewhere.
+workspace_name = "gas-city"
+
+[[rig]]
+name = "aegis"
+path = "/home/loucmane/codex"

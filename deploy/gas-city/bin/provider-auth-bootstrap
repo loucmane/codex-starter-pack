@@ -1,0 +1,909 @@
+#!/usr/bin/env python3
+"""Attended subscription-auth bootstrap for one locked Gas City worker image.
+
+The provider CLI writes into a disposable, owner-only HOME.  This program
+never reads a host user home and never prints the generated credential.  Once
+the CLI exits successfully, only the provider's expected JSON credential is
+copied into the persistent provider-auth seed directory.
+"""
+
+from __future__ import annotations
+
+import argparse
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import stat
+import subprocess
+import sys
+import tempfile
+from typing import NoReturn
+
+
+IMAGE_RE = re.compile(r"sha256:[0-9a-f]{64}\Z")
+SHA_RE = re.compile(r"[0-9a-f]{64}\Z")
+SAFE_SCOPE_RE = re.compile(r"(?:hq|rig-[A-Za-z0-9_.-]{1,64})\Z")
+SAFE_AGENT_RE = re.compile(r"[A-Za-z0-9_.-]{1,64}\Z")
+MAX_CREDENTIAL_BYTES = 1024 * 1024
+NETWORK = "gas-city-hq-control"
+NETWORK_BOUNDARY = "private-hq-control"
+EGRESS_NETWORK = "gas-city-hq-egress"
+EGRESS_NETWORK_BOUNDARY = "filtered-hq-egress"
+EGRESS_PROXY = "gas-city-hq-egress-proxy"
+
+PROVIDERS = {
+    "claude": {
+        "image_key": "claude_worker",
+        "artifact": Path(".claude/.credentials.json"),
+        "seed_name": "credentials.json",
+        "stable_credential": "credentials.json",
+        "login": ("claude", "auth", "login", "--claudeai"),
+        "environment": ("CLAUDE_CONFIG_DIR=/home/worker/.claude",),
+        "display": "Claude",
+    },
+    "codex": {
+        "image_key": "codex_worker",
+        "artifact": Path(".codex/auth.json"),
+        "seed_name": "auth.json",
+        "stable_credential": "auth.json",
+        "login": ("codex", "login", "--device-auth"),
+        "environment": ("CODEX_HOME=/home/worker/.codex",),
+        "display": "Codex",
+    },
+}
+
+
+class BootstrapError(RuntimeError):
+    """A sanitized bootstrap failure that is safe to show to the operator."""
+
+
+def fail(message: str) -> NoReturn:
+    raise BootstrapError(message)
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="provider-auth-bootstrap",
+        description="Bootstrap one provider subscription in an isolated container.",
+    )
+    parser.add_argument("provider", choices=sorted(PROVIDERS))
+    parser.add_argument(
+        "--rotate",
+        action="store_true",
+        help="atomically replace an existing seed after a digest comparison",
+    )
+    parser.add_argument(
+        "--expected-current-sha256",
+        metavar="SHA256",
+        help="required compare-and-swap digest when --rotate is used",
+    )
+    parser.add_argument(
+        "--reseed-home",
+        action="store_true",
+        help="attended CAS adoption of the current seed into one stopped stable provider home",
+    )
+    parser.add_argument("--scope", help="stable provider-home scope (hq or rig-<name>)")
+    parser.add_argument("--agent", help="stable provider-home agent identity")
+    parser.add_argument(
+        "--expected-seed-sha256",
+        help="CAS digest of the current provider-auth seed for --reseed-home",
+    )
+    parser.add_argument(
+        "--expected-home-sha256",
+        help="CAS digest of the current stable-home credential for --reseed-home",
+    )
+    args = parser.parse_args(argv)
+    reseed_values = (
+        args.scope,
+        args.agent,
+        args.expected_seed_sha256,
+        args.expected_home_sha256,
+    )
+    if args.reseed_home:
+        if args.rotate or args.expected_current_sha256:
+            parser.error("--reseed-home cannot be combined with provider seed rotation")
+        if not all(reseed_values):
+            parser.error(
+                "--reseed-home requires --scope, --agent, --expected-seed-sha256, and --expected-home-sha256"
+            )
+        if SAFE_SCOPE_RE.fullmatch(args.scope) is None:
+            parser.error("--scope must be hq or one safe rig-<name> identity")
+        if SAFE_AGENT_RE.fullmatch(args.agent) is None:
+            parser.error("--agent must be one safe agent identity")
+        if SHA_RE.fullmatch(args.expected_seed_sha256) is None or SHA_RE.fullmatch(
+            args.expected_home_sha256
+        ) is None:
+            parser.error("reseed CAS digests must be 64 lowercase hex characters")
+        return args
+    if any(reseed_values):
+        parser.error("reseed-home options require --reseed-home")
+    if args.rotate:
+        if not args.expected_current_sha256:
+            parser.error("--rotate requires --expected-current-sha256")
+        if SHA_RE.fullmatch(args.expected_current_sha256) is None:
+            parser.error("--expected-current-sha256 must be 64 lowercase hex characters")
+    elif args.expected_current_sha256:
+        parser.error("--expected-current-sha256 is valid only with --rotate")
+    return args
+
+
+def require_attended_tty() -> None:
+    if not all(os.isatty(fd) for fd in (0, 1, 2)):
+        fail("stdin, stdout, and stderr must all be attached to an attended TTY")
+
+
+def raw_lstat(path: Path, label: str) -> os.stat_result:
+    try:
+        return path.lstat()
+    except FileNotFoundError:
+        fail(f"{label} does not exist")
+    except OSError:
+        fail(f"cannot inspect {label}")
+
+
+def require_owner_directory(path: Path, label: str) -> None:
+    info = raw_lstat(path, label)
+    if stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode):
+        fail(f"{label} must be a real directory, not a symlink")
+    if info.st_uid != os.geteuid():
+        fail(f"{label} must be owned by the invoking user")
+    if stat.S_IMODE(info.st_mode) != 0o700:
+        fail(f"{label} must have mode 0700")
+
+
+def create_owner_directory(parent: Path, name: str, label: str) -> Path:
+    require_owner_directory(parent, f"parent of {label}")
+    path = parent / name
+    try:
+        os.mkdir(path, 0o700)
+    except FileExistsError:
+        pass
+    except OSError:
+        fail(f"cannot create {label}")
+    require_owner_directory(path, label)
+    return path
+
+
+def require_safe_regular(path: Path, label: str, *, executable: bool = False) -> None:
+    info = raw_lstat(path, label)
+    if stat.S_ISLNK(info.st_mode) or not stat.S_ISREG(info.st_mode):
+        fail(f"{label} must be a regular non-symlink file")
+    if info.st_uid not in {0, os.geteuid()}:
+        fail(f"{label} has an unsafe owner")
+    if stat.S_IMODE(info.st_mode) & 0o022:
+        fail(f"{label} must not be group/world writable")
+    if executable and not info.st_mode & stat.S_IXUSR:
+        fail(f"{label} is not executable")
+
+
+def resolve_city_paths() -> tuple[Path, Path]:
+    raw_city = Path(os.environ.get("GC_CITY_ROOT", "/home/loucmane/gas-city")).expanduser()
+    if not raw_city.is_absolute():
+        fail("GC_CITY_ROOT must be an absolute path")
+    require_owner_directory(raw_city, "city root")
+    city = raw_city.resolve(strict=True)
+    runtime = city / "runtime"
+    require_owner_directory(runtime, "city runtime")
+
+    raw_state = Path(
+        os.environ.get("GAS_CITY_STATE_DIR", str(runtime / "state"))
+    ).expanduser()
+    if not raw_state.is_absolute():
+        fail("GAS_CITY_STATE_DIR must be an absolute path")
+    require_owner_directory(raw_state, "city state")
+    state_dir = raw_state.resolve(strict=True)
+    try:
+        relative = state_dir.relative_to(runtime)
+    except ValueError:
+        fail("city state escaped the owner-only city runtime")
+    cursor = runtime
+    for part in relative.parts:
+        cursor /= part
+        require_owner_directory(cursor, "city state path component")
+    return city, state_dir
+
+
+def run_checked_output(command: list[str], label: str) -> str:
+    try:
+        result = subprocess.run(
+            command,
+            stdin=subprocess.DEVNULL,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    except (OSError, ValueError):
+        fail(f"could not execute {label}")
+    if result.returncode != 0:
+        fail(f"{label} failed")
+    return result.stdout.strip()
+
+
+def verify_locked_images(city: Path, provider: str) -> tuple[str, str, str]:
+    reader = city / "bin" / "locked-images"
+    lock = city / "runtime-lock.json"
+    require_safe_regular(reader, "locked image verifier", executable=True)
+    require_safe_regular(lock, "runtime lock")
+    locked: dict[str, str] = {}
+    for image_key in (str(PROVIDERS[provider]["image_key"]), "egress_proxy"):
+        image = run_checked_output(
+            [str(reader), str(lock), image_key], "locked image verification"
+        )
+        if IMAGE_RE.fullmatch(image) is None:
+            fail("locked image verifier returned an invalid image ID")
+        locked[image_key] = image
+
+    docker = shutil.which("docker")
+    if docker is None:
+        fail("docker is not available")
+    for image in locked.values():
+        observed = run_checked_output(
+            [docker, "image", "inspect", "--format", "{{.Id}}", image],
+            "Docker image inspection",
+        )
+        if observed != image:
+            fail("local image does not match the locked image ID")
+    return docker, locked[str(PROVIDERS[provider]["image_key"])], locked["egress_proxy"]
+
+
+def verify_network(
+    docker: str, name: str, *, expected_internal: str, expected_boundary: str
+) -> None:
+    internal = run_checked_output(
+        [docker, "network", "inspect", "--format", "{{ .Internal }}", name],
+        "bootstrap network inspection",
+    )
+    boundary = run_checked_output(
+        [
+            docker,
+            "network",
+            "inspect",
+            "--format",
+            '{{ index .Labels "com.gascity.boundary" }}',
+            name,
+        ],
+        "bootstrap network label inspection",
+    )
+    if internal != expected_internal or boundary != expected_boundary:
+        fail("bootstrap network is missing or has an unsafe boundary")
+
+
+def verify_bootstrap_network(docker: str, proxy_image: str) -> None:
+    verify_network(
+        docker,
+        NETWORK,
+        expected_internal="true",
+        expected_boundary=NETWORK_BOUNDARY,
+    )
+    verify_network(
+        docker,
+        EGRESS_NETWORK,
+        expected_internal="false",
+        expected_boundary=EGRESS_NETWORK_BOUNDARY,
+    )
+    raw_proxy = run_checked_output(
+        [docker, "inspect", EGRESS_PROXY], "egress proxy inspection"
+    )
+    try:
+        [proxy] = json.loads(raw_proxy)
+        running = proxy["State"]["Running"]
+        observed_image = proxy["Image"]
+        networks = set(proxy["NetworkSettings"]["Networks"])
+    except (ValueError, TypeError, KeyError, json.JSONDecodeError):
+        fail("the private HQ egress proxy inspection is invalid")
+    if (
+        running is not True
+        or observed_image != proxy_image
+        or networks != {NETWORK, EGRESS_NETWORK}
+    ):
+        fail("the private HQ egress proxy is missing, unlocked, or mis-networked")
+
+
+def open_bootstrap_lock(bootstrap_root: Path, *, create: bool = True) -> int:
+    lock_path = bootstrap_root / ".bootstrap.lock"
+    flags = os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
+    if create:
+        flags |= os.O_CREAT
+    try:
+        fd = os.open(lock_path, flags, 0o600)
+    except OSError:
+        fail("cannot open the provider bootstrap lock")
+    info = os.fstat(fd)
+    if (
+        not stat.S_ISREG(info.st_mode)
+        or info.st_uid != os.geteuid()
+        or stat.S_IMODE(info.st_mode) != 0o600
+        or info.st_nlink != 1
+    ):
+        os.close(fd)
+        fail("provider bootstrap lock is unsafe")
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        os.close(fd)
+        fail("another bootstrap or active worker lease exists for this provider")
+    return fd
+
+
+def strict_json(content: bytes, label: str) -> dict[str, object]:
+    def reject_duplicates(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        result: dict[str, object] = {}
+        for key, value in pairs:
+            if key in result:
+                fail(f"{label} contains duplicate JSON keys")
+            result[key] = value
+        return result
+
+    def reject_non_finite(value: str) -> NoReturn:
+        fail(f"{label} contains a non-finite JSON number: {value}")
+
+    try:
+        value = json.loads(
+            content.decode("utf-8"),
+            object_pairs_hook=reject_duplicates,
+            parse_constant=reject_non_finite,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        fail(f"{label} is not valid UTF-8 JSON")
+    if not isinstance(value, dict) or not value:
+        fail(f"{label} must contain one non-empty JSON object")
+    return value
+
+
+def read_secret(
+    path: Path, label: str, *, exact_mode: int | None = None
+) -> tuple[bytes, str, os.stat_result]:
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(path, flags)
+    except FileNotFoundError:
+        fail(f"{label} is missing")
+    except OSError:
+        fail(f"{label} must be a readable regular non-symlink file")
+    try:
+        info = os.fstat(fd)
+        mode = stat.S_IMODE(info.st_mode)
+        if (
+            not stat.S_ISREG(info.st_mode)
+            or info.st_uid != os.geteuid()
+            or mode & 0o077
+            or not mode & stat.S_IRUSR
+            or mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+            or (exact_mode is not None and mode != exact_mode)
+            or info.st_nlink != 1
+        ):
+            fail(f"{label} must be an owner-only regular file with one link")
+        if info.st_size <= 0 or info.st_size > MAX_CREDENTIAL_BYTES:
+            fail(f"{label} has an invalid size")
+        chunks: list[bytes] = []
+        remaining = MAX_CREDENTIAL_BYTES + 1
+        while remaining > 0:
+            chunk = os.read(fd, min(65536, remaining))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        content = b"".join(chunks)
+        after = os.fstat(fd)
+        identity_before = (
+            info.st_dev,
+            info.st_ino,
+            info.st_size,
+            info.st_mtime_ns,
+            info.st_ctime_ns,
+        )
+        identity_after = (
+            after.st_dev,
+            after.st_ino,
+            after.st_size,
+            after.st_mtime_ns,
+            after.st_ctime_ns,
+        )
+        if (
+            identity_before != identity_after
+            or len(content) != after.st_size
+            or len(content) > MAX_CREDENTIAL_BYTES
+        ):
+            fail(f"{label} changed while it was read")
+    finally:
+        os.close(fd)
+    strict_json(content, label)
+    return content, hashlib.sha256(content).hexdigest(), info
+
+
+def target_exists(path: Path) -> bool:
+    return os.path.lexists(path)
+
+
+def preflight_target(
+    target: Path, *, rotate: bool, expected_digest: str | None
+) -> str | None:
+    if not target_exists(target):
+        if rotate:
+            fail("--rotate requires an existing provider-auth seed")
+        return None
+    _, digest, _ = read_secret(
+        target, "existing provider-auth seed", exact_mode=0o600
+    )
+    if not rotate:
+        fail("provider-auth seed already exists; use explicit compare-and-swap rotation")
+    if digest != expected_digest:
+        fail("existing provider-auth seed does not match the expected rotation digest")
+    return digest
+
+
+def create_session(bootstrap_root: Path, provider: str) -> tuple[Path, Path]:
+    require_owner_directory(bootstrap_root, "provider bootstrap root")
+    session: Path | None = None
+    try:
+        session = Path(tempfile.mkdtemp(prefix=f"{provider}-", dir=bootstrap_root))
+        os.chmod(session, 0o700)
+        home = session / "home"
+        os.mkdir(home, 0o700)
+    except OSError:
+        if session is not None:
+            safe_cleanup_session(session, bootstrap_root)
+        fail("cannot create the disposable bootstrap home")
+    require_owner_directory(session, "provider bootstrap session")
+    require_owner_directory(home, "disposable provider home")
+    return session, home
+
+
+def safe_cleanup_session(session: Path, bootstrap_root: Path) -> bool:
+    try:
+        if session.parent != bootstrap_root or session.is_symlink():
+            return False
+        shutil.rmtree(session)
+        return not os.path.lexists(session)
+    except OSError:
+        # Do not mask the original error.  A cleanup failure is surfaced on a
+        # successful path below, where no provider credential can be printed.
+        return False
+
+
+def require_artifact_path(home: Path, relative: Path) -> Path:
+    if relative.is_absolute() or ".." in relative.parts or not relative.parts:
+        fail("provider credential artifact path is unsafe")
+    cursor = home
+    for part in relative.parts[:-1]:
+        cursor /= part
+        require_owner_directory(cursor, "provider credential directory")
+    artifact = home / relative
+    if artifact.parent.resolve(strict=True) != cursor.resolve(strict=True):
+        fail("provider credential directory escaped the disposable HOME")
+    return artifact
+
+
+def validate_mount_path(path: Path) -> None:
+    value = str(path)
+    if any(character in value for character in (",", "\n", "\r")):
+        fail("disposable bootstrap HOME contains a Docker-unsafe character")
+
+
+def run_subscription_login(
+    docker: str, image: str, provider: str, home: Path, session: Path
+) -> None:
+    validate_mount_path(home)
+    settings = PROVIDERS[provider]
+    suffix = hashlib.sha256(session.name.encode("utf-8")).hexdigest()[:12]
+    command = [
+        docker,
+        "run",
+        "--rm",
+        "-it",
+        "--pull",
+        "never",
+        "--name",
+        f"gc-auth-{provider}-{suffix}",
+        "--hostname",
+        f"auth-{provider}-{suffix}",
+        "--label",
+        "com.gascity.boundary=subscription-auth-bootstrap",
+        "--label",
+        f"com.gascity.provider={provider}",
+        "--network",
+        NETWORK,
+        "--user",
+        f"{os.geteuid()}:{os.getegid()}",
+        "--read-only",
+        "--tmpfs",
+        "/tmp:rw,nosuid,nodev,noexec,size=128m",
+        "--tmpfs",
+        "/run/lock:rw,nosuid,nodev,noexec,size=8m",
+        "--cap-drop",
+        "ALL",
+        "--security-opt",
+        "no-new-privileges",
+        "--pids-limit",
+        "256",
+        "--memory",
+        "2g",
+        "--cpus",
+        "2",
+        "--env",
+        "HOME=/home/worker",
+        "--env",
+        "USER=worker",
+        "--env",
+        "LOGNAME=worker",
+        "--env",
+        "TERM=xterm-256color",
+        "--env",
+        "DISABLE_AUTOUPDATER=1",
+        "--env",
+        "OTEL_SDK_DISABLED=true",
+        "--env",
+        f"HTTPS_PROXY=http://{EGRESS_PROXY}:8888",
+        "--env",
+        f"HTTP_PROXY=http://{EGRESS_PROXY}:8888",
+        "--env",
+        "NO_PROXY=localhost,127.0.0.1",
+    ]
+    for assignment in settings["environment"]:
+        command.extend(("--env", str(assignment)))
+    command.extend(
+        (
+            "--mount",
+            f"type=bind,src={home},dst=/home/worker",
+            "--workdir",
+            "/home/worker",
+            "--entrypoint",
+            "/usr/bin/tini",
+            image,
+            "--",
+            *settings["login"],
+        )
+    )
+    try:
+        result = subprocess.run(command, check=False)
+    except (OSError, ValueError):
+        fail("could not start the isolated provider login")
+    if result.returncode != 0:
+        fail("provider subscription login did not complete successfully")
+
+
+def write_temp_file(directory: Path, name: str, content: bytes, *, mode: int) -> Path:
+    try:
+        fd, raw_path = tempfile.mkstemp(prefix=f".{name}.", suffix=".tmp", dir=directory)
+    except OSError:
+        fail("cannot create the atomic provider-auth seed")
+    path = Path(raw_path)
+    try:
+        os.fchmod(fd, mode)
+        offset = 0
+        while offset < len(content):
+            written = os.write(fd, content[offset:])
+            if written <= 0:
+                raise OSError("short credential write")
+            offset += written
+        os.fsync(fd)
+    except OSError:
+        os.close(fd)
+        path.unlink(missing_ok=True)
+        fail("cannot write the atomic provider-auth seed")
+    os.close(fd)
+    return path
+
+
+def write_temp_seed(directory: Path, name: str, content: bytes) -> Path:
+    return write_temp_file(directory, name, content, mode=0o600)
+
+
+def fsync_directory(path: Path) -> None:
+    flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+    fd: int | None = None
+    try:
+        fd = os.open(path, flags)
+        os.fsync(fd)
+    except OSError:
+        fail("cannot sync the provider-auth seed directory")
+    finally:
+        if fd is not None:
+            os.close(fd)
+
+
+def install_seed(
+    target: Path,
+    content: bytes,
+    *,
+    rotate: bool,
+    expected_digest: str | None,
+) -> None:
+    directory = target.parent
+    require_owner_directory(directory, "provider-auth source directory")
+    temporary = write_temp_seed(directory, target.name, content)
+    try:
+        if rotate:
+            _, current_digest, before = read_secret(
+                target, "existing provider-auth seed", exact_mode=0o600
+            )
+            if current_digest != expected_digest:
+                fail("provider-auth seed changed during rotation")
+            current = target.lstat()
+            if (
+                current.st_dev,
+                current.st_ino,
+                current.st_size,
+                current.st_mtime_ns,
+                current.st_ctime_ns,
+            ) != (
+                before.st_dev,
+                before.st_ino,
+                before.st_size,
+                before.st_mtime_ns,
+                before.st_ctime_ns,
+            ):
+                fail("provider-auth seed changed during rotation")
+            if hashlib.sha256(content).hexdigest() == current_digest:
+                fail("provider login produced the same credential; rotation was not applied")
+            os.replace(temporary, target)
+        else:
+            try:
+                os.link(temporary, target, follow_symlinks=False)
+            except FileExistsError:
+                fail("provider-auth seed appeared during bootstrap; refusing overwrite")
+            os.unlink(temporary)
+        fsync_directory(directory)
+    except OSError:
+        fail("could not atomically install the provider-auth seed")
+    finally:
+        temporary.unlink(missing_ok=True)
+
+    installed, _, _ = read_secret(
+        target, "installed provider-auth seed", exact_mode=0o600
+    )
+    if installed != content or stat.S_IMODE(target.stat().st_mode) != 0o600:
+        fail("installed provider-auth seed failed post-write verification")
+
+
+def require_exact_children(directory: Path, expected: set[str], label: str) -> None:
+    require_owner_directory(directory, label)
+    try:
+        observed = {path.name for path in directory.iterdir()}
+    except OSError:
+        fail(f"cannot inspect {label}")
+    if observed != expected:
+        fail(f"{label} has unexpected or missing artifacts")
+
+
+def require_empty_owner_directory(path: Path, label: str) -> None:
+    require_owner_directory(path, label)
+    try:
+        if next(path.iterdir(), None) is not None:
+            fail(f"{label} must remain an empty overlay mountpoint")
+    except OSError:
+        fail(f"cannot inspect {label}")
+
+
+def require_placeholder(path: Path, label: str) -> None:
+    info = raw_lstat(path, label)
+    if (
+        stat.S_ISLNK(info.st_mode)
+        or not stat.S_ISREG(info.st_mode)
+        or info.st_uid != os.geteuid()
+        or stat.S_IMODE(info.st_mode) != 0o400
+        or info.st_nlink != 1
+        or info.st_size != 0
+    ):
+        fail(f"{label} must be one empty owner-read-only regular file")
+
+
+def read_seed_marker(path: Path, provider: str) -> str:
+    content, _, _ = read_secret(path, "stable-home seed marker", exact_mode=0o400)
+    marker = strict_json(content, "stable-home seed marker")
+    if set(marker) != {"provider", "schema_version", "seed_sha256"}:
+        fail("stable-home seed marker fields are invalid")
+    if marker.get("schema_version") != 1 or marker.get("provider") != provider:
+        fail("stable-home seed marker identity is invalid")
+    digest = marker.get("seed_sha256")
+    if not isinstance(digest, str) or SHA_RE.fullmatch(digest) is None:
+        fail("stable-home seed marker digest is invalid")
+    return digest
+
+
+def _reseed_home_paths(
+    state_dir: Path, provider: str, scope: str, agent: str
+) -> tuple[Path, Path, Path, Path]:
+    settings = PROVIDERS[provider]
+    auth_root = state_dir / "provider-auth"
+    require_owner_directory(auth_root, "provider-auth root")
+    provider_auth = auth_root / provider
+    seed_name = str(settings["seed_name"])
+    require_exact_children(provider_auth, {seed_name}, "provider-auth source directory")
+    seed = provider_auth / seed_name
+
+    bootstrap_root = state_dir / "provider-bootstrap" / provider
+    require_exact_children(
+        bootstrap_root, {".bootstrap.lock"}, "provider bootstrap provider root"
+    )
+
+    homes_root = state_dir / "provider-homes"
+    require_owner_directory(homes_root, "provider homes root")
+    scope_root = homes_root / scope
+    require_owner_directory(scope_root, "provider home scope")
+    agent_root = scope_root / agent
+    require_owner_directory(agent_root, "provider home agent root")
+    stable_home = agent_root / provider
+    credential_name = str(settings["stable_credential"])
+    require_exact_children(
+        stable_home,
+        {credential_name, ".seed-generation.json"},
+        "stable provider home",
+    )
+    read_seed_marker(stable_home / ".seed-generation.json", provider)
+    return seed, bootstrap_root, stable_home / credential_name, stable_home
+
+
+def reseed_stable_home(args: argparse.Namespace) -> None:
+    _, state_dir = resolve_city_paths()
+    seed, bootstrap_root, home_credential, provider_directory = _reseed_home_paths(
+        state_dir, args.provider, args.scope, args.agent
+    )
+    lock_fd = open_bootstrap_lock(bootstrap_root, create=False)
+    temporary_credential: Path | None = None
+    temporary_marker: Path | None = None
+    try:
+        seed_content, seed_digest, _ = read_secret(
+            seed, "current provider-auth seed", exact_mode=0o600
+        )
+        _, home_digest, _ = read_secret(
+            home_credential, "current stable-home credential", exact_mode=0o600
+        )
+        if seed_digest != args.expected_seed_sha256:
+            fail("current provider-auth seed does not match the reseed CAS digest")
+        if home_digest != args.expected_home_sha256:
+            fail("current stable-home credential does not match the reseed CAS digest")
+        marker_content = (
+            json.dumps(
+                {
+                    "provider": args.provider,
+                    "schema_version": 1,
+                    "seed_sha256": seed_digest,
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            + "\n"
+        ).encode("utf-8")
+        temporary_credential = write_temp_file(
+            provider_directory, home_credential.name, seed_content, mode=0o600
+        )
+        temporary_marker = write_temp_file(
+            provider_directory,
+            ".seed-generation.json",
+            marker_content,
+            mode=0o400,
+        )
+
+        # Recheck both compare-and-swap inputs immediately before replacement.
+        _, live_seed_digest, _ = read_secret(
+            seed, "current provider-auth seed", exact_mode=0o600
+        )
+        _, live_home_digest, _ = read_secret(
+            home_credential, "current stable-home credential", exact_mode=0o600
+        )
+        if live_seed_digest != seed_digest or live_home_digest != home_digest:
+            fail("provider seed or stable-home credential changed during reseed")
+        os.replace(temporary_credential, home_credential)
+        temporary_credential = None
+        os.replace(
+            temporary_marker,
+            provider_directory / ".seed-generation.json",
+        )
+        temporary_marker = None
+        fsync_directory(provider_directory)
+    except OSError:
+        fail("could not atomically reseed the stable provider home")
+    finally:
+        if temporary_credential is not None:
+            temporary_credential.unlink(missing_ok=True)
+        if temporary_marker is not None:
+            temporary_marker.unlink(missing_ok=True)
+        os.close(lock_fd)
+
+    installed, installed_digest, _ = read_secret(
+        home_credential, "reseeded stable-home credential", exact_mode=0o600
+    )
+    if installed != seed_content or installed_digest != seed_digest:
+        fail("reseeded stable-home credential failed verification")
+    if read_seed_marker(
+        provider_directory / ".seed-generation.json", args.provider
+    ) != seed_digest:
+        fail("reseeded stable-home marker failed verification")
+    print(f"{PROVIDERS[args.provider]['display']} stable provider home reseeded securely.")
+
+
+def bootstrap(args: argparse.Namespace) -> None:
+    if args.reseed_home:
+        reseed_stable_home(args)
+        return
+    city, state_dir = resolve_city_paths()
+    auth_root = create_owner_directory(state_dir, "provider-auth", "provider-auth root")
+    provider_root = create_owner_directory(
+        auth_root, args.provider, "provider-auth source directory"
+    )
+    bootstrap_parent = create_owner_directory(
+        state_dir, "provider-bootstrap", "provider bootstrap root"
+    )
+    bootstrap_root = create_owner_directory(
+        bootstrap_parent, args.provider, "provider bootstrap provider root"
+    )
+    target = provider_root / str(PROVIDERS[args.provider]["seed_name"])
+
+    lock_fd = open_bootstrap_lock(bootstrap_root)
+    session: Path | None = None
+    session_cleaned = True
+    operation_error: BaseException | None = None
+    try:
+        stale_entries = [
+            path for path in bootstrap_root.iterdir() if path.name != ".bootstrap.lock"
+        ]
+        if stale_entries:
+            fail(
+                "a stale disposable provider home requires attended inspection and cleanup"
+            )
+        preflight_target(
+            target,
+            rotate=args.rotate,
+            expected_digest=args.expected_current_sha256,
+        )
+        docker, image, proxy_image = verify_locked_images(city, args.provider)
+        verify_bootstrap_network(docker, proxy_image)
+        session, home = create_session(bootstrap_root, args.provider)
+        display = str(PROVIDERS[args.provider]["display"])
+        print(
+            f"Starting attended {display} subscription sign-in in an isolated container.",
+            flush=True,
+        )
+        run_subscription_login(docker, image, args.provider, home, session)
+        artifact = require_artifact_path(
+            home, Path(PROVIDERS[args.provider]["artifact"])
+        )
+        content, _, _ = read_secret(artifact, "provider-generated credential")
+        install_seed(
+            target,
+            content,
+            rotate=args.rotate,
+            expected_digest=args.expected_current_sha256,
+        )
+    except BaseException as exc:
+        operation_error = exc
+    finally:
+        if session is not None:
+            session_cleaned = safe_cleanup_session(session, bootstrap_root)
+        os.close(lock_fd)
+
+    if not session_cleaned:
+        fail("disposable provider home cleanup did not complete")
+    if operation_error is not None:
+        raise operation_error
+    display = str(PROVIDERS[args.provider]["display"])
+    print(f"{display} subscription credential installed securely.", flush=True)
+
+
+def main(argv: list[str]) -> int:
+    os.umask(0o077)
+    try:
+        args = parse_args(argv)
+        require_attended_tty()
+        bootstrap(args)
+    except BootstrapError as exc:
+        print(f"provider-auth-bootstrap: {exc}", file=sys.stderr)
+        return 1
+    except KeyboardInterrupt:
+        print("provider-auth-bootstrap: interrupted", file=sys.stderr)
+        return 130
+    except Exception:
+        # Keep unexpected library/OS diagnostics from replaying credential
+        # material. The disposable home cleanup still runs inside bootstrap().
+        print("provider-auth-bootstrap: unexpected internal failure", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

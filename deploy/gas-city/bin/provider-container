@@ -1,0 +1,1201 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+
+provider=${1:-}
+shift || true
+case "$provider" in
+  claude|codex) ;;
+  *) printf 'unsupported Gas City provider: %s\n' "$provider" >&2; exit 64 ;;
+esac
+
+preflight_receiver_pid=
+session_receiver_pid=
+github_token_file=
+github_delivery_state=
+cleanup_model_evidence_receivers() {
+  local receiver
+  for receiver in "$preflight_receiver_pid" "$session_receiver_pid"; do
+    [[ -n "$receiver" ]] || continue
+    kill "$receiver" 2>/dev/null || true
+    wait "$receiver" 2>/dev/null || true
+  done
+}
+cleanup_session_github_token() {
+  [[ -n "$github_token_file" && -n "$github_delivery_state" ]] || return 0
+  [[ "$github_token_file" == "$github_delivery_state/token" ]] || return 0
+  if [[ -f "$github_token_file" && ! -L "$github_token_file" \
+    && $(stat -c '%a' "$github_token_file") == 400 \
+    && $(stat -c '%u' "$github_token_file") == "$(id -u)" \
+    && $(stat -c '%h' "$github_token_file") == 1 ]]; then
+    /usr/bin/unlink -- "$github_token_file" 2>/dev/null || true
+  fi
+}
+cleanup_provider_runtime() {
+  cleanup_model_evidence_receivers
+  cleanup_session_github_token
+}
+trap cleanup_provider_runtime EXIT
+
+fail_runtime() {
+  printf '%s\n' "$1" >&2
+  exit 66
+}
+
+require_owner_directory() {
+  local path=$1 label=$2
+  [[ -d "$path" && ! -L "$path" ]] || fail_runtime "$label must be one real directory"
+  [[ $(stat -c '%a' "$path") == 700 ]] || fail_runtime "$label must have mode 0700"
+  [[ $(stat -c '%u' "$path") == "$(id -u)" ]] || fail_runtime "$label must be owner-controlled"
+}
+
+ensure_owner_directory() {
+  local parent=$1 name=$2 label=$3 path
+  require_owner_directory "$parent" "parent of $label"
+  path="$parent/$name"
+  if [[ ! -e "$path" && ! -L "$path" ]]; then
+    mkdir -m 0700 -- "$path"
+  fi
+  require_owner_directory "$path" "$label"
+}
+
+require_private_credential() {
+  local path=$1 label=$2 size
+  [[ -f "$path" && ! -L "$path" ]] || fail_runtime "$label must be one regular non-symlink file"
+  [[ $(stat -c '%a' "$path") == 600 ]] || fail_runtime "$label must have mode 0600"
+  [[ $(stat -c '%u' "$path") == "$(id -u)" ]] || fail_runtime "$label must be owner-controlled"
+  [[ $(stat -c '%h' "$path") == 1 ]] || fail_runtime "$label must have one hard link"
+  size=$(stat -c '%s' "$path")
+  (( size > 0 && size <= 1048576 )) || fail_runtime "$label has an unsafe size"
+  /usr/bin/python3 -I -c '
+import json, pathlib, sys
+def pairs(items):
+    result = {}
+    for key, value in items:
+        if key in result:
+            raise ValueError("duplicate key")
+        result[key] = value
+    return result
+value = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"), object_pairs_hook=pairs)
+if not isinstance(value, dict):
+    raise SystemExit(1)
+' "$path" >/dev/null 2>&1 || fail_runtime "$label is not one strict JSON object"
+}
+
+require_private_secret() {
+  local path=$1 label=$2 size mode
+  [[ -f "$path" && ! -L "$path" ]] || fail_runtime "$label must be one regular non-symlink file"
+  mode=$(stat -c '%a' "$path")
+  [[ "$mode" == 400 || "$mode" == 600 ]] || fail_runtime "$label must have mode 0400 or 0600"
+  [[ $(stat -c '%u' "$path") == "$(id -u)" ]] || fail_runtime "$label must be owner-controlled"
+  [[ $(stat -c '%h' "$path") == 1 ]] || fail_runtime "$label must have one hard link"
+  size=$(stat -c '%s' "$path")
+  (( size > 0 && size <= 65536 )) || fail_runtime "$label has an unsafe size"
+}
+
+require_safe_config() {
+  local path=$1 label=$2 mode
+  [[ -f "$path" && ! -L "$path" ]] || fail_runtime "$label must be one regular non-symlink file"
+  [[ $(stat -c '%u' "$path") == 0 || $(stat -c '%u' "$path") == "$(id -u)" ]] || \
+    fail_runtime "$label has an unsafe owner"
+  [[ $(stat -c '%h' "$path") == 1 ]] || fail_runtime "$label must have one hard link"
+  mode=$(stat -c '%a' "$path")
+  (( (8#$mode & 8#022) == 0 )) || fail_runtime "$label must not be group/world writable"
+}
+
+require_seed_marker() {
+  local path=$1 expected_provider=$2 expected_digest=$3 observed
+  [[ -f "$path" && ! -L "$path" ]] || fail_runtime "provider seed marker must be one regular non-symlink file"
+  [[ $(stat -c '%a' "$path") == 400 ]] || fail_runtime "provider seed marker must have mode 0400"
+  [[ $(stat -c '%u' "$path") == "$(id -u)" && $(stat -c '%h' "$path") == 1 ]] || \
+    fail_runtime "provider seed marker ownership or link count is unsafe"
+  observed=$(/usr/bin/python3 -I -c '
+import json, pathlib, sys
+def pairs(items):
+    value = {}
+    for key, item in items:
+        if key in value:
+            raise ValueError("duplicate key")
+        value[key] = item
+    return value
+marker = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"), object_pairs_hook=pairs)
+if set(marker) != {"schema_version", "provider", "seed_sha256"} or marker["schema_version"] != 1:
+    raise SystemExit(1)
+if marker["provider"] != sys.argv[2]:
+    raise SystemExit(1)
+digest = marker["seed_sha256"]
+if not isinstance(digest, str) or len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
+    raise SystemExit(1)
+print(digest)
+' "$path" "$expected_provider") || fail_runtime "provider seed marker is invalid"
+  [[ "$observed" == "$expected_digest" ]] || \
+    fail_runtime "provider seed rotated after this stable home was created; attended CAS reseed is required"
+}
+
+require_exact_entries() {
+  local directory=$1 label=$2
+  shift 2
+  local expected=("$@") entries=() entry name candidate found
+  shopt -s nullglob dotglob
+  entries=("$directory"/*)
+  shopt -u nullglob dotglob
+  (( ${#entries[@]} == ${#expected[@]} )) || fail_runtime "$label has unexpected or missing artifacts"
+  for entry in "${entries[@]}"; do
+    name=${entry##*/}
+    found=false
+    for candidate in "${expected[@]}"; do
+      if [[ "$name" == "$candidate" ]]; then
+        found=true
+        break
+      fi
+    done
+    [[ "$found" == true ]] || fail_runtime "$label has an unexpected artifact"
+  done
+}
+
+require_empty_directory() {
+  local path=$1 label=$2 entries=()
+  require_owner_directory "$path" "$label"
+  shopt -s nullglob dotglob
+  entries=("$path"/*)
+  shopt -u nullglob dotglob
+  (( ${#entries[@]} == 0 )) || fail_runtime "$label must remain an empty overlay mountpoint"
+}
+
+: "${GC_CITY_ROOT:=/home/loucmane/gas-city}"
+city_root=$(realpath -e "$GC_CITY_ROOT")
+: "${GAS_CITY_STATE_DIR:=$city_root/runtime/state}"
+: "${GAS_CITY_SECRETS_DIR:=$city_root/runtime/secrets}"
+city_runtime=$(realpath -e "$city_root/runtime")
+GAS_CITY_STATE_DIR=$(realpath -e "$GAS_CITY_STATE_DIR")
+GAS_CITY_SECRETS_DIR=$(realpath -e "$GAS_CITY_SECRETS_DIR")
+for runtime_path in "$GAS_CITY_STATE_DIR" "$GAS_CITY_SECRETS_DIR"; do
+  case "$runtime_path/" in
+    "$city_runtime"/*) ;;
+    *) printf 'runtime path escaped the owner-only city runtime: %s\n' "$runtime_path" >&2; exit 65 ;;
+  esac
+  require_owner_directory "$runtime_path" "city runtime state boundary"
+done
+workdir=$(realpath -e "$PWD")
+for required in city.toml city.worker.toml pack.toml packs.lock .gc; do
+  [[ -e "$city_root/$required" ]] || {
+    printf 'missing city control path: %s\n' "$city_root/$required" >&2
+    exit 66
+  }
+done
+[[ -f "$city_root/.gc/site.toml" && ! -L "$city_root/.gc/site.toml" ]] || {
+  printf 'missing or unsafe machine-local rig binding: %s\n' "$city_root/.gc/site.toml" >&2
+  exit 66
+}
+[[ $(stat -c '%a' "$city_root/.gc/site.toml") == 600 ]] || {
+  printf 'machine-local rig binding must have mode 0600\n' >&2
+  exit 66
+}
+[[ $(stat -c '%u' "$city_root/.gc/site.toml") == "$(id -u)" ]] || {
+  printf 'machine-local rig binding must be owned by the current user\n' >&2
+  exit 66
+}
+configured_rig_names=$(/usr/bin/python3 -I -c '
+import pathlib, sys, tomllib
+site = pathlib.Path(sys.argv[1])
+value = tomllib.loads(site.read_text(encoding="utf-8"))
+rigs = value.get("rig", [])
+if not isinstance(rigs, list):
+    raise SystemExit("site rig binding must be an array")
+names = []
+for rig in rigs:
+    if not isinstance(rig, dict) or not isinstance(rig.get("name"), str):
+        raise SystemExit("site rig binding has an invalid entry")
+    name = rig["name"]
+    if not name or any(character not in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.-" for character in name):
+        raise SystemExit("site rig binding has an unsafe name")
+    names.append(name)
+if len(names) != len(set(names)):
+    raise SystemExit("site rig binding has duplicate names")
+print("\n".join(names))
+' "$city_root/.gc/site.toml") || {
+  printf 'could not parse exact machine-local rig bindings\n' >&2
+  exit 66
+}
+aegis_rig_root=$(/usr/bin/python3 -I -c '
+import pathlib, sys, tomllib
+value = tomllib.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+matches = [item for item in value.get("rig", []) if isinstance(item, dict) and item.get("name") == "aegis"]
+if len(matches) != 1 or not isinstance(matches[0].get("path"), str):
+    raise SystemExit("site requires one exact Aegis path")
+path = pathlib.Path(matches[0]["path"])
+if not path.is_absolute():
+    raise SystemExit("Aegis site path must be absolute")
+print(path)
+' "$city_root/.gc/site.toml") || {
+  printf 'could not resolve the exact machine-local Aegis path\n' >&2
+  exit 66
+}
+aegis_rig_root=$(realpath -e "$aegis_rig_root")
+workdir_rig=
+while IFS= read -r configured_rig; do
+  [[ -n "$configured_rig" ]] || continue
+  case "$workdir/" in
+    "$city_root/.gc/worktrees/$configured_rig/"*|"$city_root/.gc/agents/$configured_rig/"*)
+      [[ -z "$workdir_rig" || "$workdir_rig" == "$configured_rig" ]] || {
+        printf 'assigned workdir matches more than one rig scope\n' >&2
+        exit 65
+      }
+      workdir_rig=$configured_rig
+      ;;
+  esac
+done <<< "$configured_rig_names"
+
+rig_environment=false
+if [[ -n ${GC_RIG:-} || -n ${GC_RIG_ROOT:-} || -n ${GC_BEADS_PREFIX:-} ]]; then
+  rig_environment=true
+fi
+if [[ "$rig_environment" == true ]]; then
+  [[ -n ${GC_RIG:-} && -n ${GC_RIG_ROOT:-} && -n ${GC_BEADS_PREFIX:-} ]] || {
+    printf 'rig identity requires GC_RIG, GC_RIG_ROOT, and GC_BEADS_PREFIX together\n' >&2
+    exit 65
+  }
+  [[ "$workdir_rig" == "$GC_RIG" ]] || {
+    printf 'assigned workdir rig %s does not match GC_RIG %s\n' "${workdir_rig:-<none>}" "$GC_RIG" >&2
+    exit 65
+  }
+  [[ "$GC_RIG" == aegis && "$GC_BEADS_PREFIX" == ags ]] || {
+    printf 'this staged launcher permits only the exact Aegis rig identity aegis/ags\n' >&2
+    exit 65
+  }
+  rig_root=$(realpath -e "$GC_RIG_ROOT")
+  [[ "$rig_root" == "$aegis_rig_root" ]] || {
+    printf 'GC_RIG_ROOT does not match the machine-local Aegis binding\n' >&2
+    exit 65
+  }
+  allowed_roots=(
+    "$city_root/.gc/worktrees/$GC_RIG"
+    "$city_root/.gc/agents/$GC_RIG"
+  )
+else
+  [[ -z "$workdir_rig" ]] || {
+    printf 'rig-scoped workdir %s cannot fall back to HQ identity\n' "$workdir" >&2
+    exit 65
+  }
+  rig_root=
+  allowed_roots=(
+    "$city_root/.gc/agents/boot"
+    "$city_root/.gc/agents/deacon"
+    "$city_root/.gc/agents/mayor"
+    "$city_root/.gc/agents/dogs"
+  )
+fi
+allowed=false
+for allowed_root in "${allowed_roots[@]}"; do
+  case "$workdir/" in
+    "$allowed_root"/|"$allowed_root"/*) allowed=true; break ;;
+  esac
+done
+[[ "$allowed" == true ]] || {
+  printf 'refusing workdir outside assigned scope: %s\n' "$workdir" >&2
+  exit 65
+}
+
+session_raw=${GC_SESSION_ID:-${GC_SESSION_NAME:-manual-$$}}
+session_digest=$(printf '%s' "$session_raw" | sha256sum | cut -c1-12)
+session_safe=$(printf '%s' "$session_raw" | tr -c 'A-Za-z0-9_.-' '-' | cut -c1-35)
+session_safe="${session_safe}-${session_digest}"
+[[ -n "$session_safe" ]]
+agent_raw=${GC_AGENT:-${GC_ALIAS:-control}}
+[[ "$agent_raw" =~ ^[A-Za-z0-9_.-]{1,64}$ ]]
+agent_safe=$agent_raw
+trusted_mayor=false
+mayor_marker=false
+for mayor_identity in "${GC_AGENT:-}" "${GC_ALIAS:-}" "${GC_TEMPLATE:-}"; do
+  if [[ "$mayor_identity" == gastown.mayor ]]; then
+    mayor_marker=true
+  fi
+done
+if [[ "$mayor_marker" == true ]]; then
+  if [[ "$rig_environment" == false \
+    && ${GC_AGENT:-} == gastown.mayor \
+    && ${GC_ALIAS:-} == gastown.mayor \
+    && ${GC_TEMPLATE:-} == gastown.mayor \
+    && ${GC_SESSION_ORIGIN:-} == named ]]; then
+    case "$workdir/" in
+      "$city_root/.gc/agents/mayor/"|"$city_root/.gc/agents/mayor/"*)
+        trusted_mayor=true
+        ;;
+      *)
+        printf 'trusted Mayor identity escaped the exact Mayor work directory\n' >&2
+        exit 65
+        ;;
+    esac
+  else
+    printf 'partial or conflicting trusted Mayor identity\n' >&2
+    exit 65
+  fi
+fi
+if [[ -v GC_BEAD_ID ]]; then
+  [[ "$GC_BEAD_ID" =~ ^[a-z][a-z0-9-]{0,62}-[A-Za-z0-9][A-Za-z0-9._-]{0,126}$ ]] || {
+    printf 'GC_BEAD_ID has an unsafe or unsupported shape\n' >&2
+    exit 65
+  }
+  if [[ "$rig_environment" == true && "$GC_BEAD_ID" != ags-* ]]; then
+    printf 'Aegis rig work requires one ags-prefixed GC_BEAD_ID\n' >&2
+    exit 65
+  fi
+fi
+if [[ -n ${GC_RIG:-} ]]; then
+  [[ "$GC_RIG" =~ ^[A-Za-z0-9_.-]{1,64}$ ]]
+  credential_scope="rig-$GC_RIG"
+else
+  credential_scope=hq
+fi
+
+image=$(
+  "$city_root/bin/locked-images" \
+    "$city_root/runtime-lock.json" "${provider}_worker"
+)
+docker image inspect "$image" >/dev/null
+
+worker_city="$city_root/city.worker.toml"
+boundary_helper="$city_root/bin/prepare-worker-boundary"
+git_broker="$city_root/bin/git-worktree-broker"
+model_evidence_broker="$city_root/bin/model-evidence-broker"
+github_delivery_broker="$city_root/bin/github-app-token-broker"
+require_safe_config "$city_root/city.toml" "host city configuration"
+require_safe_config "$worker_city" "worker city configuration"
+require_safe_config "$boundary_helper" "worker boundary helper"
+require_safe_config "$git_broker" "host Git worktree broker"
+[[ -x "$boundary_helper" ]] || fail_runtime "worker boundary helper must be executable"
+[[ -x "$git_broker" ]] || fail_runtime "host Git worktree broker must be executable"
+
+credential_source="$GAS_CITY_STATE_DIR/provider-auth/$provider"
+bootstrap_root="$GAS_CITY_STATE_DIR/provider-bootstrap/$provider"
+session_state="$GAS_CITY_STATE_DIR/provider-sessions/$credential_scope/$agent_safe/$provider/$session_safe"
+if [[ "$provider" == codex ]]; then
+  provider_directory_name=.codex
+  credential_name=auth.json
+  stable_credential_name=auth.json
+  config_source="$city_root/provider-config/codex.toml"
+  overlay_names=(sessions log shell_snapshots)
+  expected_model=gpt-5.6-sol
+  expected_effort=xhigh
+else
+  provider_directory_name=.claude
+  credential_name=.credentials.json
+  stable_credential_name=credentials.json
+  config_source="$city_root/provider-config/claude-settings.json"
+  overlay_names=(projects debug todos)
+  expected_model=claude-fable-5
+  expected_effort=
+fi
+auth_source="$credential_source/${credential_name#.}"
+if [[ "$provider" == claude ]]; then
+  auth_source="$credential_source/credentials.json"
+fi
+
+require_owner_directory "$credential_source" "$provider provider-auth source"
+require_exact_entries "$credential_source" "$provider provider-auth source" "${auth_source##*/}"
+require_private_credential "$auth_source" "$provider provider-auth seed"
+current_seed_sha256=$(/usr/bin/sha256sum "$auth_source")
+current_seed_sha256=${current_seed_sha256%% *}
+require_owner_directory "$bootstrap_root" "$provider bootstrap lease root"
+require_exact_entries "$bootstrap_root" "$provider bootstrap lease root" .bootstrap.lock
+provider_bootstrap_lock="$bootstrap_root/.bootstrap.lock"
+[[ -f "$provider_bootstrap_lock" && ! -L "$provider_bootstrap_lock" ]] || \
+  fail_runtime "$provider bootstrap lease must be one regular non-symlink file"
+[[ $(stat -c '%a' "$provider_bootstrap_lock") == 600 ]] || \
+  fail_runtime "$provider bootstrap lease must have mode 0600"
+[[ $(stat -c '%u' "$provider_bootstrap_lock") == "$(id -u)" ]] || \
+  fail_runtime "$provider bootstrap lease must be owner-controlled"
+[[ $(stat -c '%h' "$provider_bootstrap_lock") == 1 ]] || \
+  fail_runtime "$provider bootstrap lease must have one hard link"
+exec {provider_lease_fd}<>"$provider_bootstrap_lock"
+/usr/bin/flock --shared "$provider_lease_fd"
+
+require_safe_config "$config_source" "$provider locked provider configuration"
+provider_homes_root="$GAS_CITY_STATE_DIR/provider-homes"
+ensure_owner_directory "$GAS_CITY_STATE_DIR" provider-homes "provider homes root"
+provider_home_scope="$provider_homes_root/$credential_scope"
+ensure_owner_directory "$provider_homes_root" "$credential_scope" "provider home scope"
+provider_home_agent="$provider_home_scope/$agent_safe"
+ensure_owner_directory "$provider_home_scope" "$agent_safe" "provider home agent root"
+stable_home="$provider_home_agent/$provider"
+home_lease_lock="$provider_home_agent/.${provider}.home.lock"
+if [[ ! -e "$home_lease_lock" && ! -L "$home_lease_lock" ]]; then
+  install -m 0600 /dev/null "$home_lease_lock"
+fi
+[[ -f "$home_lease_lock" && ! -L "$home_lease_lock" ]] || \
+  fail_runtime "$provider home worker lease must be one regular file"
+[[ $(stat -c '%a' "$home_lease_lock") == 600 && $(stat -c '%u' "$home_lease_lock") == "$(id -u)" ]] || \
+  fail_runtime "$provider home worker lease is unsafe"
+[[ $(stat -c '%h' "$home_lease_lock") == 1 ]] || \
+  fail_runtime "$provider home worker lease must have one hard link"
+exec {home_lease_fd}<>"$home_lease_lock"
+# One scope/agent/provider credential may have only one writer. Keep this
+# exclusive lease open through Docker exit; bootstrap and seed rotation use a
+# separate provider-wide lock and therefore cannot race worker refresh.
+if ! /usr/bin/flock --exclusive --nonblock "$home_lease_fd"; then
+  fail_runtime "$provider stable credential already has an active worker"
+fi
+
+new_home=false
+if [[ ! -e "$stable_home" && ! -L "$stable_home" ]]; then
+  mkdir -m 0700 -- "$stable_home"
+  new_home=true
+fi
+require_owner_directory "$stable_home" "$provider stable provider home"
+if [[ "$new_home" == true ]]; then
+  install -m 0600 "$auth_source" "$stable_home/$stable_credential_name"
+  printf '{"provider":"%s","schema_version":1,"seed_sha256":"%s"}\n' \
+    "$provider" "$current_seed_sha256" > "$stable_home/.seed-generation.json"
+  chmod 0400 "$stable_home/.seed-generation.json"
+fi
+require_exact_entries \
+  "$stable_home" "$provider stable provider home" \
+  "$stable_credential_name" .seed-generation.json
+auth_target="$stable_home/$stable_credential_name"
+require_private_credential "$auth_target" "$provider refreshed provider credential"
+require_seed_marker \
+  "$stable_home/.seed-generation.json" "$provider" "$current_seed_sha256"
+
+provider_sessions_root="$GAS_CITY_STATE_DIR/provider-sessions"
+ensure_owner_directory "$GAS_CITY_STATE_DIR" provider-sessions "provider sessions root"
+session_scope="$provider_sessions_root/$credential_scope"
+ensure_owner_directory "$provider_sessions_root" "$credential_scope" "provider session scope"
+session_agent="$session_scope/$agent_safe"
+ensure_owner_directory "$session_scope" "$agent_safe" "provider session agent root"
+session_provider="$session_agent/$provider"
+ensure_owner_directory "$session_agent" "$provider" "provider session provider root"
+new_session=false
+if [[ ! -e "$session_state" && ! -L "$session_state" ]]; then
+  new_session=true
+fi
+ensure_owner_directory "$session_provider" "$session_safe" "provider session overlay root"
+if [[ "$new_session" == true ]]; then
+  for overlay_name in "${overlay_names[@]}"; do
+    mkdir -m 0700 -- "$session_state/$overlay_name"
+  done
+fi
+require_exact_entries "$session_state" "$provider session overlay root" "${overlay_names[@]}"
+
+provider_state_mounts=(
+  --mount "type=bind,src=$stable_home,dst=/run/gas-city/provider-home"
+  --mount "type=bind,src=$config_source,dst=/run/gas-city/provider-config,readonly"
+  --mount "type=bind,src=$session_state,dst=/run/gas-city/provider-session"
+)
+for overlay_name in "${overlay_names[@]}"; do
+  overlay_source="$session_state/$overlay_name"
+  require_owner_directory "$overlay_source" "$provider session $overlay_name overlay"
+done
+
+if [[ "$rig_environment" == true ]]; then
+  [[ "$GC_RIG" == aegis && "$GC_BEADS_PREFIX" == ags && "$workdir_rig" == aegis ]] || {
+    printf 'rig worker identity drifted after assignment validation\n' >&2
+    exit 66
+  }
+  network=gas-city-aegis-control
+  expected_network_label=private-aegis-control
+  dolt_service=gas-city-aegis-dolt
+  dolt_user=aegis_beads
+  dolt_database=aegis_beads
+  password_file="$GAS_CITY_SECRETS_DIR/aegis-app-password"
+  aegis_password_file=
+  github_token_file=
+  github_app_id_file="$GAS_CITY_SECRETS_DIR/github-app-id"
+  github_installation_id_file="$GAS_CITY_SECRETS_DIR/github-installation-id"
+  github_private_key_file="$GAS_CITY_SECRETS_DIR/github-app-private-key.pem"
+  github_repository=$(jq -er '.github_delivery.repository' "$city_root/runtime-lock.json")
+  github_default_branch=$(jq -er '.github_delivery.default_branch' "$city_root/runtime-lock.json")
+  github_delivery_required=true
+  beads_dir="$rig_root/.beads"
+  [[ -d "$beads_dir" && ! -L "$beads_dir" ]] || {
+    printf 'Aegis Beads metadata must be one real directory at %s\n' "$beads_dir" >&2
+    exit 66
+  }
+  beads_dir=$(realpath -e "$beads_dir")
+  [[ "$beads_dir" == "$rig_root/.beads" ]] || {
+    printf 'Aegis Beads metadata escaped the exact rig root\n' >&2
+    exit 66
+  }
+  egress_proxy=gas-city-aegis-egress-proxy
+  boundary_role=aegis
+  authority_root="$city_runtime/authority"
+  [[ -d "$authority_root" && ! -L "$authority_root" ]]
+  [[ $(stat -c '%a' "$authority_root") == 700 ]]
+  [[ $(stat -c '%u' "$authority_root") == "$(id -u)" ]]
+  authority_file="$authority_root/$GC_RIG.json"
+  [[ -f "$authority_file" && ! -L "$authority_file" ]]
+  [[ $(stat -c '%a' "$authority_file") == 600 ]]
+  [[ $(stat -c '%u' "$authority_file") == "$(id -u)" ]]
+  authority_file=$(realpath -e "$authority_file")
+  case "$authority_file" in
+    "$authority_root/$GC_RIG.json") ;;
+    *) printf 'task-authority receipt escaped its owner-only root\n' >&2; exit 66 ;;
+  esac
+  authority_lock_file="$authority_file.lock"
+  [[ -f "$authority_lock_file" && ! -L "$authority_lock_file" ]]
+  [[ $(stat -c '%a' "$authority_lock_file") == 600 ]]
+  [[ $(stat -c '%u' "$authority_lock_file") == "$(id -u)" ]]
+  bd_sha256=$(jq -er '.tools.bd.binary_sha256 | select(test("^[0-9a-f]{64}$"))' \
+    "$city_root/runtime-lock.json")
+  gc_sha256=$(jq -er '.tools.gc.binary_sha256 | select(test("^[0-9a-f]{64}$"))' \
+    "$city_root/runtime-lock.json")
+  task_authority_sha256=$(jq -er \
+    '.task_authority_runtime.sha256 | select(test("^[0-9a-f]{64}$"))' \
+    "$city_root/runtime-lock.json")
+  startup_helper_sha256=$(jq -er \
+    '.aegis_polecat_startup.sha256 | select(test("^[0-9a-f]{64}$"))' \
+    "$city_root/runtime-lock.json")
+  startup_formula_sha256=$(jq -er \
+    '.aegis_polecat_startup.formula_sha256 | select(test("^[0-9a-f]{64}$"))' \
+    "$city_root/runtime-lock.json")
+  upstream_formula_sha256=$(jq -er \
+    '.aegis_polecat_startup.upstream_formula_sha256 | select(test("^[0-9a-f]{64}$"))' \
+    "$city_root/runtime-lock.json")
+  aegis_runtime_sha256=$(jq -er \
+    '.aegis_polecat_startup.runtime_artifact_sha256 | select(test("^[0-9a-f]{64}$"))' \
+    "$city_root/runtime-lock.json")
+  aegis_runtime_shim_sha256=$(jq -er \
+    '.aegis_polecat_startup.runtime_shim_sha256 | select(test("^[0-9a-f]{64}$"))' \
+    "$city_root/runtime-lock.json")
+  aegis_local_launcher_sha256=$(jq -er \
+    '.aegis_polecat_startup.local_launcher_sha256 | select(test("^[0-9a-f]{64}$"))' \
+    "$city_root/runtime-lock.json")
+  core_pack_commit=$(jq -er \
+    '.packs.gascity_core_bd.commit | select(test("^[0-9a-f]{40}$"))' \
+    "$city_root/runtime-lock.json")
+  gastown_pack_commit=$(jq -er \
+    '.packs.gastown.commit | select(test("^[0-9a-f]{40}$"))' \
+    "$city_root/runtime-lock.json")
+  provider_network_args=(
+    --env GC_GITHUB_REQUIRED=true
+    --env GC_GITHUB_TOKEN_FILE=/run/secrets/github_token
+    --env HTTPS_PROXY="http://$egress_proxy:8888"
+    --env HTTP_PROXY="http://$egress_proxy:8888"
+    --env NO_PROXY="localhost,127.0.0.1,$dolt_service"
+    --env GC_AEGIS_METADATA_OVERLAY=/run/gas-city/aegis-metadata.json
+    --env GC_AEGIS_CONFIG_OVERLAY=/run/gas-city/aegis-config.yaml
+    --env AEGIS_TASK_AUTHORITY_FILE=/run/gas-city/authority/aegis.json
+    --env AEGIS_TASK_AUTHORITY_RUNTIME_FILE=/opt/gas-city/task-authority.py
+    --env "AEGIS_TASK_AUTHORITY_RUNTIME_SHA256=$task_authority_sha256"
+    --env AEGIS_BD_EXECUTABLE=/usr/local/bin/bd
+    --env "AEGIS_BD_SHA256=$bd_sha256"
+    --env AEGIS_GC_EXECUTABLE=/usr/local/bin/gc
+    --env "AEGIS_GC_SHA256=$gc_sha256"
+    --env AEGIS_STARTUP_HELPER_FILE=/opt/gas-city/aegis-polecat-startup.py
+    --env "AEGIS_STARTUP_HELPER_SHA256=$startup_helper_sha256"
+    --env AEGIS_STARTUP_RECEIPT_PATH=/run/gas-city/aegis-startup-receipt.json
+    --env AEGIS_RUNTIME_ARTIFACT_FILE=/opt/gas-city/aegis-runtime.whl
+    --env "AEGIS_RUNTIME_ARTIFACT_SHA256=$aegis_runtime_sha256"
+    --env AEGIS_RUNTIME_SHIM_FILE=/opt/gas-city/aegis-runtime-shim.py
+    --env "AEGIS_RUNTIME_SHIM_SHA256=$aegis_runtime_shim_sha256"
+    --env "AEGIS_LOCAL_LAUNCHER_SHA256=$aegis_local_launcher_sha256"
+    --env AEGIS_BASE_BRANCH=main
+    --env AEGIS_POLECAT_ROUTE=aegis/gastown.polecat
+    --env "AEGIS_GASCITY_CORE_PACK_COMMIT=$core_pack_commit"
+    --env "AEGIS_GASTOWN_PACK_COMMIT=$gastown_pack_commit"
+    --env "AEGIS_POLECAT_FORMULA_SHA256=$startup_formula_sha256"
+    --env "AEGIS_POLECAT_UPSTREAM_FORMULA_SHA256=$upstream_formula_sha256"
+  )
+else
+  network=gas-city-hq-control
+  expected_network_label=private-hq-control
+  dolt_service=gas-city-hq-dolt
+  dolt_user=gas_city_hq
+  dolt_database=hq
+  password_file="$GAS_CITY_SECRETS_DIR/hq-app-password"
+  aegis_password_file=
+  github_token_file=
+  github_app_id_file=
+  github_installation_id_file=
+  github_private_key_file=
+  github_repository=
+  github_default_branch=
+  github_delivery_required=false
+  beads_dir="$city_root/.beads"
+  egress_proxy=gas-city-hq-egress-proxy
+  boundary_role=hq
+  if [[ "$trusted_mayor" == true ]]; then
+    boundary_role=mayor
+    aegis_password_file="$GAS_CITY_SECRETS_DIR/aegis-app-password"
+  fi
+  provider_network_args=(
+    --env GC_GITHUB_REQUIRED=false
+    --env HTTPS_PROXY="http://$egress_proxy:8888"
+    --env HTTP_PROXY="http://$egress_proxy:8888"
+    --env NO_PROXY="localhost,127.0.0.1,$dolt_service"
+  )
+  if [[ "$trusted_mayor" == true ]]; then
+    provider_network_args+=(
+      --env NO_PROXY="localhost,127.0.0.1,gas-city-hq-dolt,gas-city-aegis-dolt"
+      --env GC_AEGIS_METADATA_OVERLAY=/run/gas-city/aegis-metadata.json
+      --env GC_AEGIS_CONFIG_OVERLAY=/run/gas-city/aegis-config.yaml
+    )
+  fi
+fi
+[[ -d "$beads_dir" && ! -L "$beads_dir" ]] || fail_runtime "Beads metadata must be one real directory"
+require_private_secret "$password_file" "Dolt application credential"
+if [[ -n "$aegis_password_file" ]]; then
+  require_private_secret "$aegis_password_file" "Aegis Dolt application credential"
+  [[ "$aegis_password_file" != "$password_file" ]] || \
+    fail_runtime "Mayor Dolt credential paths must be distinct"
+fi
+if [[ "$github_delivery_required" == true ]]; then
+  require_safe_config "$github_delivery_broker" "host GitHub App token broker"
+  [[ -x "$github_delivery_broker" ]] || \
+    fail_runtime "host GitHub App token broker must be executable"
+  require_private_secret "$github_app_id_file" "GitHub App ID"
+  require_private_secret "$github_installation_id_file" "GitHub App installation ID"
+  require_private_secret "$github_private_key_file" "GitHub App private key"
+fi
+network_internal=$(docker network inspect -f '{{ .Internal }}' "$network")
+network_label=$(docker network inspect -f '{{ index .Labels "com.gascity.boundary" }}' "$network")
+[[ "$network_internal" == true && "$network_label" == "$expected_network_label" ]] || {
+  printf 'private control network is missing or unsafe: %s\n' "$network" >&2
+  exit 67
+}
+
+container_name="gc-${provider}-${session_safe:0:32}-$$"
+receipt_dir="$GAS_CITY_STATE_DIR/model-receipts/$credential_scope/$agent_safe/$provider/$session_safe"
+install -d -m 0700 "$receipt_dir"
+require_owner_directory "$receipt_dir" "worker receipt directory"
+
+boundary_args=(
+  --role "$boundary_role"
+  --host-city "$city_root/city.toml"
+  --worker-city "$worker_city"
+  --output-dir "$receipt_dir"
+)
+if [[ "$boundary_role" == hq || "$boundary_role" == mayor ]]; then
+  boundary_args+=(--hq-beads-config "$city_root/.beads/config.yaml")
+fi
+if [[ "$boundary_role" == aegis || "$boundary_role" == mayor ]]; then
+  aegis_beads_dir="$aegis_rig_root/.beads"
+  [[ -d "$aegis_beads_dir" && ! -L "$aegis_beads_dir" ]] || \
+    fail_runtime "Aegis Beads boundary must be one real directory"
+  aegis_beads_dir=$(realpath -e "$aegis_beads_dir")
+  [[ "$aegis_beads_dir" == "$aegis_rig_root/.beads" ]] || \
+    fail_runtime "Aegis Beads boundary escaped the machine-local rig root"
+  boundary_args+=(
+    --aegis-beads-config "$aegis_beads_dir/config.yaml"
+    --aegis-metadata "$aegis_beads_dir/metadata.json"
+  )
+fi
+"$boundary_helper" "${boundary_args[@]}"
+
+if [[ "$boundary_role" == mayor ]]; then
+  ensure_owner_directory "$receipt_dir" aegis-rig-root "Mayor empty Aegis rig mount root"
+  mayor_aegis_mount_root="$receipt_dir/aegis-rig-root"
+  require_empty_directory "$mayor_aegis_mount_root" "Mayor empty Aegis rig mount root"
+fi
+boundary_environment_args=(
+  --env "GC_WORKER_BOUNDARY_ROLE=$boundary_role"
+  --env GC_HOST_CITY_CONFIG=/run/gas-city/host-city.toml
+  --env GC_IMAGE_WORKER_CITY_CONFIG=/opt/gas-city/city.worker.toml
+  --env BEADS_CREDENTIALS_FILE=/home/worker/.config/beads/credentials
+)
+if [[ "$boundary_role" == hq || "$boundary_role" == mayor ]]; then
+  boundary_environment_args+=(--env GC_HQ_CONFIG_OVERLAY=/run/gas-city/hq-config.yaml)
+fi
+
+mount_args=(
+  "${provider_state_mounts[@]}"
+  --mount "type=bind,src=$city_root/.gc/runtime,dst=$city_root/.gc/runtime,readonly"
+  --mount "type=bind,src=$city_root/.gc/cache,dst=$city_root/.gc/cache,readonly"
+  --mount "type=bind,src=$city_root/.gc/scripts,dst=$city_root/.gc/scripts,readonly"
+  --mount "type=bind,src=$city_root/.gc/system,dst=$city_root/.gc/system,readonly"
+  --mount "type=bind,src=$beads_dir,dst=$beads_dir,readonly"
+  --mount "type=bind,src=$worker_city,dst=$city_root/city.toml,readonly"
+  --mount "type=bind,src=$city_root/pack.toml,dst=$city_root/pack.toml,readonly"
+  --mount "type=bind,src=$city_root/packs.lock,dst=$city_root/packs.lock,readonly"
+  --mount "type=bind,src=$password_file,dst=/run/secrets/beads_password,readonly"
+  --mount "type=bind,src=$receipt_dir,dst=/run/gas-city"
+)
+if [[ "$boundary_role" == hq || "$boundary_role" == mayor ]]; then
+  mount_args+=(
+    --mount "type=bind,src=$receipt_dir/hq-config.yaml,dst=$city_root/.beads/config.yaml,readonly"
+  )
+fi
+if [[ "$boundary_role" == aegis ]]; then
+  mount_args+=(
+    --mount "type=bind,src=$receipt_dir/aegis-config.yaml,dst=$aegis_beads_dir/config.yaml,readonly"
+    --mount "type=bind,src=$receipt_dir/aegis-metadata.json,dst=$aegis_beads_dir/metadata.json,readonly"
+  )
+elif [[ "$boundary_role" == mayor ]]; then
+  mount_args+=(
+    --mount "type=bind,src=$mayor_aegis_mount_root,dst=$aegis_rig_root,readonly"
+    --mount "type=bind,src=$aegis_beads_dir,dst=$aegis_beads_dir,readonly"
+    --mount "type=bind,src=$receipt_dir/aegis-config.yaml,dst=$aegis_beads_dir/config.yaml,readonly"
+    --mount "type=bind,src=$receipt_dir/aegis-metadata.json,dst=$aegis_beads_dir/metadata.json,readonly"
+  )
+fi
+for city_file in site.toml settings.json; do
+  mount_args+=(
+    --mount "type=bind,src=$city_root/.gc/$city_file,dst=$city_root/.gc/$city_file,readonly"
+  )
+done
+if [[ -f "$city_root/.gc/events.jsonl" ]]; then
+  mount_args+=(
+    --mount "type=bind,src=$city_root/.gc/events.jsonl,dst=$city_root/.gc/events.jsonl,readonly"
+  )
+fi
+if [[ -n "$aegis_password_file" ]]; then
+  mount_args+=(
+    --mount "type=bind,src=$aegis_password_file,dst=/run/secrets/aegis_beads_password,readonly"
+  )
+fi
+if [[ -n ${authority_root:-} ]]; then
+  mount_args+=(
+    --mount "type=bind,src=$authority_root,dst=/run/gas-city/authority,readonly"
+  )
+fi
+
+git_broker_active=false
+git_broker_environment_args=(--env AEGIS_GIT_BROKER_MODE=none)
+repo_root=$(git -C "$workdir" rev-parse --show-toplevel 2>/dev/null || true)
+if [[ -n "$repo_root" ]]; then
+  repo_root=$(realpath -e "$repo_root")
+  allowed=false
+  for allowed_root in "${allowed_roots[@]}"; do
+    case "$repo_root/" in
+      "$allowed_root"/|"$allowed_root"/*) allowed=true; break ;;
+    esac
+  done
+  [[ "$allowed" == true ]] || {
+    printf 'repository escaped assigned scope: %s\n' "$repo_root" >&2
+    exit 68
+  }
+  mount_args+=(--mount "type=bind,src=$repo_root,dst=$repo_root")
+  if [[ -n ${GC_RIG:-} ]]; then
+    aegis_directory="$repo_root/.aegis"
+    [[ -d "$aegis_directory" && ! -L "$aegis_directory" ]] || {
+      printf 'Aegis source worktree is missing its tracked .aegis directory\n' >&2
+      exit 68
+    }
+    [[ $(stat -c '%u' "$aegis_directory") == "$(id -u)" ]] || {
+      printf 'Aegis source worktree .aegis directory has the wrong owner\n' >&2
+      exit 68
+    }
+    mount_args+=(
+      --tmpfs "$repo_root/.aegis/bin:rw,nosuid,nodev,size=1m,uid=1000,gid=1000,mode=0700"
+    )
+    taskmaster_dir="$repo_root/.taskmaster"
+    [[ -d "$taskmaster_dir" && ! -L "$taskmaster_dir" ]] || {
+      printf 'rig worktree is missing preserved Taskmaster rollback evidence\n' >&2
+      exit 68
+    }
+    taskmaster_dir=$(realpath -e "$taskmaster_dir")
+    case "$taskmaster_dir/" in
+      "$repo_root/.taskmaster/"*) ;;
+      *) printf 'Taskmaster rollback evidence escaped the assigned repository\n' >&2; exit 68 ;;
+    esac
+    mount_args+=(
+      --mount "type=bind,src=$taskmaster_dir,dst=$repo_root/.taskmaster,readonly"
+    )
+  fi
+  git_common=$(git -C "$repo_root" rev-parse --path-format=absolute --git-common-dir)
+  git_common=$(realpath -e "$git_common")
+  if [[ -n ${GC_RIG:-} ]]; then
+    expected_common=$(realpath -e "$rig_root/.git")
+    [[ "$git_common" == "$expected_common" ]] || {
+      printf 'Git common dir is not the exact Aegis primary metadata: %s\n' "$git_common" >&2
+      exit 69
+    }
+    git_marker="$repo_root/.git"
+    [[ -f "$git_marker" && ! -L "$git_marker" ]] || {
+      printf 'Aegis provider requires one linked-worktree .git marker\n' >&2
+      exit 69
+    }
+    require_safe_config "$git_marker" "Aegis linked-worktree Git marker"
+    require_safe_config "$model_evidence_broker" "host model evidence broker"
+    [[ -x "$model_evidence_broker" ]] || \
+      fail_runtime "host model evidence broker must be executable"
+    # Check the pinned CLI contract before Git preparation or provider-free
+    # startup can create any Git session or claim any work.
+    "$model_evidence_broker" capability --provider "$provider" >/dev/null || \
+      fail_runtime "$provider cannot satisfy the locked identity preflight"
+
+    ensure_owner_directory "$GAS_CITY_STATE_DIR" git-broker "Git broker state root"
+    git_broker_root="$GAS_CITY_STATE_DIR/git-broker"
+    ensure_owner_directory "$git_broker_root" "$credential_scope" "Git broker credential scope"
+    git_broker_scope="$git_broker_root/$credential_scope"
+    ensure_owner_directory "$git_broker_scope" "$agent_safe" "Git broker agent root"
+    git_broker_agent="$git_broker_scope/$agent_safe"
+    broker_state="$git_broker_agent/$session_safe"
+    broker_prepare=$(
+      "$git_broker" prepare \
+        --state-dir "$broker_state" \
+        --worktree "$repo_root" \
+        --expected-common "$expected_common" \
+        --base-branch main \
+        --agent "$agent_safe" \
+        --session-id "$session_raw"
+    ) || fail_runtime "host Git broker could not prepare the private repository"
+    broker_prepare_status=$(jq -er '.status' <<<"$broker_prepare") || \
+      fail_runtime "host Git broker returned an invalid preparation result"
+    case "$broker_prepare_status" in
+      already_promoted|already_no_work)
+        # The exact durable session reached its terminal state before a prior
+        # launcher could observe the broker response.  Reusing that session is
+        # an idempotent success; never launch the provider a second time.
+        exit 0
+        ;;
+      prepared|resumed) ;;
+      *) fail_runtime "host Git broker returned an invalid preparation result" ;;
+    esac
+    private_git="$broker_state/private.git"
+    broker_receipt="$broker_state/broker-receipt.json"
+    require_owner_directory "$private_git" "session-private Git directory"
+    [[ -f "$broker_receipt" && ! -L "$broker_receipt" ]] || \
+      fail_runtime "host Git broker receipt is missing"
+    [[ $(stat -c '%a' "$broker_receipt") == 400 && $(stat -c '%h' "$broker_receipt") == 1 ]] || \
+      fail_runtime "host Git broker receipt is not immutable"
+    broker_receipt_sha256=$(/usr/bin/sha256sum "$broker_receipt")
+    broker_receipt_sha256=${broker_receipt_sha256%% *}
+    [[ "$broker_receipt_sha256" =~ ^[0-9a-f]{64}$ ]] || \
+      fail_runtime "host Git broker receipt digest is invalid"
+    git_broker_active=true
+    git_broker_environment_args=(
+      --env AEGIS_GIT_BROKER_MODE=private
+      --env GIT_DIR=/run/gas-city-git/private.git
+      --env "GIT_WORK_TREE=$repo_root"
+      --env GIT_CONFIG_NOSYSTEM=1
+      --env GIT_CONFIG_GLOBAL=/dev/null
+      --env AEGIS_GIT_BROKER_RECEIPT_PATH=/run/gas-city-trusted/git-broker.json
+      --env "AEGIS_GIT_BROKER_RECEIPT_SHA256=$broker_receipt_sha256"
+    )
+    # These nested binds override the writable worktree bind.  Unsetting
+    # GIT_DIR or calling /usr/bin/git directly can therefore read, but cannot
+    # mutate, the real marker/common metadata.  Only private.git is writable.
+    mount_args+=(
+      --mount "type=bind,src=$git_marker,dst=$git_marker,readonly"
+      --mount "type=bind,src=$git_common,dst=$git_common,readonly"
+      --mount "type=bind,src=$private_git,dst=/run/gas-city-git/private.git"
+      --mount "type=bind,src=$broker_receipt,dst=/run/gas-city-trusted/git-broker.json,readonly"
+    )
+    if [[ ${GC_TEMPLATE:-} != aegis/gastown.polecat ]]; then
+      "$git_broker" freeze-generic --state-dir "$broker_state" >/dev/null || \
+        fail_runtime "host Git broker could not freeze the assigned branch"
+    fi
+  else
+    # HQ workers retain the existing repository semantics; an external Git
+    # common directory is never mounted implicitly.
+    case "$git_common/" in
+      "$repo_root"/|"$repo_root"/*) ;;
+      *) printf 'HQ repository common dir escaped its assigned scope\n' >&2; exit 69 ;;
+    esac
+  fi
+else
+  mount_args+=(--mount "type=bind,src=$workdir,dst=$workdir")
+fi
+
+tty_args=(-i)
+if [[ -t 0 && -t 1 ]]; then
+  tty_args=(-it)
+fi
+
+docker_args=(
+  run --rm "${tty_args[@]}"
+  --name "$container_name"
+  --hostname "$provider-$session_safe"
+  --label com.gascity.boundary=isolated-worker
+  --label "com.gascity.provider=$provider"
+  --network "$network"
+  --user 1000:1000
+  --read-only
+  --tmpfs /home/worker:rw,nosuid,nodev,size=2048m,uid=1000,gid=1000,mode=0700
+  --tmpfs /tmp:rw,nosuid,nodev,noexec,size=512m
+  --tmpfs /run/lock:rw,nosuid,nodev,noexec,size=8m
+  --cap-drop ALL
+  --security-opt no-new-privileges
+  --pids-limit 1024
+  --memory 8g
+  --cpus 4
+  --ulimit nofile=4096:4096
+  --stop-timeout 10
+  --env HOME=/home/worker
+  --env USER=worker
+  --env LOGNAME=worker
+  --env GC_CITY="$city_root"
+  --env GC_CITY_ROOT="$city_root"
+  --env GC_EXPECTED_MODEL="$expected_model"
+  --env GC_EXPECTED_EFFORT="$expected_effort"
+  # Provider-writable diagnostics stay in ephemeral HOME.  Promotion trusts
+  # only the separate host-owned Unix-socket evidence state.
+  --env GC_MODEL_RECEIPT_PATH=/home/worker/model-diagnostic.json
+  --env GC_MODEL_RECEIPT_TIMEOUT_SECONDS=180
+  --env GC_PROVIDER_HOME=/run/gas-city/provider-home
+  --env GC_PROVIDER_CONFIG=/run/gas-city/provider-config
+  --env GC_PROVIDER_SESSION=/run/gas-city/provider-session
+  --env GC_PROVIDER_SYNC_RECEIPT_PATH=/run/gas-city/provider-auth-sync.json
+  --env GC_DOLT_HOST="$dolt_service"
+  --env GC_DOLT_PORT=3306
+  --env GC_DOLT_USER="$dolt_user"
+  --env GC_DOLT_DATABASE="$dolt_database"
+  --env BEADS_DOLT_SERVER_HOST="$dolt_service"
+  --env BEADS_DOLT_SERVER_PORT=3306
+  --env BEADS_DOLT_SERVER_USER="$dolt_user"
+  --env BEADS_DOLT_SERVER_DATABASE="$dolt_database"
+  --env BEADS_DIR="$beads_dir"
+  "${git_broker_environment_args[@]}"
+  "${boundary_environment_args[@]}"
+  "${provider_network_args[@]}"
+  --workdir "$workdir"
+  "${mount_args[@]}"
+)
+
+for key in BEADS_ACTOR GC_AGENT GC_ALIAS GC_BEAD_ID GC_BEADS_PREFIX GC_PROVIDER GC_RIG GC_RIG_ROOT \
+  GC_SESSION GC_SESSION_ID GC_SESSION_NAME GC_SESSION_ORIGIN GC_STORE_ROOT \
+  GC_STORE_SCOPE GC_TEMPLATE; do
+  if [[ -v $key ]]; then
+    docker_args+=(--env "$key")
+  fi
+done
+
+run_locked_container() {
+  if [[ -n ${authority_lock_file:-} ]]; then
+    # Authority replacement is excluded for both the provider-free startup
+    # stage and the complete provider lifetime.
+    /usr/bin/flock --shared "$provider_bootstrap_lock" \
+      /usr/bin/flock --shared "$authority_lock_file" \
+        docker "$@"
+  else
+    /usr/bin/flock --shared "$provider_bootstrap_lock" docker "$@"
+  fi
+}
+
+if [[ "$git_broker_active" == true && ${GC_TEMPLATE:-} == aegis/gastown.polecat ]]; then
+  set +e
+  run_locked_container "${docker_args[@]}" "$image" aegis-prepare
+  startup_exit=$?
+  set -e
+  if (( startup_exit != 0 && startup_exit != 75 )); then
+    "$git_broker" preserve \
+      --state-dir "$broker_state" \
+      --provider-exit "$startup_exit" \
+      --reason startup_failed >/dev/null || true
+    exit "$startup_exit"
+  fi
+  freeze_result=$(
+    "$git_broker" freeze \
+      --state-dir "$broker_state" \
+      --startup-receipt "$receipt_dir/aegis-startup-receipt.json"
+  ) || fail_runtime "host Git broker rejected pre-provider startup evidence"
+  freeze_status=$(jq -er '.status' <<<"$freeze_result")
+  if [[ "$freeze_status" == no_work ]]; then
+    (( startup_exit == 75 )) || fail_runtime "startup drain exit did not match its frozen receipt"
+    exit 0
+  fi
+  [[ "$freeze_status" == frozen && $startup_exit -eq 0 ]] || \
+    fail_runtime "startup result did not match its frozen Git authorization"
+  frozen_startup="$broker_state/startup-receipt.json"
+  [[ -f "$frozen_startup" && ! -L "$frozen_startup" ]] || \
+    fail_runtime "frozen startup receipt is missing"
+  [[ $(stat -c '%a' "$frozen_startup") == 400 && $(stat -c '%h' "$frozen_startup") == 1 ]] || \
+    fail_runtime "frozen startup receipt is not immutable"
+  frozen_startup_sha256=$(/usr/bin/sha256sum "$frozen_startup")
+  frozen_startup_sha256=${frozen_startup_sha256%% *}
+  docker_args+=(
+    --env "AEGIS_FROZEN_STARTUP_RECEIPT_SHA256=$frozen_startup_sha256"
+    --mount "type=bind,src=$frozen_startup,dst=/run/gas-city/aegis-startup-receipt.json,readonly"
+  )
+fi
+
+model_evidence_active=false
+if [[ "$git_broker_active" == true ]]; then
+  ensure_owner_directory "$broker_state" model-evidence "host model evidence state"
+  model_evidence_state="$broker_state/model-evidence"
+  preflight_container_name="pf-$container_name"
+  IFS= read -r model_run_id </proc/sys/kernel/random/uuid
+  [[ "$model_run_id" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]] || \
+    fail_runtime "host could not create one safe model evidence run id"
+  "$model_evidence_broker" begin-run \
+    --state-dir "$model_evidence_state" \
+    --git-state-dir "$broker_state" \
+    --provider "$provider" \
+    --session-id "$session_raw" \
+    --run-id "$model_run_id" \
+    --preflight-container "$preflight_container_name" \
+    --session-container "$container_name" \
+    --image-id "$image" >/dev/null || \
+      fail_runtime "host could not bind a fresh model evidence run"
+
+  preflight_socket="$model_evidence_state/preflight.sock"
+  preflight_ready="$model_evidence_state/preflight-ready.json"
+  "$model_evidence_broker" receive \
+    --state-dir "$model_evidence_state" \
+    --phase preflight \
+    --accept-timeout 60 \
+    --timeout 210 >/dev/null &
+  preflight_receiver_pid=$!
+  preflight_socket_ready=false
+  for _ in {1..200}; do
+    if [[ -f "$preflight_ready" && ! -L "$preflight_ready" && -S "$preflight_socket" ]]; then
+      preflight_socket_ready=true
+      break
+    fi
+    kill -0 "$preflight_receiver_pid" 2>/dev/null || break
+    sleep 0.05
+  done
+  if [[ "$preflight_socket_ready" != true ]]; then
+    wait "$preflight_receiver_pid" 2>/dev/null || true
+    preflight_receiver_pid=
+    fail_runtime "host model preflight receiver did not become ready"
+  fi
+  preflight_docker_args=(
+    run --rm
+    --name "$preflight_container_name"
+    --hostname "$provider-model-preflight"
+    --label com.gascity.boundary=model-preflight
+    --label "com.gascity.provider=$provider"
+    --network "$network"
+    --user 1000:1000
+    --read-only
+    --tmpfs /home/worker:rw,nosuid,nodev,size=256m,uid=1000,gid=1000,mode=0700
+    --tmpfs /tmp:rw,nosuid,nodev,noexec,size=64m
+    --tmpfs /run/lock:rw,nosuid,nodev,noexec,size=8m
+    --cap-drop ALL
+    --security-opt no-new-privileges
+    --pids-limit 128
+    --memory 2g
+    --cpus 1
+    --ulimit nofile=1024:1024
+    --stop-timeout 10
+    --env HOME=/home/worker
+    --env USER=worker
+    --env LOGNAME=worker
+    --env "GC_EXPECTED_MODEL=$expected_model"
+    --env "GC_EXPECTED_EFFORT=$expected_effort"
+    --env GC_PROVIDER_HOME=/run/gas-city/provider-home
+    --env GC_MODEL_EVIDENCE_SOCKET=/run/gas-city-trusted/model-evidence.sock
+    --env "HTTPS_PROXY=http://$egress_proxy:8888"
+    --env "HTTP_PROXY=http://$egress_proxy:8888"
+    --env NO_PROXY=localhost,127.0.0.1
+    --mount "type=bind,src=$stable_home,dst=/run/gas-city/provider-home"
+    --mount "type=bind,src=$preflight_socket,dst=/run/gas-city-trusted/model-evidence.sock,readonly"
+    --workdir /opt/gas-city/model-preflight
+  )
+  set +e
+  run_locked_container "${preflight_docker_args[@]}" "$image" model-preflight "$provider"
+  preflight_exit=$?
+  wait "$preflight_receiver_pid"
+  preflight_receiver_exit=$?
+  preflight_receiver_pid=
+  set -e
+  if (( preflight_exit != 0 || preflight_receiver_exit != 0 )); then
+    "$git_broker" preserve \
+      --state-dir "$broker_state" \
+      --provider-exit "$preflight_exit" \
+      --reason startup_failed >/dev/null || true
+    fail_runtime "trusted model preflight did not produce host-owned evidence"
+  fi
+
+  if [[ "$github_delivery_required" == true ]]; then
+    ensure_owner_directory "$broker_state" github-delivery "GitHub delivery state root"
+    github_delivery_root="$broker_state/github-delivery"
+    github_delivery_state="$github_delivery_root/$model_run_id"
+    github_issue=$(
+      "$github_delivery_broker" issue \
+        --state-dir "$github_delivery_state" \
+        --repository "$github_repository" \
+        --default-branch "$github_default_branch" \
+        --app-id-file "$github_app_id_file" \
+        --installation-id-file "$github_installation_id_file" \
+        --private-key-file "$github_private_key_file"
+    ) || fail_runtime "host could not issue one scoped GitHub App delivery token"
+    github_token_file=$(jq -er '.token_path' <<<"$github_issue") || \
+      fail_runtime "GitHub App token broker returned an invalid result"
+    github_receipt_file=$(jq -er '.receipt_path' <<<"$github_issue") || \
+      fail_runtime "GitHub App token broker returned an invalid result"
+    github_receipt_sha256=$(jq -er '.receipt_sha256 | select(test("^[0-9a-f]{64}$"))' \
+      <<<"$github_issue") || fail_runtime "GitHub App token broker receipt digest is invalid"
+    [[ "$github_token_file" == "$github_delivery_state/token" \
+      && "$github_receipt_file" == "$github_delivery_state/receipt.json" ]] || \
+      fail_runtime "GitHub App token broker paths escaped the session state"
+    require_private_secret "$github_token_file" "session GitHub App token"
+    require_private_secret "$github_receipt_file" "session GitHub delivery receipt"
+    observed_github_receipt_sha256=$(/usr/bin/sha256sum "$github_receipt_file")
+    observed_github_receipt_sha256=${observed_github_receipt_sha256%% *}
+    [[ "$observed_github_receipt_sha256" == "$github_receipt_sha256" ]] || \
+      fail_runtime "GitHub delivery receipt changed after issuance"
+    docker_args+=(
+      --env GC_GITHUB_RECEIPT_PATH=/run/gas-city-trusted/github-delivery-receipt.json
+      --env "GC_GITHUB_RECEIPT_SHA256=$github_receipt_sha256"
+      --mount "type=bind,src=$github_token_file,dst=/run/secrets/github_token,readonly"
+      --mount "type=bind,src=$github_receipt_file,dst=/run/gas-city-trusted/github-delivery-receipt.json,readonly"
+    )
+  fi
+
+  session_socket="$model_evidence_state/session.sock"
+  session_ready="$model_evidence_state/session-ready.json"
+  "$model_evidence_broker" receive \
+    --state-dir "$model_evidence_state" \
+    --phase session \
+    --accept-timeout 60 \
+    --timeout 210 >/dev/null &
+  session_receiver_pid=$!
+  session_socket_ready=false
+  for _ in {1..200}; do
+    if [[ -f "$session_ready" && ! -L "$session_ready" && -S "$session_socket" ]]; then
+      session_socket_ready=true
+      break
+    fi
+    kill -0 "$session_receiver_pid" 2>/dev/null || break
+    sleep 0.05
+  done
+  if [[ "$session_socket_ready" != true ]]; then
+    wait "$session_receiver_pid" 2>/dev/null || true
+    fail_runtime "host session evidence receiver did not become ready"
+  fi
+  docker_args+=(
+    --env GC_MODEL_EVIDENCE_REQUIRED=true
+    --env GC_MODEL_EVIDENCE_SOCKET=/run/gas-city-trusted/model-evidence.sock
+    --mount "type=bind,src=$session_socket,dst=/run/gas-city-trusted/model-evidence.sock,readonly"
+  )
+  model_evidence_active=true
+fi
+
+set +e
+run_locked_container "${docker_args[@]}" "$image" "$provider" "$@"
+provider_exit=$?
+cleanup_session_github_token
+if [[ "$model_evidence_active" == true ]]; then
+  wait "$session_receiver_pid"
+  model_evidence_exit=$?
+  session_receiver_pid=
+else
+  model_evidence_exit=0
+fi
+set -e
+
+if [[ "$git_broker_active" == true ]]; then
+  if (( provider_exit == 0 && model_evidence_exit != 0 )); then
+    "$git_broker" preserve \
+      --state-dir "$broker_state" \
+      --provider-exit 70 \
+      --reason promotion_rejected >/dev/null || true
+    exit 70
+  fi
+  set +e
+  broker_result=$(
+    "$git_broker" finalize \
+      --state-dir "$broker_state" \
+      --provider "$provider" \
+      --provider-exit "$provider_exit" \
+      --model-evidence-state "$model_evidence_state"
+  )
+  broker_exit=$?
+  set -e
+  if (( broker_exit != 0 )); then
+    "$git_broker" preserve \
+      --state-dir "$broker_state" \
+      --provider-exit "$provider_exit" \
+      --reason promotion_rejected >/dev/null || true
+    exit 70
+  fi
+  broker_status=$(jq -er '.status' <<<"$broker_result")
+  if (( provider_exit == 0 )); then
+    [[ "$broker_status" == promoted ]] || fail_runtime "successful provider was not Git-promoted"
+  else
+    [[ "$broker_status" == preserved ]] || fail_runtime "failed provider Git state was not preserved"
+  fi
+fi
+exit "$provider_exit"

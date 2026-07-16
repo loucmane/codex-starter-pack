@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.machinery
 import importlib.util
 import json
+import os
 import sys
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+
+from aegis_foundation import task_authority
 
 from tests.meta_workflow_guard.cross_project_fixtures import (
     REPO_SHAPES,
@@ -39,6 +43,50 @@ def load_guard_module():
     sys.modules[loader.name] = module
     loader.exec_module(module)
     return module
+
+
+def configure_beads_authority(monkeypatch, tmp_path: Path) -> Path:
+    evidence = task_authority.TaskAuthorityEvidence(
+        taskmaster_snapshot_sha256=hashlib.sha256(b"snapshot").hexdigest(),
+        migration_report_sha256=hashlib.sha256(b"migration").hexdigest(),
+        backup_restore_report_sha256=hashlib.sha256(b"restore").hexdigest(),
+    )
+    receipt_path = tmp_path / "authority" / "aegis.json"
+    initial = task_authority.initialize_taskmaster_authority(
+        receipt_path,
+        rig="aegis",
+        beads_prefix="ags",
+        database="aegis_beads",
+        evidence=evidence,
+        activated_at="2026-07-15T18:00:00Z",
+    )
+    task_authority.transition_authority(
+        receipt_path,
+        target_mode=task_authority.TaskAuthorityMode.BEADS,
+        expected_generation=initial.generation,
+        expected_rig="aegis",
+        expected_beads_prefix="ags",
+        expected_database="aegis_beads",
+        expected_evidence=evidence,
+        activated_at="2026-07-15T18:01:00Z",
+    )
+    monkeypatch.setenv("AEGIS_TASK_AUTHORITY_FILE", str(receipt_path))
+    runtime_path = tmp_path / "trusted-runtime" / "task_authority.py"
+    runtime_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_path.write_text(
+        Path(task_authority.__file__).read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    runtime_path.chmod(0o444)
+    monkeypatch.setenv("AEGIS_TASK_AUTHORITY_RUNTIME_FILE", str(runtime_path))
+    monkeypatch.setenv(
+        "AEGIS_TASK_AUTHORITY_RUNTIME_SHA256",
+        hashlib.sha256(runtime_path.read_bytes()).hexdigest(),
+    )
+    monkeypatch.setenv("GC_RIG", "aegis")
+    monkeypatch.setenv("GC_BEADS_PREFIX", "ags")
+    monkeypatch.setenv("BEADS_DOLT_SERVER_DATABASE", "aegis_beads")
+    return receipt_path
 
 
 def test_merge_parent_inherited_entries_are_not_current_work(monkeypatch) -> None:
@@ -757,6 +805,133 @@ session_id: 2030-01-02-001
     changed = [module.REPO_ROOT / '.taskmaster' / 'tasks' / 'task_092.txt']
     issues = module.validate_taskmaster_activity(changed)
     assert issues == []
+
+
+def test_codex_guard_rejects_every_taskmaster_diff_when_beads_is_authoritative(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    configure_beads_authority(monkeypatch, tmp_path)
+    module = load_guard_module()
+    changed = [
+        module.REPO_ROOT / ".taskmaster" / "state.json",
+        module.REPO_ROOT / ".taskmaster" / "reports" / "custom.json",
+        module.REPO_ROOT / "src" / "unrelated.py",
+    ]
+
+    issues = module.validate_task_authority(changed)
+
+    assert [issue.path.as_posix() for issue in issues] == [
+        ".taskmaster/state.json",
+        ".taskmaster/reports/custom.json",
+    ]
+    assert all("explicit authority receipt selects Beads" in issue.message for issue in issues)
+
+
+def test_codex_guard_rejects_taskmaster_deletions_and_both_rename_directions(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    configure_beads_authority(monkeypatch, tmp_path)
+    module = load_guard_module()
+
+    issues = module.validate_task_authority_entries(
+        [
+            (" D", ".taskmaster/state.json"),
+            ("D ", ".taskmaster/tasks/task_103.txt"),
+            ("R ", ".taskmaster/config.json -> saved-config.json"),
+            ("R ", "restored-state.json -> .taskmaster/restored-state.json"),
+        ]
+    )
+
+    assert [issue.path.as_posix() for issue in issues] == [
+        ".taskmaster/state.json",
+        ".taskmaster/tasks/task_103.txt",
+        ".taskmaster/config.json",
+        ".taskmaster/restored-state.json",
+    ]
+
+
+def test_codex_guard_preserves_legacy_taskmaster_behavior_when_authority_env_is_absent(
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("AEGIS_TASK_AUTHORITY_FILE", raising=False)
+    module = load_guard_module()
+
+    assert module.validate_task_authority(
+        [module.REPO_ROOT / ".taskmaster" / "tasks" / "tasks.json"]
+    ) == []
+
+
+def test_codex_guard_fails_closed_when_explicit_authority_is_invalid(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("AEGIS_TASK_AUTHORITY_FILE", str(tmp_path / "missing.json"))
+    runtime_path = tmp_path / "trusted-runtime" / "task_authority.py"
+    runtime_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_path.write_text(
+        Path(task_authority.__file__).read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    runtime_path.chmod(0o444)
+    monkeypatch.setenv("AEGIS_TASK_AUTHORITY_RUNTIME_FILE", str(runtime_path))
+    monkeypatch.setenv(
+        "AEGIS_TASK_AUTHORITY_RUNTIME_SHA256",
+        hashlib.sha256(runtime_path.read_bytes()).hexdigest(),
+    )
+    monkeypatch.setenv("GC_RIG", "aegis")
+    monkeypatch.setenv("GC_BEADS_PREFIX", "ags")
+    monkeypatch.setenv("BEADS_DOLT_SERVER_DATABASE", "aegis_beads")
+    module = load_guard_module()
+
+    issues = module.validate_task_authority([])
+
+    assert len(issues) == 1
+    assert "Explicit task authority could not be validated" in issues[0].message
+
+
+def test_codex_guard_rejects_repo_local_task_authority_runtime(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    configure_beads_authority(monkeypatch, tmp_path)
+    module = load_guard_module()
+    governed_root = tmp_path / "governed-repository"
+    governed_root.mkdir()
+    monkeypatch.setattr(module, "REPO_ROOT", governed_root)
+    repo_runtime = governed_root / "tools" / "task_authority.py"
+    repo_runtime.parent.mkdir()
+    repo_runtime.write_text(
+        Path(task_authority.__file__).read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("AEGIS_TASK_AUTHORITY_RUNTIME_FILE", str(repo_runtime))
+    monkeypatch.setenv(
+        "AEGIS_TASK_AUTHORITY_RUNTIME_SHA256",
+        hashlib.sha256(repo_runtime.read_bytes()).hexdigest(),
+    )
+
+    issues = module.validate_task_authority([])
+
+    assert len(issues) == 1
+    assert "outside the writable governed repository" in issues[0].message
+
+
+def test_codex_guard_rejects_tampered_task_authority_runtime(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    configure_beads_authority(monkeypatch, tmp_path)
+    runtime_path = Path(os.environ["AEGIS_TASK_AUTHORITY_RUNTIME_FILE"])
+    runtime_path.chmod(0o644)
+    runtime_path.write_text("raise RuntimeError('tampered')\n", encoding="utf-8")
+    module = load_guard_module()
+
+    issues = module.validate_task_authority([])
+
+    assert len(issues) == 1
+    assert "SHA-256 does not match its pinned digest" in issues[0].message
 
 
 def test_build_tracker_last_updated_fix_updates_stale_date(monkeypatch) -> None:

@@ -1,0 +1,1076 @@
+#!/usr/bin/python3 -I
+"""Guarded operator entrypoint for the shared Gas City deployment."""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import hashlib
+import importlib.machinery
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import types
+
+sys.dont_write_bytecode = True
+
+SOURCE_ROOT = Path(__file__).resolve().parents[1]
+ADMIN_RUNTIME_DESTINATIONS = frozenset(
+    {
+        "bin/gas-city-admin",
+        "aegis_foundation/__init__.py",
+        "aegis_foundation/version.py",
+        "aegis_foundation/gas_city_authority.py",
+        "aegis_foundation/gas_city_endpoint.py",
+        "aegis_foundation/gas_city_ops.py",
+        "aegis_foundation/obsidian_vault.py",
+        "aegis_foundation/task_authority.py",
+        "aegis_foundation/taskmaster_beads.py",
+    }
+)
+
+
+def _verify_deployed_admin_runtime() -> dict[str, bytes] | None:
+    """Fail before imports if a deployed operator runtime is not manifest-exact."""
+
+    lock_path = SOURCE_ROOT / "runtime-lock.json"
+    manifest_path = SOURCE_ROOT / "control-plane-manifest.json"
+    if not lock_path.exists() and not manifest_path.exists():
+        return None
+    if not sys.flags.isolated:
+        raise SystemExit("gas-city-admin: deployed runtime requires isolated Python")
+    if Path(sys.executable).resolve() != Path("/usr/bin/python3").resolve():
+        raise SystemExit("gas-city-admin: deployed runtime requires /usr/bin/python3")
+    if not lock_path.is_file() or not manifest_path.is_file():
+        raise SystemExit("gas-city-admin: deployed runtime lock or manifest is missing")
+    if lock_path.is_symlink() or manifest_path.is_symlink():
+        raise SystemExit("gas-city-admin: deployed runtime metadata must not be symlinked")
+    try:
+        lock_bytes = lock_path.read_bytes()
+        manifest_bytes = manifest_path.read_bytes()
+        lock = json.loads(lock_bytes)
+        manifest = json.loads(manifest_bytes)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise SystemExit(f"gas-city-admin: cannot verify deployed runtime: {exc}") from exc
+    binding = lock.get("control_plane_manifest") if type(lock) is dict else None
+    if binding != {
+        "path": "control-plane-manifest.json",
+        "sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+    }:
+        raise SystemExit("gas-city-admin: control-plane manifest binding is invalid")
+    entries = manifest.get("entries") if type(manifest) is dict else None
+    if type(entries) is not list:
+        raise SystemExit("gas-city-admin: control-plane manifest entries are invalid")
+    by_destination = {
+        record.get("destination"): record
+        for record in entries
+        if type(record) is dict and type(record.get("destination")) is str
+    }
+    if set(by_destination) & ADMIN_RUNTIME_DESTINATIONS != ADMIN_RUNTIME_DESTINATIONS:
+        raise SystemExit("gas-city-admin: control-plane manifest omits the admin runtime")
+    package_root = SOURCE_ROOT / "aegis_foundation"
+    expected_package_entries = {
+        Path(relative).name
+        for relative in ADMIN_RUNTIME_DESTINATIONS
+        if relative.startswith("aegis_foundation/")
+    }
+    try:
+        observed_package_entries = {path.name for path in package_root.iterdir()}
+    except OSError as exc:
+        raise SystemExit(f"gas-city-admin: cannot inspect admin package: {exc}") from exc
+    if (
+        package_root.is_symlink()
+        or not package_root.is_dir()
+        or observed_package_entries != expected_package_entries
+    ):
+        raise SystemExit(
+            "gas-city-admin: admin package contains missing or unverified entries"
+        )
+    verified_sources: dict[str, bytes] = {}
+    for relative in sorted(ADMIN_RUNTIME_DESTINATIONS):
+        record = by_destination[relative]
+        path = SOURCE_ROOT / relative
+        try:
+            expected_mode = int(record["destination_mode"], 8)
+            expected_sha = record["sha256"]
+            observed_mode = path.stat().st_mode & 0o7777
+            observed_bytes = path.read_bytes()
+            observed_sha = hashlib.sha256(observed_bytes).hexdigest()
+        except (KeyError, OSError, TypeError, ValueError) as exc:
+            raise SystemExit(
+                f"gas-city-admin: cannot verify deployed admin file {relative}: {exc}"
+            ) from exc
+        if (
+            path.is_symlink()
+            or not path.is_file()
+            or observed_mode != expected_mode
+            or observed_sha != expected_sha
+        ):
+            raise SystemExit(f"gas-city-admin: deployed admin file drift: {relative}")
+        if relative.startswith("aegis_foundation/"):
+            verified_sources[relative] = observed_bytes
+    if Path(__file__).is_symlink() or Path(__file__).resolve() != (
+        SOURCE_ROOT / "bin" / "gas-city-admin"
+    ):
+        raise SystemExit("gas-city-admin: deployed entrypoint path is not canonical")
+    return verified_sources
+
+
+def _exec_verified_module(
+    fullname: str,
+    relative: str,
+    source: bytes,
+    *,
+    package: bool = False,
+) -> types.ModuleType:
+    """Compile an already-verified source buffer without consulting bytecode caches."""
+
+    origin = (SOURCE_ROOT / relative).as_posix()
+    spec = importlib.machinery.ModuleSpec(
+        fullname,
+        loader=None,
+        origin=origin,
+        is_package=package,
+    )
+    if package:
+        spec.submodule_search_locations = []
+    module = types.ModuleType(fullname)
+    module.__file__ = origin
+    module.__loader__ = None
+    module.__package__ = fullname if package else fullname.rpartition(".")[0]
+    module.__spec__ = spec
+    module.__cached__ = None
+    if package:
+        module.__path__ = []
+    sys.modules[fullname] = module
+    if "." in fullname:
+        parent_name, _, child_name = fullname.rpartition(".")
+        parent = sys.modules[parent_name]
+        setattr(parent, child_name, module)
+    try:
+        code = compile(source, origin, "exec", dont_inherit=True)
+        exec(code, module.__dict__)
+    except BaseException:
+        sys.modules.pop(fullname, None)
+        raise
+    return module
+
+
+def _load_verified_admin_modules(
+    sources: dict[str, bytes],
+) -> tuple[types.ModuleType, ...]:
+    package = _exec_verified_module(
+        "aegis_foundation",
+        "aegis_foundation/__init__.py",
+        b"",
+        package=True,
+    )
+    version = _exec_verified_module(
+        "aegis_foundation.version",
+        "aegis_foundation/version.py",
+        sources["aegis_foundation/version.py"],
+    )
+    exec(
+        compile(
+            sources["aegis_foundation/__init__.py"],
+            (SOURCE_ROOT / "aegis_foundation/__init__.py").as_posix(),
+            "exec",
+            dont_inherit=True,
+        ),
+        package.__dict__,
+    )
+    task_authority_module = _exec_verified_module(
+        "aegis_foundation.task_authority",
+        "aegis_foundation/task_authority.py",
+        sources["aegis_foundation/task_authority.py"],
+    )
+    taskmaster_beads_module = _exec_verified_module(
+        "aegis_foundation.taskmaster_beads",
+        "aegis_foundation/taskmaster_beads.py",
+        sources["aegis_foundation/taskmaster_beads.py"],
+    )
+    _exec_verified_module(
+        "aegis_foundation.obsidian_vault",
+        "aegis_foundation/obsidian_vault.py",
+        sources["aegis_foundation/obsidian_vault.py"],
+    )
+    gas_city_ops_module = _exec_verified_module(
+        "aegis_foundation.gas_city_ops",
+        "aegis_foundation/gas_city_ops.py",
+        sources["aegis_foundation/gas_city_ops.py"],
+    )
+    gas_city_authority_module = _exec_verified_module(
+        "aegis_foundation.gas_city_authority",
+        "aegis_foundation/gas_city_authority.py",
+        sources["aegis_foundation/gas_city_authority.py"],
+    )
+    gas_city_endpoint_module = _exec_verified_module(
+        "aegis_foundation.gas_city_endpoint",
+        "aegis_foundation/gas_city_endpoint.py",
+        sources["aegis_foundation/gas_city_endpoint.py"],
+    )
+    del version
+    return (
+        gas_city_authority_module,
+        gas_city_endpoint_module,
+        gas_city_ops_module,
+        task_authority_module,
+        taskmaster_beads_module,
+    )
+
+
+_DEPLOYED_ADMIN_SOURCES = _verify_deployed_admin_runtime()
+if _DEPLOYED_ADMIN_SOURCES is None:
+    if SOURCE_ROOT.as_posix() not in sys.path:
+        sys.path.insert(0, SOURCE_ROOT.as_posix())
+    from aegis_foundation import (  # noqa: E402
+        gas_city_authority,
+        gas_city_endpoint,
+        gas_city_ops,
+        task_authority,
+        taskmaster_beads,
+    )
+else:
+    (
+        gas_city_authority,
+        gas_city_endpoint,
+        gas_city_ops,
+        task_authority,
+        taskmaster_beads,
+    ) = _load_verified_admin_modules(_DEPLOYED_ADMIN_SOURCES)
+
+
+AUTHORITY_IDENTITY = {
+    "rig": "aegis",
+    "beads_prefix": "ags",
+    "database": "aegis_beads",
+}
+
+
+def _print(value: object) -> None:
+    print(json.dumps(value, indent=2, sort_keys=True))
+
+
+def _git(repo: Path, *args: str) -> str:
+    result = subprocess.run(
+        ("git", "-C", repo.as_posix(), *args),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise gas_city_ops.GasCityOpsError(result.stderr.strip())
+    return result.stdout
+
+
+def _taskmaster_health(repo: Path) -> str:
+    result = subprocess.run(
+        (sys.executable, "scripts/codex-task", "taskmaster", "health"),
+        cwd=repo,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise gas_city_ops.GasCityOpsError("Taskmaster full-graph health failed:\n" + result.stdout)
+    return result.stdout
+
+
+def _endpoint(prefix: str, args: argparse.Namespace) -> gas_city_ops.DoltEndpoint:
+    return gas_city_ops.DoltEndpoint(
+        host=getattr(args, f"{prefix}_host"),
+        port=getattr(args, f"{prefix}_port"),
+        user=getattr(args, f"{prefix}_user"),
+        database=getattr(args, f"{prefix}_database"),
+    )
+
+
+def _authority_gc_environment() -> dict[str, str]:
+    """Load attended HQ auth for pinned gc without persisting it in the city."""
+
+    password = gas_city_ops.read_private_secret_file_from_environment(
+        os.environ,
+        gas_city_endpoint.TRANSITION_SECRET_VARIABLE,
+    )
+    return {
+        **os.environ,
+        "BEADS_DOLT_PASSWORD": password,
+        "DOLT_CLI_PASSWORD": password,
+        "GC_DOLT_PASSWORD": password,
+    }
+
+
+def _target_beads_environment() -> dict[str, str]:
+    """Load attended Aegis auth for read-only Beads evidence commands."""
+
+    password = gas_city_ops.read_private_secret_file_from_environment(
+        os.environ,
+        "GAS_CITY_TARGET_DOLT_PASSWORD_FILE",
+    )
+    return {
+        **os.environ,
+        "BEADS_DOLT_SERVER_HOST": gas_city_ops.AEGIS_BEADS_INIT_HOST,
+        "BEADS_DOLT_SERVER_PORT": str(gas_city_ops.AEGIS_BEADS_INIT_PORT),
+        "BEADS_DOLT_SERVER_USER": gas_city_ops.AEGIS_BEADS_INIT_USER,
+        "BEADS_DOLT_SERVER_DATABASE": gas_city_ops.AEGIS_BEADS_INIT_DATABASE,
+        "BD_BACKUP_ENABLED": "false",
+        "BEADS_DOLT_PASSWORD": password,
+        "DOLT_CLI_PASSWORD": password,
+    }
+
+
+def _authority_hook(
+    args: argparse.Namespace,
+    environment: dict[str, str],
+) -> gas_city_ops.AegisStoppedWorkersHook:
+    return gas_city_ops.AegisStoppedWorkersHook(
+        city_root=args.city_root,
+        lock_path=args.lock,
+        docker_binary=args.docker,
+        environment=environment,
+    )
+
+
+def _authority_report(city_root: Path) -> dict[str, object]:
+    report = gas_city_authority.verify_authority_chain(
+        city_root,
+        **AUTHORITY_IDENTITY,
+    )
+    current = (
+        None
+        if report.current is None
+        else task_authority.receipt_mapping(report.current)
+    )
+    generations = []
+    for record in report.generation_records:
+        generation = int(record["generation"])
+        path = report.layout.history_root / f"generation-{generation:08d}.json"
+        generations.append(
+            {
+                "generation": generation,
+                "transition": record["transition"],
+                "created_at": record["created_at"],
+                "mode": record["receipt"]["mode"],
+                "path": path.as_posix(),
+                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            }
+        )
+    return {
+        "status": "pass",
+        "receipt_path": report.layout.receipt_path.as_posix(),
+        "current": current,
+        "generation_records": generations,
+        "current_record_sha256": report.current_record_sha256,
+        "recoverable_attempt": report.recoverable_attempt is not None,
+        "uncommitted_attempt_count": len(report.uncommitted_attempts),
+    }
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest="command", required=True)
+
+    verify = commands.add_parser("verify-lock")
+    verify.add_argument("--city-root", type=Path, default=Path.home() / "gas-city")
+    verify.add_argument("--lock", type=Path, required=True)
+    verify.add_argument("--require-observed-models", action="store_true")
+
+    image_build = commands.add_parser("build-images")
+    image_build.add_argument("--lock", type=Path, required=True)
+    image_build.add_argument("--context", type=Path, required=True)
+    image_build.add_argument("--docker", type=Path, default=Path("/usr/bin/docker"))
+
+    image_promote = commands.add_parser("promote-images")
+    image_promote.add_argument("--lock", type=Path, required=True)
+    image_promote.add_argument("--docker", type=Path, default=Path("/usr/bin/docker"))
+
+    endpoint_transition = commands.add_parser("endpoint-transition-hq")
+    endpoint_transition.add_argument(
+        "--city-root", type=Path, default=Path.home() / "gas-city"
+    )
+    endpoint_transition.add_argument("--lock", type=Path, required=True)
+    endpoint_transition.add_argument("--evidence-dir", type=Path, required=True)
+
+    hq_initialize = commands.add_parser("initialize-hq-beads")
+    hq_initialize.add_argument(
+        "--city-root", type=Path, default=Path.home() / "gas-city"
+    )
+    hq_initialize.add_argument("--lock", type=Path, required=True)
+    hq_initialize.add_argument("--evidence-dir", type=Path, required=True)
+
+    endpoint_rollback = commands.add_parser("endpoint-rollback-hq")
+    endpoint_rollback.add_argument(
+        "--city-root", type=Path, default=Path.home() / "gas-city"
+    )
+    endpoint_rollback.add_argument("--lock", type=Path, required=True)
+    endpoint_rollback.add_argument("--transition-receipt", type=Path, required=True)
+    endpoint_rollback.add_argument("--evidence-dir", type=Path, required=True)
+
+    endpoint_verify = commands.add_parser("endpoint-verify-hq")
+    endpoint_verify.add_argument(
+        "--city-root", type=Path, default=Path.home() / "gas-city"
+    )
+    endpoint_verify.add_argument("--lock", type=Path, required=True)
+    endpoint_verify.add_argument("--transition-receipt", type=Path, required=True)
+
+    snapshot = commands.add_parser("snapshot-taskmaster")
+    snapshot.add_argument("--repo", type=Path, required=True)
+    snapshot.add_argument("--output", type=Path, required=True)
+
+    model = commands.add_parser("verify-model")
+    model.add_argument("--provider", choices=("claude", "codex"), required=True)
+    model.add_argument("--transcript", type=Path, required=True)
+    model.add_argument("--lock", type=Path, required=True)
+
+    drill = commands.add_parser("backup-restore-drill")
+    drill.add_argument("--lock", type=Path, required=True)
+    drill.add_argument("--source-repo", type=Path, required=True)
+    drill.add_argument("--restore-repo", type=Path, required=True)
+    drill.add_argument("--backup-dir", type=Path, required=True)
+    drill.add_argument("--bd", type=Path, required=True)
+    drill.add_argument("--dolt", type=Path, required=True)
+    drill.add_argument("--docker", type=Path, default=Path("/usr/bin/docker"))
+    drill.add_argument("--source-container", required=True)
+    drill.add_argument("--restore-container", required=True)
+    drill.add_argument("--evidence-output", type=Path, required=True)
+    for prefix in ("source", "restore"):
+        drill.add_argument(f"--{prefix}-host", required=True)
+        drill.add_argument(f"--{prefix}-port", required=True, type=int)
+        drill.add_argument(f"--{prefix}-user", required=True)
+        drill.add_argument(f"--{prefix}-database", required=True)
+
+    cold = commands.add_parser("capture-cold-backup")
+    cold.add_argument("--source-data-dir", type=Path, required=True)
+    cold.add_argument("--output", type=Path, required=True)
+    cold.add_argument("--lock", type=Path, required=True)
+    cold.add_argument("--dolt", type=Path, required=True)
+    cold.add_argument("--docker", type=Path, default=Path("/usr/bin/docker"))
+    cold.add_argument("--database-relative-path", default="hq")
+    cold.add_argument("--endpoint-host", default="127.0.0.1")
+    cold.add_argument("--endpoint-port", type=int, default=33070)
+    cold.add_argument("--container-name", default="gas-city-hq-dolt")
+
+    authority = commands.add_parser("capture-authority-evidence")
+    authority.add_argument("--lock", type=Path, required=True)
+    authority.add_argument("--snapshot", type=Path, required=True)
+    authority.add_argument("--output", type=Path, required=True)
+
+    provider_evidence = commands.add_parser("capture-provider-evidence")
+    provider_evidence.add_argument("--lock", type=Path, required=True)
+    provider_evidence.add_argument("--claude-supervisor-receipt", type=Path, required=True)
+    provider_evidence.add_argument("--claude-transcript", type=Path, required=True)
+    provider_evidence.add_argument("--codex-supervisor-receipt", type=Path, required=True)
+    provider_evidence.add_argument("--codex-transcript", type=Path, required=True)
+    provider_evidence.add_argument("--output", type=Path, required=True)
+
+    obsidian_evidence = commands.add_parser("capture-obsidian-evidence")
+    obsidian_evidence.add_argument("--lock", type=Path, required=True)
+    obsidian_evidence.add_argument("--target-repo", type=Path, required=True)
+    obsidian_evidence.add_argument("--first-vault", type=Path, required=True)
+    obsidian_evidence.add_argument("--second-vault", type=Path, required=True)
+    obsidian_evidence.add_argument("--output", type=Path, required=True)
+
+    canary_start = commands.add_parser("start-controlled-canary")
+    canary_start.add_argument("--lock", type=Path, required=True)
+    canary_start.add_argument("--target-repo", type=Path, required=True)
+    canary_start.add_argument("--bead-id", required=True)
+    canary_start.add_argument("--git", type=Path, default=Path("/usr/bin/git"))
+    canary_start.add_argument("--gh", type=Path, default=Path("/usr/bin/gh"))
+
+    canary_capture = commands.add_parser("capture-controlled-canary")
+    canary_capture.add_argument("--lock", type=Path, required=True)
+    canary_capture.add_argument("--intent", type=Path, required=True)
+    canary_capture.add_argument("--canary-worktree", type=Path, required=True)
+    canary_capture.add_argument("--git", type=Path, default=Path("/usr/bin/git"))
+    canary_capture.add_argument("--gh", type=Path, default=Path("/usr/bin/gh"))
+
+    stopped = commands.add_parser("authority-capture-stopped")
+    stopped.add_argument("--city-root", type=Path, default=Path.home() / "gas-city")
+    stopped.add_argument("--lock", type=Path, required=True)
+    stopped.add_argument("--output", type=Path, required=True)
+    stopped.add_argument("--docker", type=Path, default=Path("/usr/bin/docker"))
+
+    authority_init = commands.add_parser("authority-initialize")
+    authority_init.add_argument("--city-root", type=Path, default=Path.home() / "gas-city")
+    authority_init.add_argument("--lock", type=Path, required=True)
+    authority_init.add_argument("--snapshot", type=Path, required=True)
+    authority_init.add_argument("--migration-evidence", type=Path, required=True)
+    authority_init.add_argument("--recovery-evidence", type=Path, required=True)
+    authority_init.add_argument("--target-repo", type=Path, required=True)
+    authority_init.add_argument("--stopped-evidence", type=Path, required=True)
+    authority_init.add_argument("--docker", type=Path, default=Path("/usr/bin/docker"))
+
+    authority_activate = commands.add_parser("authority-activate-beads")
+    authority_activate.add_argument(
+        "--city-root", type=Path, default=Path.home() / "gas-city"
+    )
+    authority_activate.add_argument("--lock", type=Path, required=True)
+    authority_activate.add_argument("--stopped-evidence", type=Path, required=True)
+    authority_activate.add_argument("--docker", type=Path, default=Path("/usr/bin/docker"))
+
+    authority_verify = commands.add_parser("authority-verify")
+    authority_verify.add_argument(
+        "--city-root", type=Path, default=Path.home() / "gas-city"
+    )
+
+    authority_recover = commands.add_parser("authority-recover-history")
+    authority_recover.add_argument(
+        "--city-root", type=Path, default=Path.home() / "gas-city"
+    )
+
+    authority_rollback = commands.add_parser("authority-rollback-taskmaster")
+    authority_rollback.add_argument(
+        "--city-root", type=Path, default=Path.home() / "gas-city"
+    )
+    authority_rollback.add_argument("--lock", type=Path, required=True)
+    authority_rollback.add_argument("--stopped-evidence", type=Path, required=True)
+    authority_rollback.add_argument("--rollback-recovery", type=Path, required=True)
+    authority_rollback.add_argument("--docker", type=Path, default=Path("/usr/bin/docker"))
+
+    canary = commands.add_parser("promote-canary")
+    canary.add_argument("--lock", type=Path, required=True)
+    for kind in gas_city_ops.CANARY_EVIDENCE_KINDS:
+        canary.add_argument(f"--{kind}-evidence", type=Path, required=True)
+
+    soak_start = commands.add_parser("start-soak")
+    soak_start.add_argument("--lock", type=Path, required=True)
+    soak_start.add_argument("--output", type=Path, required=True)
+
+    soak_observe = commands.add_parser("observe-soak")
+    soak_observe.add_argument("--lock", type=Path, required=True)
+    soak_observe.add_argument("--target-repo", type=Path, required=True)
+    soak_observe.add_argument("--vault", type=Path, required=True)
+    soak_observe.add_argument("--observations", type=Path, required=True)
+
+    soak_finish = commands.add_parser("finish-soak")
+    soak_finish.add_argument("--lock", type=Path, required=True)
+    soak_finish.add_argument("--start-receipt", type=Path, required=True)
+    soak_finish.add_argument("--observations", type=Path, required=True)
+    soak_finish.add_argument("--output", type=Path, required=True)
+
+    production = commands.add_parser("promote-production")
+    production.add_argument("--lock", type=Path, required=True)
+    production.add_argument("--soak-evidence", type=Path, required=True)
+
+    beads_init = commands.add_parser("initialize-aegis-beads")
+    beads_init.add_argument("--lock", type=Path, required=True)
+    beads_init.add_argument("--target-repo", type=Path, required=True)
+    beads_init.add_argument(
+        "--bd", type=Path, default=Path.home() / "gas-city" / "bin" / "bd"
+    )
+    beads_init.add_argument(
+        "--dolt", type=Path, default=Path.home() / "gas-city" / "bin" / "dolt"
+    )
+    beads_init.add_argument("--git", type=Path, default=Path("/usr/bin/git"))
+
+    migrate = commands.add_parser("migrate-taskmaster")
+    migrate.add_argument("--lock", type=Path, required=True)
+    migrate.add_argument("--snapshot", type=Path, required=True)
+    migrate.add_argument("--target-repo", type=Path, required=True)
+    migrate.add_argument("--evidence-dir", type=Path, required=True)
+    migrate.add_argument(
+        "--bd", type=Path, default=Path.home() / "gas-city" / "bin" / "bd"
+    )
+    migrate.add_argument(
+        "--dolt", type=Path, default=Path.home() / "gas-city" / "bin" / "dolt"
+    )
+    migrate.add_argument("--dolt-host", required=True)
+    migrate.add_argument("--dolt-port", required=True, type=int)
+    migrate.add_argument("--dolt-user", required=True)
+    migrate.add_argument("--dolt-database", required=True)
+    migrate.add_argument("--no-tls", action="store_true")
+    migrate.add_argument("--tag", default="master")
+    migrate.add_argument("--prefix", default="ags")
+
+    reconcile = commands.add_parser("reconcile-taskmaster")
+    reconcile.add_argument("--lock", type=Path, required=True)
+    reconcile.add_argument("--snapshot", type=Path, required=True)
+    reconcile.add_argument("--target-repo", type=Path, required=True)
+    reconcile.add_argument("--evidence-dir", type=Path, required=True)
+    reconcile.add_argument(
+        "--bd", type=Path, default=Path.home() / "gas-city" / "bin" / "bd"
+    )
+    reconcile.add_argument(
+        "--dolt", type=Path, default=Path.home() / "gas-city" / "bin" / "dolt"
+    )
+    reconcile.add_argument("--dolt-host", required=True)
+    reconcile.add_argument("--dolt-port", required=True, type=int)
+    reconcile.add_argument("--dolt-user", required=True)
+    reconcile.add_argument("--dolt-database", required=True)
+    reconcile.add_argument("--no-tls", action="store_true")
+    reconcile.add_argument("--tag", default="master")
+    reconcile.add_argument("--prefix", default="ags")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    os.umask(0o077)
+    args = build_parser().parse_args(argv)
+    try:
+        if args.command == "verify-lock":
+            result = gas_city_ops.verify_installed_toolchain(
+                args.city_root,
+                args.lock,
+                require_observed_models=args.require_observed_models,
+            )
+        elif args.command == "build-images":
+            result = gas_city_ops.build_locked_images(
+                args.lock,
+                args.context,
+                docker_binary=args.docker,
+            )
+        elif args.command == "promote-images":
+            result = gas_city_ops.promote_locked_images(
+                args.lock,
+                docker_binary=args.docker,
+            )
+        elif args.command == "endpoint-transition-hq":
+            password = gas_city_ops.read_private_secret_file_from_environment(
+                os.environ,
+                gas_city_endpoint.TRANSITION_SECRET_VARIABLE,
+            )
+            result = gas_city_endpoint.transition_hq_endpoint(
+                args.city_root,
+                args.lock,
+                args.evidence_dir,
+                password=password,
+                environment=os.environ,
+            )
+        elif args.command == "initialize-hq-beads":
+            password = gas_city_ops.read_private_secret_file_from_environment(
+                os.environ,
+                gas_city_endpoint.TRANSITION_SECRET_VARIABLE,
+            )
+            result = gas_city_endpoint.initialize_hq_beads(
+                args.city_root,
+                args.lock,
+                args.evidence_dir,
+                password=password,
+                environment=os.environ,
+            )
+        elif args.command == "endpoint-rollback-hq":
+            result = gas_city_endpoint.rollback_hq_endpoint(
+                args.city_root,
+                args.lock,
+                args.transition_receipt,
+                args.evidence_dir,
+                environment=os.environ,
+            )
+        elif args.command == "endpoint-verify-hq":
+            result = gas_city_endpoint.verify_hq_endpoint_transition(
+                args.city_root,
+                args.lock,
+                args.transition_receipt,
+                environment=os.environ,
+            )
+        elif args.command == "snapshot-taskmaster":
+            repo = args.repo.expanduser().resolve()
+            source_before = gas_city_ops.taskmaster_source_fingerprint(repo)
+            head_before = _git(repo, "rev-parse", "HEAD").strip()
+            dirty_before = _git(
+                repo,
+                "status",
+                "--porcelain=v1",
+                "--untracked-files=all",
+            ).splitlines()
+            health = _taskmaster_health(repo)
+            source_after = gas_city_ops.taskmaster_source_fingerprint(repo)
+            head_after = _git(repo, "rev-parse", "HEAD").strip()
+            dirty_after = _git(
+                repo,
+                "status",
+                "--porcelain=v1",
+                "--untracked-files=all",
+            ).splitlines()
+            if (
+                source_before != source_after
+                or head_before != head_after
+                or dirty_before != dirty_after
+            ):
+                raise gas_city_ops.GasCityOpsError(
+                    "repository changed while cutover evidence was being collected"
+                )
+            result = gas_city_ops.capture_taskmaster_snapshot(
+                repo,
+                args.output,
+                captured_at=dt.datetime.now(dt.timezone.utc)
+                .replace(microsecond=0)
+                .isoformat()
+                .replace("+00:00", "Z"),
+                git_head=head_after,
+                dirty_paths=[line[3:] for line in dirty_after if len(line) >= 4],
+                health_evidence=health,
+                expected_source_sha256=source_after["sha256"],
+            )
+        elif args.command == "verify-model":
+            lock_path = args.lock.expanduser().resolve(strict=True)
+            lock = gas_city_ops.load_runtime_lock(lock_path)
+            provider_lock = lock["providers"][args.provider]
+            expected_model = provider_lock["requested_model"]
+            expected_effort = provider_lock.get("reasoning_effort")
+            receipt = gas_city_ops.verify_model_transcript(
+                args.provider,
+                args.transcript,
+                expected_model=expected_model,
+                expected_effort=expected_effort,
+            )
+            receipt_path = lock_path.parent / provider_lock["receipt_path"]
+            receipt_digest = gas_city_ops.write_private_json_evidence(
+                receipt_path,
+                receipt,
+                exclusive=True,
+            )
+            result = {
+                "status": "pass",
+                "provider": args.provider,
+                "requested_model": expected_model,
+                "reasoning_effort": expected_effort,
+                "receipt_path": receipt_path.as_posix(),
+                "receipt_sha256": receipt_digest,
+            }
+        elif args.command == "backup-restore-drill":
+            locked_toolchain = gas_city_ops.locked_operation_toolchain_attestation(
+                args.lock,
+                {"bd": args.bd, "dolt": args.dolt},
+                environment={},
+            )
+            source_password = gas_city_ops.read_private_secret_file_from_environment(
+                os.environ,
+                "GAS_CITY_SOURCE_DOLT_PASSWORD_FILE",
+            )
+            restore_password = gas_city_ops.read_private_secret_file_from_environment(
+                os.environ,
+                "GAS_CITY_RESTORE_DOLT_PASSWORD_FILE",
+            )
+            result = gas_city_ops.native_backup_restore_drill(
+                args.source_repo,
+                args.restore_repo,
+                args.backup_dir,
+                lock_path=args.lock,
+                locked_toolchain=locked_toolchain,
+                source_endpoint=_endpoint("source", args),
+                restore_endpoint=_endpoint("restore", args),
+                bd_binary=args.bd,
+                docker_binary=args.docker,
+                source_container=args.source_container,
+                restore_container=args.restore_container,
+                source_password=source_password,
+                restore_password=restore_password,
+            )
+            result["evidence_sha256"] = gas_city_ops.write_private_json_evidence(
+                args.evidence_output,
+                result,
+                exclusive=True,
+            )
+            result["evidence_path"] = args.evidence_output.expanduser().resolve().as_posix()
+        elif args.command == "capture-cold-backup":
+            result = gas_city_ops.capture_cold_dolt_backup(
+                args.source_data_dir,
+                args.output,
+                lock_path=args.lock,
+                dolt_binary=args.dolt,
+                docker_binary=args.docker,
+                database_relative_path=args.database_relative_path,
+                endpoint_host=args.endpoint_host,
+                endpoint_port=args.endpoint_port,
+                container_name=args.container_name,
+            )
+        elif args.command == "capture-authority-evidence":
+            result = gas_city_ops.capture_authority_evidence(
+                args.lock,
+                args.snapshot,
+                args.output,
+            )
+        elif args.command == "capture-provider-evidence":
+            result = gas_city_ops.capture_provider_evidence(
+                args.lock,
+                claude_supervisor_receipt=args.claude_supervisor_receipt,
+                claude_transcript=args.claude_transcript,
+                codex_supervisor_receipt=args.codex_supervisor_receipt,
+                codex_transcript=args.codex_transcript,
+                output_path=args.output,
+            )
+        elif args.command == "capture-obsidian-evidence":
+            target_environment = _target_beads_environment()
+            result = gas_city_ops.capture_obsidian_evidence(
+                args.lock,
+                target_repo=args.target_repo,
+                first_vault=args.first_vault,
+                second_vault=args.second_vault,
+                output_path=args.output,
+                source_root=args.target_repo,
+                environment=target_environment,
+            )
+        elif args.command in {"start-controlled-canary", "capture-controlled-canary"}:
+            github_token = gas_city_ops.read_private_secret_file_from_environment(
+                os.environ,
+                "GAS_CITY_GITHUB_TOKEN_FILE",
+            )
+            github_environment = dict(os.environ)
+            github_environment["GH_TOKEN"] = github_token
+            if args.command == "start-controlled-canary":
+                result = gas_city_ops.start_controlled_canary(
+                    args.lock,
+                    target_repo=args.target_repo,
+                    bead_id=args.bead_id,
+                    git_binary=args.git,
+                    gh_binary=args.gh,
+                    environment=github_environment,
+                )
+            else:
+                result = gas_city_ops.capture_controlled_canary(
+                    args.lock,
+                    intent_path=args.intent,
+                    canary_worktree=args.canary_worktree,
+                    git_binary=args.git,
+                    gh_binary=args.gh,
+                    environment=github_environment,
+                )
+        elif args.command == "authority-capture-stopped":
+            authority_environment = _authority_gc_environment()
+            result = gas_city_ops.capture_aegis_stopped_workers_evidence(
+                args.city_root,
+                args.lock,
+                args.output,
+                docker_binary=args.docker,
+                environment=authority_environment,
+            )
+        elif args.command == "authority-initialize":
+            authority_environment = _authority_gc_environment()
+            receipt = gas_city_authority.initialize_production_authority(
+                args.city_root,
+                **AUTHORITY_IDENTITY,
+                snapshot_dir=args.snapshot,
+                migration_evidence_path=args.migration_evidence,
+                recovery_evidence_path=args.recovery_evidence,
+                expected_target_directory=args.target_repo,
+                stopped_workers_path=args.stopped_evidence,
+                stopped_workers_hook=_authority_hook(args, authority_environment),
+            )
+            result = {
+                "status": "pass",
+                "receipt": task_authority.receipt_mapping(receipt),
+                "chain": _authority_report(args.city_root),
+            }
+        elif args.command == "authority-activate-beads":
+            authority_environment = _authority_gc_environment()
+            receipt = gas_city_authority.activate_beads_authority(
+                args.city_root,
+                **AUTHORITY_IDENTITY,
+                stopped_workers_path=args.stopped_evidence,
+                stopped_workers_hook=_authority_hook(args, authority_environment),
+            )
+            result = {
+                "status": "pass",
+                "receipt": task_authority.receipt_mapping(receipt),
+                "chain": _authority_report(args.city_root),
+            }
+        elif args.command == "authority-verify":
+            result = _authority_report(args.city_root)
+        elif args.command == "authority-recover-history":
+            gas_city_authority.recover_authority_history(
+                args.city_root,
+                **AUTHORITY_IDENTITY,
+            )
+            result = _authority_report(args.city_root)
+        elif args.command == "authority-rollback-taskmaster":
+            authority_environment = _authority_gc_environment()
+            receipt = gas_city_authority.rollback_to_taskmaster_authority(
+                args.city_root,
+                **AUTHORITY_IDENTITY,
+                stopped_workers_path=args.stopped_evidence,
+                rollback_recovery_path=args.rollback_recovery,
+                stopped_workers_hook=_authority_hook(args, authority_environment),
+            )
+            result = {
+                "status": "pass",
+                "receipt": task_authority.receipt_mapping(receipt),
+                "chain": _authority_report(args.city_root),
+            }
+        elif args.command == "promote-canary":
+            result = gas_city_ops.promote_canary_runtime(
+                args.lock,
+                {
+                    kind: getattr(args, f"{kind}_evidence")
+                    for kind in gas_city_ops.CANARY_EVIDENCE_KINDS
+                },
+            )
+        elif args.command == "start-soak":
+            result = gas_city_ops.start_soak(args.lock, args.output)
+        elif args.command == "observe-soak":
+            target_environment = _target_beads_environment()
+            result = gas_city_ops.capture_soak_observation(
+                args.lock,
+                target_repo=args.target_repo,
+                vault=args.vault,
+                observations_path=args.observations,
+                source_root=args.target_repo,
+                environment=target_environment,
+            )
+        elif args.command == "finish-soak":
+            result = gas_city_ops.finish_soak(
+                args.lock,
+                args.start_receipt,
+                args.observations,
+                args.output,
+            )
+        elif args.command == "promote-production":
+            result = gas_city_ops.promote_runtime_production(
+                args.lock,
+                args.soak_evidence,
+            )
+        elif args.command == "initialize-aegis-beads":
+            password = gas_city_ops.read_private_secret_file_from_environment(
+                os.environ,
+                "GAS_CITY_TARGET_DOLT_PASSWORD_FILE",
+            )
+            result = gas_city_ops.initialize_aegis_beads(
+                args.target_repo,
+                args.lock,
+                bd_binary=args.bd,
+                dolt_binary=args.dolt,
+                git_binary=args.git,
+                password=password,
+            )
+        elif args.command in {"migrate-taskmaster", "reconcile-taskmaster"}:
+            source_bytes, snapshot = gas_city_ops.load_taskmaster_snapshot(args.snapshot)
+            evidence_root = gas_city_ops.create_private_evidence_directory(
+                args.evidence_dir
+            )
+            evidence_digests: dict[str, str] = {}
+            locked_toolchain: dict[str, object] | None = None
+            is_reconciliation = args.command == "reconcile-taskmaster"
+            evidence_schema = (
+                "taskmaster-beads-reconciliation-evidence/v1"
+                if is_reconciliation
+                else "taskmaster-beads-migration-evidence/v1"
+            )
+            report_name = (
+                "reconciliation-report.json"
+                if is_reconciliation
+                else "migration-report.json"
+            )
+
+            def evidence_sink(relative_name: str, content: bytes) -> None:
+                evidence_digests[relative_name] = (
+                    gas_city_ops.write_private_evidence_bytes(
+                        evidence_root,
+                        relative_name,
+                        content,
+                    )
+                )
+
+            try:
+                locked_toolchain = gas_city_ops.locked_operation_toolchain_attestation(
+                    args.lock,
+                    {"bd": args.bd, "dolt": args.dolt},
+                    environment={},
+                )
+                password = gas_city_ops.read_private_secret_file_from_environment(
+                    os.environ,
+                    "GAS_CITY_TARGET_DOLT_PASSWORD_FILE",
+                )
+                connection = taskmaster_beads.DoltConnection(
+                    host=args.dolt_host,
+                    port=args.dolt_port,
+                    user=args.dolt_user,
+                    database=args.dolt_database,
+                    no_tls=args.no_tls,
+                )
+                runner = taskmaster_beads.SubprocessMigrationCommandRunner(
+                    {
+                        "BEADS_DOLT_SERVER_HOST": connection.host,
+                        "BEADS_DOLT_SERVER_PORT": str(connection.port),
+                        "BEADS_DOLT_SERVER_USER": connection.user,
+                        "BEADS_DOLT_SERVER_DATABASE": connection.database,
+                        # Gas City owns attended recovery evidence. Do not let
+                        # bd 1.1.0 opportunistically register another backup.
+                        "BD_BACKUP_ENABLED": "false",
+                        "BEADS_DOLT_PASSWORD": password,
+                        "DOLT_CLI_PASSWORD": password,
+                    }
+                )
+                operation = (
+                    taskmaster_beads.run_operational_reconciliation
+                    if is_reconciliation
+                    else taskmaster_beads.run_operational_migration
+                )
+                operation_result = operation(
+                    source_bytes,
+                    expected_source_sha256=snapshot["source"]["sha256"],
+                    target_directory=args.target_repo,
+                    dolt=connection,
+                    runner=runner,
+                    locked_toolchain=locked_toolchain,
+                    tag=args.tag,
+                    prefix=args.prefix,
+                    bd_executable=args.bd.as_posix(),
+                    dolt_executable=args.dolt.as_posix(),
+                    evidence_sink=evidence_sink,
+                )
+            except (
+                gas_city_ops.GasCityOpsError,
+                taskmaster_beads.ConversionError,
+                taskmaster_beads.ReconciliationError,
+                taskmaster_beads.OperationalMigrationError,
+            ) as exc:
+                failure = {
+                    "schema_version": evidence_schema,
+                    "status": "failed",
+                    "error_type": type(exc).__name__,
+                    "error": str(exc),
+                    "source_sha256": snapshot["source"]["sha256"],
+                    "locked_toolchain": locked_toolchain,
+                    "artifacts_written": dict(sorted(evidence_digests.items())),
+                }
+                evidence_sink(
+                    "failure.json",
+                    (json.dumps(failure, indent=2, sort_keys=True) + "\n").encode(
+                        "utf-8"
+                    ),
+                )
+                raise
+            report_bytes = (
+                json.dumps(operation_result.report, indent=2, sort_keys=True) + "\n"
+            ).encode("utf-8")
+            evidence_sink(report_name, report_bytes)
+            evidence_manifest = {
+                "schema_version": evidence_schema,
+                "status": "pass",
+                "source_sha256": snapshot["source"]["sha256"],
+                "artifacts": dict(sorted(evidence_digests.items())),
+            }
+            evidence_sink(
+                "evidence-manifest.json",
+                (
+                    json.dumps(evidence_manifest, indent=2, sort_keys=True) + "\n"
+                ).encode("utf-8"),
+            )
+            result = {
+                **operation_result.report,
+                "evidence_directory": evidence_root.as_posix(),
+                "evidence_manifest_sha256": evidence_digests[
+                    "evidence-manifest.json"
+                ],
+            }
+        else:  # pragma: no cover - argparse constrains command names.
+            raise gas_city_ops.GasCityOpsError(f"unsupported command: {args.command}")
+    except (
+        gas_city_authority.GasCityAuthorityError,
+        gas_city_ops.GasCityOpsError,
+        taskmaster_beads.ConversionError,
+        taskmaster_beads.ReconciliationError,
+        taskmaster_beads.OperationalMigrationError,
+    ) as exc:
+        print(f"gas-city-admin: {exc}", file=sys.stderr)
+        return 1
+    _print(result)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

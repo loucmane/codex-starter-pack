@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import inspect
 import io
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+
+from aegis_foundation import task_authority
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -131,13 +135,67 @@ def make_completed_closeout_repo(tmp_path: Path) -> Path:
 
 
 def gate_env(repo: Path) -> dict[str, str]:
-    import os
-
     return {**os.environ, "CLAUDE_PROJECT_DIR": str(repo)}
+
+
+def authority_runtime_env(tmp_path: Path) -> dict[str, str]:
+    runtime_path = tmp_path / "trusted-runtime" / "task_authority.py"
+    write(runtime_path, Path(task_authority.__file__).read_text(encoding="utf-8"))
+    runtime_path.chmod(0o444)
+    return {
+        "AEGIS_TASK_AUTHORITY_RUNTIME_FILE": str(runtime_path),
+        "AEGIS_TASK_AUTHORITY_RUNTIME_SHA256": hashlib.sha256(
+            runtime_path.read_bytes()
+        ).hexdigest(),
+    }
+
+
+def beads_gate_env(repo: Path, tmp_path: Path) -> dict[str, str]:
+    evidence = task_authority.TaskAuthorityEvidence(
+        taskmaster_snapshot_sha256=hashlib.sha256(b"snapshot").hexdigest(),
+        migration_report_sha256=hashlib.sha256(b"migration").hexdigest(),
+        backup_restore_report_sha256=hashlib.sha256(b"restore").hexdigest(),
+    )
+    receipt_path = tmp_path / "authority" / "aegis.json"
+    initial = task_authority.initialize_taskmaster_authority(
+        receipt_path,
+        rig="aegis",
+        beads_prefix="ags",
+        database="aegis_beads",
+        evidence=evidence,
+        activated_at="2026-07-15T18:00:00Z",
+    )
+    task_authority.transition_authority(
+        receipt_path,
+        target_mode=task_authority.TaskAuthorityMode.BEADS,
+        expected_generation=initial.generation,
+        expected_rig="aegis",
+        expected_beads_prefix="ags",
+        expected_database="aegis_beads",
+        expected_evidence=evidence,
+        activated_at="2026-07-15T18:01:00Z",
+    )
+    return {
+        **gate_env(repo),
+        **authority_runtime_env(tmp_path),
+        "AEGIS_TASK_AUTHORITY_FILE": str(receipt_path),
+        "GC_RIG": "aegis",
+        "GC_BEADS_PREFIX": "ags",
+        "BEADS_DOLT_SERVER_DATABASE": "aegis_beads",
+    }
 
 
 def run_gate(script: Path, repo: Path, hook_payload: str) -> subprocess.CompletedProcess[str]:
     return run(["bash", str(script)], repo, input_text=hook_payload, env=gate_env(repo))
+
+
+def run_beads_gate(
+    script: Path,
+    repo: Path,
+    hook_payload: str,
+    env: dict[str, str],
+) -> subprocess.CompletedProcess[str]:
+    return run(["bash", str(script)], repo, input_text=hook_payload, env=env)
 
 
 def test_pretooluse_blocks_file_write_when_readiness_blocked(tmp_path: Path) -> None:
@@ -148,6 +206,255 @@ def test_pretooluse_blocks_file_write_when_readiness_blocked(tmp_path: Path) -> 
     assert result.returncode == 2
     assert "readiness is BLOCKED" in result.stderr
     assert "branch 'feature/no-task' does not contain a task ID" in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "tool_input"),
+    [
+        ("Bash", {"command": "task-master set-status --id=103 --status=done"}),
+        ("Bash", {"command": "npx --yes task-master set-status --id=103 --status=done"}),
+        ("Bash", {"command": "bash -c 'task-master set-status --id=103 --status=done'"}),
+        ("Bash", {"command": "python3 scripts/codex-task taskmaster generate-one --id 103"}),
+        ("Bash", {"command": "python3 scripts/codex-task wizard kickoff --task 103"}),
+        ("Bash", {"command": "aegis closeout --target-dir ."}),
+        ("Bash", {"command": "touch .taskmaster/unauthorized.json"}),
+        ("Bash", {"command": "task-master init"}),
+        ("Bash", {"command": "task-master models --setup"}),
+        ("Bash", {"command": "task-master analyze-complexity --research"}),
+        ("Bash", {"command": "touch scratch/../.taskmaster/traversal.json"}),
+        ("Bash", {"command": "cd .taskmaster && touch relative.json"}),
+        (
+            "Bash",
+            {
+                "command": (
+                    "python3 -c 'import os; "
+                    'os.remove(".taskmaster/state.json")\''
+                )
+            },
+        ),
+        ("Bash", {"command": "git apply change.patch"}),
+        ("Bash", {"command": "git worktree add ../escape feature/escape"}),
+        (
+            "Bash",
+            {"command": "printf '103\\n' | xargs task-master set-status --status=done --id"},
+        ),
+        (
+            "Bash",
+            {"command": "find . -maxdepth 0 -exec task-master models --setup {} \\;"},
+        ),
+        (
+            "Bash",
+            {"command": "bash -c 'git -C . worktree repair ../nested-worktree'"},
+        ),
+        ("Write", {"file_path": ".taskmaster/state.json"}),
+        (
+            "apply_patch",
+            {
+                "command": "*** Begin Patch\n*** Update File: .taskmaster/state.json\n@@\n-{}\n+{\\\"x\\\": 1}\n*** End Patch"
+            },
+        ),
+        ("mcp__taskmaster_ai__set_task_status", {"id": "103", "status": "done"}),
+        ("mcp__unknown__write_state", {"path": ".taskmaster/state.json"}),
+    ],
+)
+def test_beads_authority_hard_blocks_taskmaster_mutations_even_in_advisory_mode(
+    tmp_path: Path,
+    tool_name: str,
+    tool_input: dict[str, object],
+) -> None:
+    repo = make_repo(tmp_path, ready=True)
+    write(
+        repo / ".aegis" / "state" / "enforcement.json",
+        json.dumps({"mode": "advisory", "reason": "test"}),
+    )
+    env = beads_gate_env(repo, tmp_path)
+
+    result = run_beads_gate(PRETOOLUSE, repo, payload(tool_name, **tool_input), env)
+
+    assert result.returncode == 2
+    assert "explicit authority receipt selects Beads" in result.stderr
+    assert "no break-glass token can override task authority" in result.stderr
+    decisions = read_gate_decisions(repo)
+    assert decisions[-1]["verdict"] == "block"
+    assert decisions[-1]["reason"] == "taskmaster_non_authoritative"
+
+
+def test_beads_authority_still_allows_read_only_taskmaster_for_rollback_inspection(
+    tmp_path: Path,
+) -> None:
+    repo = make_repo(tmp_path, ready=True)
+    env = beads_gate_env(repo, tmp_path)
+
+    result = run_beads_gate(
+        PRETOOLUSE,
+        repo,
+        payload("Bash", command="task-master show 103"),
+        env,
+    )
+
+    assert result.returncode == 0, result.stderr
+
+
+def test_beads_authority_rejects_repo_local_task_authority_runtime(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=True)
+    env = beads_gate_env(repo, tmp_path)
+    repo_runtime = repo / "tools" / "task_authority.py"
+    write(repo_runtime, Path(task_authority.__file__).read_text(encoding="utf-8"))
+    env["AEGIS_TASK_AUTHORITY_RUNTIME_FILE"] = str(repo_runtime)
+    env["AEGIS_TASK_AUTHORITY_RUNTIME_SHA256"] = hashlib.sha256(
+        repo_runtime.read_bytes()
+    ).hexdigest()
+
+    result = run_beads_gate(
+        PRETOOLUSE,
+        repo,
+        payload("Write", file_path="src/main.py"),
+        env,
+    )
+
+    assert result.returncode == 2
+    assert "outside the writable governed repository" in result.stderr
+    assert read_gate_decisions(repo)[-1]["reason"] == "task_authority_invalid"
+
+
+def test_beads_authority_rejects_tampered_pinned_task_authority_runtime(
+    tmp_path: Path,
+) -> None:
+    repo = make_repo(tmp_path, ready=True)
+    env = beads_gate_env(repo, tmp_path)
+    runtime_path = Path(env["AEGIS_TASK_AUTHORITY_RUNTIME_FILE"])
+    runtime_path.chmod(0o644)
+    runtime_path.write_text("raise RuntimeError('tampered')\n", encoding="utf-8")
+
+    result = run_beads_gate(
+        PRETOOLUSE,
+        repo,
+        payload("Write", file_path="src/main.py"),
+        env,
+    )
+
+    assert result.returncode == 2
+    assert "SHA-256 does not match its pinned digest" in result.stderr
+    assert read_gate_decisions(repo)[-1]["reason"] == "task_authority_invalid"
+
+
+def test_invalid_explicit_authority_hard_blocks_taskmaster_mutation_in_advisory_mode(
+    tmp_path: Path,
+) -> None:
+    repo = make_repo(tmp_path, ready=True)
+    write(repo / ".aegis" / "state" / "enforcement.json", json.dumps({"mode": "advisory"}))
+    env = {
+        **gate_env(repo),
+        **authority_runtime_env(tmp_path),
+        "AEGIS_TASK_AUTHORITY_FILE": str(tmp_path / "missing-authority.json"),
+        "GC_RIG": "aegis",
+        "GC_BEADS_PREFIX": "ags",
+        "BEADS_DOLT_SERVER_DATABASE": "aegis_beads",
+    }
+
+    result = run_beads_gate(
+        PRETOOLUSE,
+        repo,
+        payload("Bash", command="task-master set-status --id=103 --status=done"),
+        env,
+    )
+
+    assert result.returncode == 2
+    assert "explicit task authority could not be validated" in result.stderr
+    assert read_gate_decisions(repo)[-1]["reason"] == "task_authority_invalid"
+
+
+def test_invalid_explicit_authority_hard_blocks_source_mutation_in_advisory_mode(
+    tmp_path: Path,
+) -> None:
+    repo = make_repo(tmp_path, ready=True)
+    write(repo / ".aegis" / "state" / "enforcement.json", json.dumps({"mode": "advisory"}))
+    env = {
+        **gate_env(repo),
+        **authority_runtime_env(tmp_path),
+        "AEGIS_TASK_AUTHORITY_FILE": str(tmp_path / "missing-authority.json"),
+        "GC_RIG": "aegis",
+        "GC_BEADS_PREFIX": "ags",
+        "BEADS_DOLT_SERVER_DATABASE": "aegis_beads",
+    }
+
+    result = run_beads_gate(
+        PRETOOLUSE,
+        repo,
+        payload("Write", file_path="src/main.py"),
+        env,
+    )
+
+    assert result.returncode == 2
+    assert "explicit task authority could not be validated" in result.stderr
+    assert read_gate_decisions(repo)[-1]["reason"] == "task_authority_invalid"
+
+
+def test_beads_authority_cannot_be_bypassed_after_closeout_or_with_break_glass(
+    tmp_path: Path,
+) -> None:
+    repo = make_completed_closeout_repo(tmp_path)
+    override_path = repo / ".aegis" / "state" / "override-token.json"
+    write(
+        override_path,
+        json.dumps(
+            {
+                "reason_class": "any",
+                "note": "must not override authority",
+                "expires_at": "2999-01-01T00:00:00Z",
+            }
+        ),
+    )
+    env = beads_gate_env(repo, tmp_path)
+
+    result = run_beads_gate(
+        PRETOOLUSE,
+        repo,
+        payload("Bash", command="task-master set-status --id=103 --status=done"),
+        env,
+    )
+
+    assert result.returncode == 2
+    assert "selects Beads" in result.stderr
+    assert override_path.is_file(), "hard authority denial must not consume break glass"
+
+
+def test_taskmaster_mutation_classifier_allows_copying_rollback_evidence_out(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo = make_repo(tmp_path, ready=True)
+    gate_lib = load_gate_lib_module()
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(repo))
+
+    copy_out = gate_lib.Payload(
+        "Bash",
+        {"command": "cp .taskmaster/tasks/tasks.json /tmp/taskmaster-backup.json"},
+    )
+    copy_in = gate_lib.Payload(
+        "Bash",
+        {"command": "cp /tmp/taskmaster-backup.json .taskmaster/tasks/tasks.json"},
+    )
+    docs_patch = gate_lib.Payload(
+        "apply_patch",
+        {
+            "command": "*** Begin Patch\n*** Update File: README.md\n@@\n-Old\n+Keep .taskmaster read-only.\n*** End Patch"
+        },
+    )
+    quoted_example = gate_lib.Payload(
+        "Bash",
+        {"command": "echo 'task-master set-status --id=103 --status=done'"},
+    )
+    xargs_echo_example = gate_lib.Payload(
+        "Bash",
+        {"command": "printf x | xargs echo task-master set-status --id=103"},
+    )
+
+    assert gate_lib.payload_may_mutate_taskmaster(copy_out, repo) is False
+    assert gate_lib.payload_may_mutate_taskmaster(copy_in, repo) is True
+    assert gate_lib.payload_may_mutate_taskmaster(docs_patch, repo) is False
+    assert gate_lib.payload_may_mutate_taskmaster(quoted_example, repo) is False
+    assert gate_lib.payload_may_mutate_taskmaster(xargs_echo_example, repo) is False
 
 
 def test_pretooluse_advisory_records_would_block_without_blocking(tmp_path: Path) -> None:

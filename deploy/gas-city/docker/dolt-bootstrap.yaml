@@ -1,0 +1,15 @@
+log_level: info
+log_format: text
+behavior:
+  autocommit: true
+  dolt_transaction_commit: false
+listener:
+  host: 127.0.0.1
+  port: 3306
+  max_connections: 8
+data_dir: ${DOLT_DATA_DIR}
+cfg_dir: ${DOLT_DATA_DIR}/.doltcfg
+privilege_file: ${DOLT_DATA_DIR}/.doltcfg/privileges.db
+branch_control_file: ${DOLT_DATA_DIR}/.doltcfg/branch_control.db
+system_variables:
+  secure_file_priv: /var/lib/dolt/secure-file-disabled

@@ -1,0 +1,874 @@
+#!/usr/bin/env python3
+"""Verify the installed control plane before returning a locked image ID."""
+
+from __future__ import annotations
+
+import datetime as dt
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import stat
+import sys
+from typing import NoReturn
+
+
+IMAGE_TARGETS = {
+    "dolt_server": "dolt-server",
+    "egress_proxy": "egress-proxy",
+    "claude_worker": "claude-worker",
+    "codex_worker": "codex-worker",
+}
+IMAGE_RE = re.compile(r"sha256:[0-9a-f]{64}\Z")
+SHA_RE = re.compile(r"[0-9a-f]{64}\Z")
+LOCK_FIELDS = {
+    "schema_version",
+    "status",
+    "tools",
+    "packs",
+    "task_authority_runtime",
+    "aegis_polecat_startup",
+    "git_worktree_broker",
+    "model_evidence_broker",
+    "github_delivery",
+    "codex_preflight_catalog",
+    "control_plane_manifest",
+    "images",
+    "image_receipt",
+    "promotion",
+    "providers",
+    "exclusions",
+}
+CONTROL_PLANE_MANIFEST_PATH = "control-plane-manifest.json"
+CONTROL_PLANE_MANIFEST_KIND = "gas-city-control-plane"
+CONTROL_PLANE_MANIFEST_MODE = 0o644
+CONTROL_PLANE_ENTRY_FIELDS = {
+    "source",
+    "destination",
+    "sha256",
+    "source_mode",
+    "destination_mode",
+}
+CONTROL_PLANE_LAYOUT = (
+    (
+        "aegis_foundation/__init__.py",
+        "aegis_foundation/__init__.py",
+        0o644,
+        0o444,
+    ),
+    (
+        "aegis_foundation/gas_city_authority.py",
+        "aegis_foundation/gas_city_authority.py",
+        0o644,
+        0o444,
+    ),
+    (
+        "aegis_foundation/gas_city_endpoint.py",
+        "aegis_foundation/gas_city_endpoint.py",
+        0o644,
+        0o444,
+    ),
+    (
+        "aegis_foundation/gas_city_ops.py",
+        "aegis_foundation/gas_city_ops.py",
+        0o644,
+        0o444,
+    ),
+    (
+        "aegis_foundation/obsidian_vault.py",
+        "aegis_foundation/obsidian_vault.py",
+        0o644,
+        0o444,
+    ),
+    (
+        "aegis_foundation/task_authority.py",
+        "aegis_foundation/task_authority.py",
+        0o644,
+        0o444,
+    ),
+    (
+        "aegis_foundation/taskmaster_beads.py",
+        "aegis_foundation/taskmaster_beads.py",
+        0o644,
+        0o444,
+    ),
+    (
+        "aegis_foundation/version.py",
+        "aegis_foundation/version.py",
+        0o644,
+        0o444,
+    ),
+    ("artifacts/bd", "bin/bd", 0o555, 0o555),
+    ("artifacts/dolt", "bin/dolt", 0o555, 0o555),
+    ("artifacts/gc", "bin/gc", 0o555, 0o555),
+    ("bin/aegis-claude", "bin/aegis-claude", 0o755, 0o755),
+    ("bin/aegis-codex", "bin/aegis-codex", 0o755, 0o755),
+    ("bin/claude-container", "bin/claude-container", 0o755, 0o755),
+    ("bin/codex-container", "bin/codex-container", 0o755, 0o755),
+    ("bin/compose-locked", "bin/compose-locked", 0o755, 0o755),
+    ("bin/gas-city-admin", "bin/gas-city-admin", 0o755, 0o755),
+    (
+        "bin/git-worktree-broker",
+        "bin/git-worktree-broker",
+        0o755,
+        0o755,
+    ),
+    (
+        "bin/github-app-token-broker",
+        "bin/github-app-token-broker",
+        0o755,
+        0o700,
+    ),
+    ("bin/locked-images", "bin/locked-images", 0o755, 0o755),
+    (
+        "bin/model-evidence-broker",
+        "bin/model-evidence-broker",
+        0o755,
+        0o700,
+    ),
+    (
+        "bin/prepare-worker-boundary",
+        "bin/prepare-worker-boundary",
+        0o755,
+        0o755,
+    ),
+    (
+        "bin/provider-auth-bootstrap",
+        "bin/provider-auth-bootstrap",
+        0o755,
+        0o755,
+    ),
+    ("bin/provider-container", "bin/provider-container", 0o755, 0o755),
+    (
+        "bin/provision-control-plane",
+        "bin/provision-control-plane",
+        0o755,
+        0o755,
+    ),
+    ("bin/task-master", "bin/task-master", 0o755, 0o755),
+    (
+        "bin/with-aegis-authority",
+        "bin/with-aegis-authority",
+        0o755,
+        0o755,
+    ),
+    ("compose.yaml", "compose.yaml", 0o644, 0o644),
+    ("config/city.toml", "city.toml", 0o644, 0o644),
+    ("config/city.worker.toml", "city.worker.toml", 0o644, 0o644),
+    (
+        "config/claude-settings.json",
+        "provider-config/claude-settings.json",
+        0o644,
+        0o644,
+    ),
+    (
+        "config/codex-preflight-models.json",
+        "provider-config/codex-preflight-models.json",
+        0o644,
+        0o644,
+    ),
+    ("config/codex.toml", "provider-config/codex.toml", 0o644, 0o644),
+    ("config/pack.toml", "pack.toml", 0o644, 0o644),
+    ("config/packs.lock", "packs.lock", 0o644, 0o644),
+    ("config/site.example.toml", ".gc/site.toml", 0o644, 0o600),
+    (
+        "docker/task-authority.py",
+        "runtime/authority/task-authority.py",
+        0o644,
+        0o444,
+    ),
+    (
+        "formulas/aegis/mol-polecat-work.toml",
+        "formulas/aegis/mol-polecat-work.toml",
+        0o644,
+        0o644,
+    ),
+)
+AEGIS_STARTUP_FIELDS = {
+    "source_path",
+    "image_path",
+    "sha256",
+    "receipt_path",
+    "formula_path",
+    "formula_sha256",
+    "upstream_formula_sha256",
+    "runtime_artifact_source_path",
+    "runtime_artifact_image_path",
+    "runtime_artifact_sha256",
+    "runtime_shim_source_path",
+    "runtime_shim_image_path",
+    "runtime_shim_sha256",
+    "local_launcher_path",
+    "local_launcher_sha256",
+}
+AEGIS_STARTUP_PATHS = {
+    "source_path": "docker/aegis-polecat-startup.py",
+    "image_path": "/opt/gas-city/aegis-polecat-startup.py",
+    "receipt_path": "/run/gas-city/aegis-startup-receipt.json",
+    "formula_path": "formulas/aegis/mol-polecat-work.toml",
+    "runtime_artifact_source_path": "artifacts/aegis-runtime.whl",
+    "runtime_artifact_image_path": "/opt/gas-city/aegis-runtime.whl",
+    "runtime_shim_source_path": "docker/aegis-runtime-shim.py",
+    "runtime_shim_image_path": "/opt/gas-city/aegis-runtime-shim.py",
+    "local_launcher_path": ".aegis/bin/aegis",
+}
+AEGIS_STARTUP_DIGEST_FIELDS = {
+    "sha256",
+    "formula_sha256",
+    "upstream_formula_sha256",
+    "runtime_artifact_sha256",
+    "runtime_shim_sha256",
+    "local_launcher_sha256",
+}
+AEGIS_LOCAL_LAUNCHER = (
+    b"#!/bin/sh\n"
+    b"set -eu\n"
+    b'exec /usr/bin/python3 -I /opt/gas-city/aegis-runtime-shim.py "$@"\n'
+)
+MAX_JSON_BYTES = 1024 * 1024
+MAX_CONTROL_PLANE_FILE_BYTES = 256 * 1024 * 1024
+STAGED_DEFERRED_DESTINATIONS = frozenset(
+    {"city.toml", "pack.toml", "packs.lock", ".gc/site.toml"}
+)
+STAGED_RECEIPT_FIELDS = {
+    "schema_version",
+    "kind",
+    "status",
+    "created_at",
+    "city_root",
+    "transaction_dir",
+    "manifest_sha256",
+    "topology_action",
+    "installed_destinations",
+    "deferred_destinations",
+    "deferred_state",
+    "gc_init",
+    "supervisor_after",
+    "next_required_action",
+}
+
+
+def fail(message: str) -> NoReturn:
+    raise SystemExit(f"locked-images: {message}")
+
+
+def absolute_path(raw: str | Path, label: str) -> Path:
+    path = Path(raw).expanduser()
+    if not path.is_absolute():
+        fail(f"{label} must be absolute")
+    if ".." in path.parts:
+        fail(f"{label} must not contain parent traversal")
+    return path
+
+
+def _directory_descriptor(path: Path, label: str) -> int:
+    """Open one absolute directory path without following any symlink component."""
+
+    no_follow = getattr(os, "O_NOFOLLOW", None)
+    if no_follow is None:
+        fail("runtime cannot safely reject symlink traversal")
+    if path.anchor != "/" or not path.parts or ".." in path.parts:
+        fail(f"{label} must be one normalized absolute path")
+    flags = os.O_RDONLY | os.O_CLOEXEC | os.O_DIRECTORY | no_follow
+    try:
+        descriptor = os.open("/", flags)
+    except OSError as exc:
+        fail(f"cannot open filesystem root for {label}: {exc}")
+    try:
+        for component in path.parts[1:]:
+            try:
+                child = os.open(component, flags, dir_fd=descriptor)
+            except OSError as exc:
+                fail(f"{label} must not traverse a symlink or unsafe directory: {exc}")
+            os.close(descriptor)
+            descriptor = child
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISDIR(metadata.st_mode) or metadata.st_uid != os.geteuid():
+            fail(f"{label} must be an owner-controlled directory")
+        return descriptor
+    except BaseException:
+        os.close(descriptor)
+        raise
+
+
+def validate_root(path: Path, label: str) -> None:
+    descriptor = _directory_descriptor(path, label)
+    os.close(descriptor)
+
+
+def read_regular_file(
+    path: Path,
+    label: str,
+    *,
+    expected_mode: int | None = None,
+    max_bytes: int = MAX_JSON_BYTES,
+) -> bytes:
+    """Read one stable owner-controlled file through a no-symlink directory chain."""
+
+    no_follow = getattr(os, "O_NOFOLLOW", None)
+    if no_follow is None:
+        fail("runtime cannot safely reject symlink traversal")
+    path = absolute_path(path, label)
+    if path.name in {"", ".", ".."}:
+        fail(f"{label} path is invalid")
+    parent_descriptor = _directory_descriptor(path.parent, f"{label} parent")
+    flags = os.O_RDONLY | os.O_CLOEXEC | os.O_NONBLOCK | no_follow
+    try:
+        try:
+            descriptor = os.open(path.name, flags, dir_fd=parent_descriptor)
+        except OSError as exc:
+            fail(f"{label} must be a regular non-symlink file: {exc}")
+    finally:
+        os.close(parent_descriptor)
+    try:
+        before = os.fstat(descriptor)
+        mode = stat.S_IMODE(before.st_mode)
+        unsafe_mode = mode != expected_mode if expected_mode is not None else mode & 0o022
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or before.st_uid != os.geteuid()
+            or before.st_nlink != 1
+            or unsafe_mode
+            or before.st_size > max_bytes
+        ):
+            if expected_mode is not None and mode != expected_mode:
+                fail(f"{label} mode must be {expected_mode:04o}, observed {mode:04o}")
+            fail(f"{label} must be one safe owner-controlled regular file")
+        chunks: list[bytes] = []
+        remaining = max_bytes + 1
+        while remaining:
+            chunk = os.read(descriptor, min(65536, remaining))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        content = b"".join(chunks)
+        after = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    identity_before = (
+        before.st_dev,
+        before.st_ino,
+        before.st_size,
+        before.st_mtime_ns,
+        before.st_ctime_ns,
+        before.st_mode,
+        before.st_uid,
+        before.st_nlink,
+    )
+    identity_after = (
+        after.st_dev,
+        after.st_ino,
+        after.st_size,
+        after.st_mtime_ns,
+        after.st_ctime_ns,
+        after.st_mode,
+        after.st_uid,
+        after.st_nlink,
+    )
+    if (
+        identity_before != identity_after
+        or len(content) != after.st_size
+        or len(content) > max_bytes
+    ):
+        fail(f"{label} changed while it was being read")
+    return content
+
+
+def load_json(
+    path: Path,
+    label: str,
+    *,
+    expected_mode: int | None = None,
+) -> tuple[bytes, dict[str, object]]:
+    content = read_regular_file(path, label, expected_mode=expected_mode)
+
+    def reject_duplicates(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        value: dict[str, object] = {}
+        for key, child in pairs:
+            if key in value:
+                fail(f"{label} has a duplicate JSON key")
+            value[key] = child
+        return value
+
+    try:
+        parsed = json.loads(
+            content.decode("utf-8"),
+            object_pairs_hook=reject_duplicates,
+            parse_constant=lambda value: fail(
+                f"{label} contains a non-finite JSON value: {value}"
+            ),
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        fail(f"{label} is invalid JSON: {exc}")
+    if not isinstance(parsed, dict):
+        fail(f"{label} must contain one JSON object")
+    return content, parsed
+
+
+def load_runtime_contract(lock_path: Path) -> dict[str, object]:
+    _, lock = load_json(lock_path, "runtime lock")
+    if set(lock) != LOCK_FIELDS or type(lock.get("schema_version")) is not int:
+        fail("runtime lock fields are not exact")
+    if lock["schema_version"] != 1:
+        fail("runtime lock fields are not exact")
+    authority_runtime = lock.get("task_authority_runtime")
+    if (
+        not isinstance(authority_runtime, dict)
+        or set(authority_runtime) != {"source_path", "image_path", "sha256"}
+        or authority_runtime.get("source_path") != "docker/task-authority.py"
+        or authority_runtime.get("image_path") != "/opt/gas-city/task-authority.py"
+        or not isinstance(authority_runtime.get("sha256"), str)
+        or SHA_RE.fullmatch(authority_runtime["sha256"]) is None
+    ):
+        fail("runtime lock task-authority runtime is invalid")
+    startup = lock.get("aegis_polecat_startup")
+    if (
+        not isinstance(startup, dict)
+        or set(startup) != AEGIS_STARTUP_FIELDS
+        or any(startup.get(field) != value for field, value in AEGIS_STARTUP_PATHS.items())
+        or any(
+            not isinstance(startup.get(field), str)
+            or SHA_RE.fullmatch(startup[field]) is None
+            for field in AEGIS_STARTUP_DIGEST_FIELDS
+        )
+        or startup.get("local_launcher_sha256")
+        != hashlib.sha256(AEGIS_LOCAL_LAUNCHER).hexdigest()
+    ):
+        fail("runtime lock Aegis polecat startup contract is invalid")
+    broker = lock.get("git_worktree_broker")
+    if (
+        not isinstance(broker, dict)
+        or set(broker) != {"source_path", "deployed_path", "sha256"}
+        or broker.get("source_path") != "bin/git-worktree-broker"
+        or broker.get("deployed_path") != "bin/git-worktree-broker"
+        or not isinstance(broker.get("sha256"), str)
+        or SHA_RE.fullmatch(broker["sha256"]) is None
+    ):
+        fail("runtime lock Git worktree broker contract is invalid")
+    model_broker = lock.get("model_evidence_broker")
+    if (
+        not isinstance(model_broker, dict)
+        or set(model_broker) != {"source_path", "deployed_path", "sha256"}
+        or model_broker.get("source_path") != "bin/model-evidence-broker"
+        or model_broker.get("deployed_path") != "bin/model-evidence-broker"
+        or not isinstance(model_broker.get("sha256"), str)
+        or SHA_RE.fullmatch(model_broker["sha256"]) is None
+    ):
+        fail("runtime lock model evidence broker contract is invalid")
+    github_delivery = lock.get("github_delivery")
+    if (
+        not isinstance(github_delivery, dict)
+        or set(github_delivery)
+        != {
+            "broker_source_path",
+            "broker_deployed_path",
+            "broker_sha256",
+            "repository",
+            "default_branch",
+            "permissions",
+            "required_default_branch_rules",
+            "maximum_lifetime_seconds",
+        }
+        or github_delivery.get("broker_source_path")
+        != "bin/github-app-token-broker"
+        or github_delivery.get("broker_deployed_path")
+        != "bin/github-app-token-broker"
+        or not isinstance(github_delivery.get("broker_sha256"), str)
+        or SHA_RE.fullmatch(github_delivery["broker_sha256"]) is None
+        or github_delivery.get("repository") != "loucmane/codex-starter-pack"
+        or github_delivery.get("default_branch") != "main"
+        or github_delivery.get("permissions")
+        != {"contents": "write", "metadata": "read", "pull_requests": "write"}
+        or github_delivery.get("required_default_branch_rules")
+        != ["deletion", "non_fast_forward", "pull_request", "required_status_checks"]
+        or github_delivery.get("maximum_lifetime_seconds") != 3900
+    ):
+        fail("runtime lock GitHub delivery contract is invalid")
+    codex_preflight = lock.get("codex_preflight_catalog")
+    if (
+        not isinstance(codex_preflight, dict)
+        or set(codex_preflight)
+        != {
+            "source_path",
+            "image_path",
+            "sha256",
+            "upstream_source_tag",
+            "upstream_source_commit",
+            "advertised_tools",
+            "tool_invocation_policy",
+        }
+        or codex_preflight.get("source_path")
+        != "config/codex-preflight-models.json"
+        or codex_preflight.get("image_path")
+        != "/opt/gas-city/codex-preflight-models.json"
+        or not isinstance(codex_preflight.get("sha256"), str)
+        or SHA_RE.fullmatch(codex_preflight["sha256"]) is None
+        or codex_preflight.get("upstream_source_tag") != "rust-v0.144.4"
+        or codex_preflight.get("upstream_source_commit")
+        != "8c68d4c87dc54d38861f5114e920c3de2efa5876"
+        or codex_preflight.get("advertised_tools") != ["update_plan", "view_image"]
+        or codex_preflight.get("tool_invocation_policy") != "zero"
+    ):
+        fail("runtime lock Codex preflight catalog contract is invalid")
+    return lock
+
+
+def load_control_plane_manifest(
+    lock_path: Path,
+    lock: dict[str, object],
+) -> list[dict[str, str]]:
+    binding = lock.get("control_plane_manifest")
+    if (
+        not isinstance(binding, dict)
+        or set(binding) != {"path", "sha256"}
+        or binding.get("path") != CONTROL_PLANE_MANIFEST_PATH
+        or not isinstance(binding.get("sha256"), str)
+        or SHA_RE.fullmatch(binding["sha256"]) is None
+    ):
+        fail("runtime lock control-plane manifest binding is invalid")
+    manifest_path = lock_path.parent / CONTROL_PLANE_MANIFEST_PATH
+    manifest_bytes, manifest = load_json(
+        manifest_path,
+        "control-plane manifest",
+        expected_mode=CONTROL_PLANE_MANIFEST_MODE,
+    )
+    if hashlib.sha256(manifest_bytes).hexdigest() != binding["sha256"]:
+        fail("control-plane manifest digest mismatch")
+    entries = manifest.get("entries")
+    if (
+        set(manifest) != {"schema_version", "kind", "entries"}
+        or type(manifest.get("schema_version")) is not int
+        or manifest["schema_version"] != 1
+        or manifest.get("kind") != CONTROL_PLANE_MANIFEST_KIND
+        or not isinstance(entries, list)
+        or len(entries) != len(CONTROL_PLANE_LAYOUT)
+    ):
+        fail("control-plane manifest fields or entry count are invalid")
+    normalized: list[dict[str, str]] = []
+    for index, expected in enumerate(CONTROL_PLANE_LAYOUT):
+        source, destination, source_mode, destination_mode = expected
+        record = entries[index]
+        if (
+            not isinstance(record, dict)
+            or set(record) != CONTROL_PLANE_ENTRY_FIELDS
+            or record.get("source") != source
+            or record.get("destination") != destination
+            or record.get("source_mode") != f"{source_mode:04o}"
+            or record.get("destination_mode") != f"{destination_mode:04o}"
+            or not isinstance(record.get("sha256"), str)
+            or SHA_RE.fullmatch(record["sha256"]) is None
+        ):
+            fail(f"control-plane manifest entry {index + 1} is invalid")
+        normalized.append(record)
+    authority_runtime = lock["task_authority_runtime"]
+    startup = lock["aegis_polecat_startup"]
+    broker = lock["git_worktree_broker"]
+    model_broker = lock["model_evidence_broker"]
+    github_delivery = lock["github_delivery"]
+    codex_preflight = lock["codex_preflight_catalog"]
+    by_source = {record["source"]: record for record in normalized}
+    if (
+        by_source["docker/task-authority.py"]["sha256"]
+        != authority_runtime["sha256"]
+        or by_source["formulas/aegis/mol-polecat-work.toml"]["sha256"]
+        != startup["formula_sha256"]
+        or by_source["bin/git-worktree-broker"]["sha256"]
+        != broker["sha256"]
+        or by_source["bin/model-evidence-broker"]["sha256"]
+        != model_broker["sha256"]
+        or by_source["bin/github-app-token-broker"]["sha256"]
+        != github_delivery["broker_sha256"]
+        or by_source["config/codex-preflight-models.json"]["sha256"]
+        != codex_preflight["sha256"]
+        or any(
+            by_source[f"artifacts/{name}"]["sha256"]
+            != lock["tools"][name]["binary_sha256"]
+            for name in ("gc", "bd", "dolt")
+        )
+    ):
+        fail("control-plane manifest conflicts with runtime artifact bindings")
+    return normalized
+
+
+def verify_control_plane(
+    root: Path,
+    lock_path: Path,
+    lock: dict[str, object],
+    *,
+    source_layout: bool,
+) -> None:
+    validate_root(root, "control-plane root")
+    if lock_path != root / "runtime-lock.json":
+        fail("runtime lock must be the exact control-plane root runtime-lock.json")
+    entries = load_control_plane_manifest(lock_path, lock)
+    for record in entries:
+        relative = record["source"] if source_layout else record["destination"]
+        mode_field = "source_mode" if source_layout else "destination_mode"
+        expected_mode = int(record[mode_field], 8)
+        content = read_regular_file(
+            root / relative,
+            f"control-plane {'source' if source_layout else 'destination'} {relative}",
+            expected_mode=expected_mode,
+            max_bytes=MAX_CONTROL_PLANE_FILE_BYTES,
+        )
+        if hashlib.sha256(content).hexdigest() != record["sha256"]:
+            fail(f"control-plane {'source' if source_layout else 'destination'} {relative} digest mismatch")
+
+
+def verify_staged_control_plane(
+    lock_path: Path,
+    lock: dict[str, object],
+    receipt_path: Path,
+) -> None:
+    """Verify the non-topology bootstrap subset before the HQ endpoint cutover."""
+
+    city_root = lock_path.parent
+    entries = load_control_plane_manifest(lock_path, lock)
+    receipt_path = absolute_path(receipt_path, "provisioning stage receipt")
+    receipt_bytes, receipt = load_json(
+        receipt_path,
+        "provisioning stage receipt",
+        expected_mode=0o600,
+    )
+    del receipt_bytes
+    expected_installed = sorted(
+        record["destination"]
+        for record in entries
+        if record["destination"] not in STAGED_DEFERRED_DESTINATIONS
+    )
+    if (
+        set(receipt) != STAGED_RECEIPT_FIELDS
+        or receipt.get("schema_version") != 1
+        or receipt.get("kind") != "gas-city-control-plane-stage"
+        or receipt.get("status") != "staged"
+        or receipt.get("city_root") != city_root.as_posix()
+        or receipt.get("transaction_dir") != receipt_path.parent.as_posix()
+        or receipt.get("manifest_sha256")
+        != lock["control_plane_manifest"]["sha256"]
+        or receipt.get("topology_action")
+        not in {"requires_hq_external_transition", "initialized_external"}
+        or receipt.get("installed_destinations") != expected_installed
+        or receipt.get("deferred_destinations")
+        != sorted(STAGED_DEFERRED_DESTINATIONS)
+        or receipt.get("next_required_action")
+        != "initialize-aegis-then-activate-topology"
+    ):
+        fail("provisioning stage receipt fields are invalid")
+    by_destination = {record["destination"]: record for record in entries}
+    for relative in expected_installed:
+        record = by_destination[relative]
+        content = read_regular_file(
+            city_root / relative,
+            f"staged control-plane destination {relative}",
+            expected_mode=int(record["destination_mode"], 8),
+            max_bytes=MAX_CONTROL_PLANE_FILE_BYTES,
+        )
+        if hashlib.sha256(content).hexdigest() != record["sha256"]:
+            fail(f"staged control-plane destination {relative} digest mismatch")
+    deferred_state = receipt.get("deferred_state")
+    if not isinstance(deferred_state, list) or len(deferred_state) != len(
+        STAGED_DEFERRED_DESTINATIONS
+    ):
+        fail("provisioning deferred-state inventory is invalid")
+    observed_names: list[str] = []
+    for state in deferred_state:
+        if not isinstance(state, dict):
+            fail("provisioning deferred-state entry is invalid")
+        relative = state.get("destination")
+        if not isinstance(relative, str):
+            fail("provisioning deferred-state destination is invalid")
+        observed_names.append(relative)
+        path = city_root / relative
+        if state.get("present") is False:
+            if set(state) != {"destination", "present"}:
+                fail(f"absent deferred state is invalid: {relative}")
+            try:
+                path.lstat()
+            except FileNotFoundError:
+                continue
+            except OSError as exc:
+                fail(f"cannot inspect deferred destination {relative}: {exc}")
+            fail(f"deferred destination appeared before cutover: {relative}")
+        if (
+            set(state) != {"destination", "present", "mode", "size", "sha256"}
+            or state.get("present") is not True
+            or not isinstance(state.get("mode"), int)
+            or not isinstance(state.get("size"), int)
+            or not isinstance(state.get("sha256"), str)
+            or SHA_RE.fullmatch(state["sha256"]) is None
+        ):
+            fail(f"present deferred state is invalid: {relative}")
+        content = read_regular_file(
+            path,
+            f"deferred destination {relative}",
+            expected_mode=state["mode"],
+            max_bytes=MAX_CONTROL_PLANE_FILE_BYTES,
+        )
+        if len(content) != state["size"] or hashlib.sha256(content).hexdigest() != state["sha256"]:
+            fail(f"deferred destination changed before cutover: {relative}")
+    if observed_names != sorted(STAGED_DEFERRED_DESTINATIONS):
+        fail("provisioning deferred-state destinations are not exact")
+
+
+def locked_image_ids(lock_path: Path, lock: dict[str, object]) -> dict[str, str]:
+    authority_runtime = lock["task_authority_runtime"]
+    startup = lock["aegis_polecat_startup"]
+    codex_preflight = lock["codex_preflight_catalog"]
+    source_artifacts = {
+        authority_runtime["source_path"]: authority_runtime["sha256"],
+        codex_preflight["source_path"]: codex_preflight["sha256"],
+        startup["source_path"]: startup["sha256"],
+        startup["formula_path"]: startup["formula_sha256"],
+        startup["runtime_artifact_source_path"]: startup["runtime_artifact_sha256"],
+        startup["runtime_shim_source_path"]: startup["runtime_shim_sha256"],
+    }
+    if len(source_artifacts) != 6:
+        fail("runtime lock aliases immutable build source artifacts")
+    if lock.get("status") not in {
+        "provisioned_pending_canary",
+        "canary_passed_soaking",
+        "production",
+    }:
+        fail("runtime lock is not provisioned")
+    images = lock.get("images")
+    if not isinstance(images, dict) or set(images) != set(IMAGE_TARGETS):
+        fail("runtime lock image set is invalid")
+    locked_ids: dict[str, str] = {}
+    for name, target in IMAGE_TARGETS.items():
+        record = images.get(name)
+        if not isinstance(record, dict) or record.get("target") != target:
+            fail(f"runtime lock image target is invalid for {name}")
+        image_id = record.get("image_id")
+        if not isinstance(image_id, str) or IMAGE_RE.fullmatch(image_id) is None:
+            fail(f"runtime lock image ID is invalid for {name}")
+        locked_ids[name] = image_id
+
+    receipt_record = lock.get("image_receipt")
+    if not isinstance(receipt_record, dict):
+        fail("runtime lock image receipt record is missing")
+    relative_value = receipt_record.get("path")
+    digest = receipt_record.get("sha256")
+    if not isinstance(relative_value, str) or not isinstance(digest, str):
+        fail("runtime lock image receipt fields are invalid")
+    relative = Path(relative_value)
+    if (
+        relative.is_absolute()
+        or not relative.parts
+        or ".." in relative.parts
+        or SHA_RE.fullmatch(digest) is None
+    ):
+        fail("runtime lock image receipt path or digest is invalid")
+    receipt_path = lock_path.parent / relative
+    receipt_bytes, receipt = load_json(receipt_path, "image receipt")
+    if hashlib.sha256(receipt_bytes).hexdigest() != digest:
+        fail("image receipt digest mismatch")
+    context = receipt.get("build_context")
+    docker = receipt.get("docker")
+    built_at = receipt.get("built_at")
+    try:
+        parsed_time = dt.datetime.fromisoformat(str(built_at).replace("Z", "+00:00"))
+    except ValueError:
+        parsed_time = None
+    if (
+        set(receipt)
+        != {
+            "schema_version",
+            "kind",
+            "status",
+            "built_at",
+            "source_lock_sha256",
+            "lock_schema_version",
+            "source_artifacts",
+            "build_context",
+            "docker",
+            "targets",
+            "images",
+        }
+        or receipt.get("schema_version") != 1
+        or receipt.get("kind") != "immutable-image-build"
+        or receipt.get("status") != "pass"
+        or receipt.get("lock_schema_version") != 1
+        or receipt.get("targets") != IMAGE_TARGETS
+        or receipt.get("images") != locked_ids
+        or receipt.get("source_artifacts") != source_artifacts
+        or not isinstance(receipt.get("source_lock_sha256"), str)
+        or SHA_RE.fullmatch(receipt["source_lock_sha256"]) is None
+        or parsed_time is None
+        or parsed_time.utcoffset() != dt.timedelta(0)
+        or not isinstance(context, dict)
+        or set(context)
+        != {"manifest_sha256", "file_count", "dockerfile_sha256", "dockerignore_sha256"}
+        or any(
+            not isinstance(context.get(name), str)
+            or SHA_RE.fullmatch(context[name]) is None
+            for name in ("manifest_sha256", "dockerfile_sha256", "dockerignore_sha256")
+        )
+        or not isinstance(context.get("file_count"), int)
+        or context["file_count"] < 1
+        or not isinstance(docker, dict)
+        or set(docker)
+        != {"binary", "binary_sha256", "client_version", "tagged", "pull", "no_cache"}
+        or not isinstance(docker.get("binary"), str)
+        or not docker["binary"]
+        or not isinstance(docker.get("binary_sha256"), str)
+        or SHA_RE.fullmatch(docker["binary_sha256"]) is None
+        or not isinstance(docker.get("client_version"), str)
+        or not docker["client_version"]
+        or docker.get("tagged") is not False
+        or docker.get("pull") is not False
+        or docker.get("no_cache") is not True
+    ):
+        fail("image receipt does not prove the locked image IDs")
+    return locked_ids
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) == 3 and argv[1] == "--verify-source":
+        source_root = absolute_path(argv[2], "source root")
+        lock_path = source_root / "runtime-lock.json"
+        lock = load_runtime_contract(lock_path)
+        verify_control_plane(source_root, lock_path, lock, source_layout=True)
+        print("verified source control plane")
+        return 0
+    if len(argv) == 3 and argv[1] == "--verify-deployed":
+        lock_path = absolute_path(argv[2], "runtime lock path")
+        city_root = lock_path.parent
+        lock = load_runtime_contract(lock_path)
+        verify_control_plane(city_root, lock_path, lock, source_layout=False)
+        print("verified deployed control plane")
+        return 0
+    if len(argv) == 4 and argv[1] == "--verify-staged":
+        lock_path = absolute_path(argv[2], "runtime lock path")
+        lock = load_runtime_contract(lock_path)
+        verify_staged_control_plane(lock_path, lock, Path(argv[3]))
+        print("verified staged control plane")
+        return 0
+    if len(argv) == 5 and argv[1] == "--staged-image":
+        lock_path = absolute_path(argv[2], "runtime lock path")
+        lock = load_runtime_contract(lock_path)
+        verify_staged_control_plane(lock_path, lock, Path(argv[3]))
+        if argv[4] not in IMAGE_TARGETS:
+            fail("staged image key is invalid")
+        print(locked_image_ids(lock_path, lock)[argv[4]])
+        return 0
+    if len(argv) != 3 or argv[2] not in IMAGE_TARGETS:
+        fail(
+            "usage: locked-images RUNTIME_LOCK IMAGE_KEY | "
+            "locked-images --verify-source SOURCE_ROOT | "
+            "locked-images --verify-deployed RUNTIME_LOCK | "
+            "locked-images --verify-staged RUNTIME_LOCK STAGE_RECEIPT | "
+            "locked-images --staged-image RUNTIME_LOCK STAGE_RECEIPT IMAGE_KEY"
+        )
+    lock_path = absolute_path(argv[1], "runtime lock path")
+    city_root = lock_path.parent
+    lock = load_runtime_contract(lock_path)
+    verify_control_plane(city_root, lock_path, lock, source_layout=False)
+    locked_ids = locked_image_ids(lock_path, lock)
+    print(locked_ids[argv[2]])
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv))

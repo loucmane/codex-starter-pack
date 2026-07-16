@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "status": "staged_pending_provisioning",
+  "tools": {
+    "gc": {
+      "version": "1.3.5",
+      "binary_sha256": "ee26f66f39be5bde1f3ab1cc28115f57c6c553b595add893bba93fd2bfd2f637",
+      "archive_sha256": "854fba2fd6c8cfa9d3f33b5262f95032d8036b08e8cdfe925bf4bc86e83b10a1"
+    },
+    "bd": {
+      "version": "1.1.0",
+      "binary_sha256": "f7dcf3d22eae0bf09d764a9a47ab5c6e263ee91b19f2243d9e0e077561cceb1e",
+      "archive_sha256": "b0f3dd607c3fb989ee08d0a6854fba80d0402971eb108f9af6170bc14d491a34"
+    },
+    "dolt": {
+      "version": "2.2.0",
+      "binary_sha256": "72352f1d882472a7a8d6124e9c4dc12f80e2c2359ea95f1424c032e9250e35e6",
+      "archive_sha256": "1f7ad8c2622995789420a3fb0f2d16b4aa7430000a825dd91d5938f36480cbf6"
+    }
+  },
+  "packs": {
+    "gascity_core_bd": {
+      "commit": "f895c0ff47d6ee9334ed282a416387eb5b084d24"
+    },
+    "gastown": {
+      "commit": "33d3a430a67d1782ad364556cb566bdb01d0afe3"
+    }
+  },
+  "task_authority_runtime": {
+    "source_path": "docker/task-authority.py",
+    "image_path": "/opt/gas-city/task-authority.py",
+    "sha256": "5ea3e3cad6b71fbaf6c976c0ba5e1e948fc0cb1267575c5611a8d3bde9c1c11f"
+  },
+  "aegis_polecat_startup": {
+    "source_path": "docker/aegis-polecat-startup.py",
+    "image_path": "/opt/gas-city/aegis-polecat-startup.py",
+    "sha256": "61256361f680b47f75125b360e61c23fc8a3f7248b9c1a8abc59a1cfe6a17d32",
+    "receipt_path": "/run/gas-city/aegis-startup-receipt.json",
+    "formula_path": "formulas/aegis/mol-polecat-work.toml",
+    "formula_sha256": "64deaf49c6163d8f15c691675aa11af0eae222a09a2dd9755f21dada1df9a01f",
+    "upstream_formula_sha256": "86878dd7ae180e02905d88ac092944d2fece075ac22dab86dc54b59c10f6319e",
+    "runtime_artifact_source_path": "artifacts/aegis-runtime.whl",
+    "runtime_artifact_image_path": "/opt/gas-city/aegis-runtime.whl",
+    "runtime_artifact_sha256": "4fee99a8d1293019bfdb305635706437b655b2919b971f80185f14a35d26b99e",
+    "runtime_shim_source_path": "docker/aegis-runtime-shim.py",
+    "runtime_shim_image_path": "/opt/gas-city/aegis-runtime-shim.py",
+    "runtime_shim_sha256": "5c8d153d31946e7773295e2c6496fa7ed4b566bda572b2bc61db0622528eedbc",
+    "local_launcher_path": ".aegis/bin/aegis",
+    "local_launcher_sha256": "d8b69e2982007f031f4aa748b771e4f3462a79b57c04760df7b621b99b3aff0d"
+  },
+  "git_worktree_broker": {
+    "source_path": "bin/git-worktree-broker",
+    "deployed_path": "bin/git-worktree-broker",
+    "sha256": "8b78c1ebba012c1b8c1c615a1ce6203c3f3e10e079afcd3768398e9fab4725f8"
+  },
+  "model_evidence_broker": {
+    "source_path": "bin/model-evidence-broker",
+    "deployed_path": "bin/model-evidence-broker",
+    "sha256": "075f7c6ea78e4475001af40d5db4af15a3a12bfe7f6150fbaef7060500d638d1"
+  },
+  "github_delivery": {
+    "broker_source_path": "bin/github-app-token-broker",
+    "broker_deployed_path": "bin/github-app-token-broker",
+    "broker_sha256": "17e8c4f8ec4ec38d0343ae33c6a384ed5e5e3d4291434f625370fd48ca7a5f7a",
+    "repository": "loucmane/codex-starter-pack",
+    "default_branch": "main",
+    "permissions": {
+      "contents": "write",
+      "metadata": "read",
+      "pull_requests": "write"
+    },
+    "required_default_branch_rules": [
+      "deletion",
+      "non_fast_forward",
+      "pull_request",
+      "required_status_checks"
+    ],
+    "maximum_lifetime_seconds": 3900
+  },
+  "codex_preflight_catalog": {
+    "source_path": "config/codex-preflight-models.json",
+    "image_path": "/opt/gas-city/codex-preflight-models.json",
+    "sha256": "1487260f5deb22b5da6c3d306ae06444fc207b69881440dcc010cacb029f419c",
+    "upstream_source_tag": "rust-v0.144.4",
+    "upstream_source_commit": "8c68d4c87dc54d38861f5114e920c3de2efa5876",
+    "advertised_tools": [
+      "update_plan",
+      "view_image"
+    ],
+    "tool_invocation_policy": "zero"
+  },
+  "control_plane_manifest": {
+    "path": "control-plane-manifest.json",
+    "sha256": "4bfed67dc9cceb44ccb28714d4f46840e1ecbc49b13487a65b8424a9373a1e2a"
+  },
+  "images": {
+    "dolt_server": {
+      "target": "dolt-server",
+      "image_id": null
+    },
+    "egress_proxy": {
+      "target": "egress-proxy",
+      "image_id": null
+    },
+    "claude_worker": {
+      "target": "claude-worker",
+      "image_id": null
+    },
+    "codex_worker": {
+      "target": "codex-worker",
+      "image_id": null
+    }
+  },
+  "image_receipt": {
+    "path": "runtime/evidence/images/build-receipt.json",
+    "sha256": null
+  },
+  "promotion": {
+    "canary": {
+      "path": "runtime/evidence/promotion/canary-manifest.json",
+      "sha256": null
+    },
+    "production": {
+      "path": "runtime/evidence/promotion/production-manifest.json",
+      "sha256": null
+    }
+  },
+  "providers": {
+    "claude": {
+      "cli_version": "2.1.210",
+      "binary_sha256": "e7d2ceb53ed4c2ced1fe7fc1c6331c98dc5f7b4c9b2722d9c5fa3dd5dff6f719",
+      "requested_model": "claude-fable-5",
+      "observed_model": null,
+      "receipt_sha256": null,
+      "receipt_path": "runtime/evidence/providers/claude-model-receipt.json"
+    },
+    "codex": {
+      "cli_version": "0.144.4",
+      "package": "@openai/codex@0.144.4-linux-x64",
+      "package_sri": "sha512-2jxrmV6+/7eBNdg5uhhmOEPFu2o28eYY/ClLzWhSBHH8uo3f2KA1z9JQcVtwlbToW03nEPlEzYNYfCF1UBqsVQ==",
+      "archive_sha256": "9a4a45314e80b53c4761b80067e3a68c2302f9a9026059b5f54f22dec8f34323",
+      "binary_sha256": "2b3edc9cdfd1717fba3dbc92817205a8a2c7511d459e456d4817eeff6f78ed7a",
+      "helper_sha256": {
+        "codex-code-mode-host": "49c528deb71531b7bfdcaa32e07c12de03f43d91f13edeeda51d527dac2c911e",
+        "rg": "ebeaf56f8a25e102e9419933423738b3a2a613a444fd749d695e15eba53f71f2",
+        "zsh": "67faaaa89242c4a332e16e508a1977cffc24bf7fca31d4411cdfd101f3831ef3"
+      },
+      "requested_model": "gpt-5.6-sol",
+      "reasoning_effort": "xhigh",
+      "observed_model": null,
+      "receipt_sha256": null,
+      "receipt_path": "runtime/evidence/providers/codex-model-receipt.json"
+    }
+  },
+  "exclusions": [
+    "graphiti",
+    "cognee",
+    "ollama"
+  ]
+}

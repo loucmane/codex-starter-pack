@@ -1,0 +1,17 @@
+# Deny the entire city, then admit only the audited Docker sources and verified
+# binary artifacts. HQ/Aegis data, runtime receipts, credentials, and project
+# metadata never enter the Docker build context.
+**
+!.dockerignore
+!docker
+!docker/**
+!artifacts
+!artifacts/**
+!formulas
+!formulas/aegis
+!formulas/aegis/mol-polecat-work.toml
+!config
+!config/city.worker.toml
+!config/codex-preflight-models.json
+docker/**/__pycache__
+docker/**/*.pyc
