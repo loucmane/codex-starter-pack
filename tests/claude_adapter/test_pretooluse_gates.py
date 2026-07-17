@@ -16,6 +16,7 @@ PRETOOLUSE = REPO_ROOT / ".claude" / "scripts" / "pretooluse-gate.sh"
 POSTTOOLUSE = REPO_ROOT / ".claude" / "scripts" / "posttooluse-tracking.sh"
 PATH_GUARD = REPO_ROOT / ".claude" / "scripts" / "codex-path-guard.sh"
 BASH_GUARD = REPO_ROOT / ".claude" / "scripts" / "bash-command-guard.sh"
+HARD_POLICY_CORPUS = REPO_ROOT / "tests" / "fixtures" / "aegis" / "gate-hard-policy-corpus.json"
 
 
 def run(cmd: list[str], cwd: Path, *, input_text: str = "", env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
@@ -138,6 +139,48 @@ def gate_env(repo: Path) -> dict[str, str]:
 
 def run_gate(script: Path, repo: Path, hook_payload: str) -> subprocess.CompletedProcess[str]:
     return run(["bash", str(script)], repo, input_text=hook_payload, env=gate_env(repo))
+
+
+def hard_policy_corpus() -> list[dict[str, object]]:
+    document = json.loads(HARD_POLICY_CORPUS.read_text(encoding="utf-8"))
+    assert document["schema_version"] == "1.0.0"
+    cases = document["cases"]
+    assert isinstance(cases, list)
+    ids = [case["id"] for case in cases]
+    assert len(ids) == len(set(ids))
+    return cases
+
+
+@pytest.mark.parametrize("case", hard_policy_corpus(), ids=lambda case: str(case["id"]))
+def test_hard_policy_adversarial_corpus(tmp_path: Path, case: dict[str, object]) -> None:
+    repo = make_repo(tmp_path, ready=True)
+
+    result = run_gate(PRETOOLUSE, repo, payload("Bash", command=case["command"]))
+
+    expected = case["expected"]
+    assert result.returncode == (2 if expected == "block" else 0), result.stderr
+    if expected == "block":
+        assert "Non-overridable violation" in result.stderr
+
+
+@pytest.mark.parametrize("case", hard_policy_corpus(), ids=lambda case: str(case["id"]))
+def test_raw_hard_policy_preclassifier_is_total_and_covers_sensitive_families(
+    case: dict[str, object],
+) -> None:
+    gate_lib = load_gate_lib_module()
+
+    actual = gate_lib.raw_hard_policy_families(case["command"])
+
+    assert isinstance(actual, frozenset)
+    assert set(case["families"]).issubset(actual)
+
+
+def test_mutating_taskmaster_regex_recognizes_newline_command_boundary() -> None:
+    gate_lib = load_gate_lib_module()
+
+    assert gate_lib.MUTATING_TASKMASTER_RE.search(
+        "true\ntask-master set-status --id=103 --status=done"
+    )
 
 
 def test_pretooluse_blocks_file_write_when_readiness_blocked(tmp_path: Path) -> None:

@@ -13,6 +13,7 @@ import json
 import os
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -192,6 +193,49 @@ def test_override_command_runs_while_blocked(tmp_path: Path) -> None:
         {"tool_name": "Bash", "tool_input": {"command": "python3 -m aegis_foundation.cli override --reason x"}},
     )
     assert result.returncode == 0, "minting a token must itself be allowed while BLOCKED"
+
+
+def test_override_expiry_uses_datetime_ordering_for_fractional_offset_timestamp(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls, tz: timezone | None = None) -> FixedDateTime:
+            return cls(2026, 7, 17, 12, 0, 0, tzinfo=tz or timezone.utc)
+
+    root = tmp_path / "repo"
+    path = root / gate_lib.AEGIS_OVERRIDE_TOKEN_REL
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        json.dumps(
+            {
+                "reason_class": "readiness_blocked",
+                "expires_at": "2026-07-17T12:00:00.500000+00:00",
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(gate_lib, "datetime", FixedDateTime)
+
+    token = gate_lib._consume_override_token(root, "readiness_blocked")
+
+    assert token is not None
+    assert not path.exists()
+
+
+@pytest.mark.parametrize("expires_at", ["not-a-date", "2026-07-17T12:00:01"])
+def test_override_rejects_malformed_or_timezone_naive_expiry(
+    tmp_path: Path, expires_at: str
+) -> None:
+    root = tmp_path / "repo"
+    path = root / gate_lib.AEGIS_OVERRIDE_TOKEN_REL
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        json.dumps({"reason_class": "readiness_blocked", "expires_at": expires_at}),
+        encoding="utf-8",
+    )
+
+    assert gate_lib._consume_override_token(root, "readiness_blocked") is None
 
 
 def test_gate_classifies_override_payload() -> None:

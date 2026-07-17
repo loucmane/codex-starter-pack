@@ -1,0 +1,125 @@
+{
+  "schema_version": "1.0.0",
+  "cases": [
+    {
+      "id": "block-newline-force-push",
+      "command": "true\ngit push --force origin feat/task-103-claude-runtime-adapter",
+      "expected": "block",
+      "families": ["destructive_git"]
+    },
+    {
+      "id": "block-carriage-return-reset",
+      "command": "true\rgit reset --hard HEAD",
+      "expected": "block",
+      "families": ["destructive_git"]
+    },
+    {
+      "id": "block-malformed-sensitive-shell",
+      "command": "echo 'unterminated\ngit reset --hard HEAD",
+      "expected": "block",
+      "families": ["destructive_git"]
+    },
+    {
+      "id": "block-command-substitution-concealment",
+      "command": "printf '%s\\n' \"$(git reset --hard HEAD)\"",
+      "expected": "block",
+      "families": ["destructive_git", "nested_synthesis"]
+    },
+    {
+      "id": "block-backtick-concealment",
+      "command": "printf '%s\\n' `git reset --hard HEAD`",
+      "expected": "block",
+      "families": ["destructive_git", "nested_synthesis"]
+    },
+    {
+      "id": "block-eval-concealment",
+      "command": "eval 'git reset --hard HEAD'",
+      "expected": "block",
+      "families": ["destructive_git", "nested_synthesis"]
+    },
+    {
+      "id": "block-process-substitution-concealment",
+      "command": "cat <(git reset --hard HEAD)",
+      "expected": "block",
+      "families": ["destructive_git", "nested_synthesis"]
+    },
+    {
+      "id": "block-heredoc-concealment",
+      "command": "bash <<'EOF'\ngit reset --hard HEAD\nEOF",
+      "expected": "block",
+      "families": ["destructive_git", "nested_synthesis"]
+    },
+    {
+      "id": "block-supported-nested-shell",
+      "command": "bash -lc 'git reset --hard HEAD'",
+      "expected": "block",
+      "families": ["destructive_git", "nested_synthesis"]
+    },
+    {
+      "id": "block-newline-governance-mutation",
+      "command": "true\ngh api --method DELETE repos/example/project/branches/main/protection",
+      "expected": "block",
+      "families": ["github_governance"]
+    },
+    {
+      "id": "classify-newline-taskmaster-mutation",
+      "command": "true\ntask-master set-status --id=103 --status=done",
+      "expected": "allow",
+      "families": ["taskmaster_mutation"]
+    },
+    {
+      "id": "classify-taskmaster-direct-write",
+      "command": "printf '{}' > .taskmaster/tasks/tasks.json",
+      "expected": "allow",
+      "families": ["taskmaster_write"]
+    },
+    {
+      "id": "classify-direct-beads-authority",
+      "command": "bd update ae-123 --status done",
+      "expected": "allow",
+      "families": ["beads_authority"]
+    },
+    {
+      "id": "classify-direct-dolt-authority",
+      "command": "dolt sql -q 'DELETE FROM issues'",
+      "expected": "allow",
+      "families": ["dolt_authority"]
+    },
+    {
+      "id": "allow-nonsensitive-heredoc",
+      "command": "python3 - <<'PY'\nprint('hello')\nPY",
+      "expected": "allow",
+      "families": ["nested_synthesis"]
+    },
+    {
+      "id": "allow-read-only-command-substitution",
+      "command": "printf '%s\\n' \"$(git status --short)\"",
+      "expected": "allow",
+      "families": ["nested_synthesis"]
+    },
+    {
+      "id": "allow-quoted-policy-example",
+      "command": "echo 'git reset --hard is blocked by policy'",
+      "expected": "allow",
+      "families": ["destructive_git"]
+    },
+    {
+      "id": "allow-feature-push",
+      "command": "git push origin feat/task-103-claude-runtime-adapter",
+      "expected": "allow",
+      "families": []
+    },
+    {
+      "id": "allow-normal-multiline-inspection",
+      "command": "printf ok\ngit status --short",
+      "expected": "allow",
+      "families": []
+    },
+    {
+      "id": "allow-malformed-nonsensitive-shell",
+      "command": "printf 'unterminated",
+      "expected": "allow",
+      "families": []
+    }
+  ]
+}
