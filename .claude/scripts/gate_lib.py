@@ -60,20 +60,20 @@ MUTATING_GIT_RE = re.compile(
     r"switch\s+-c|checkout\s+-b|branch\s+(-m|-d|-D)|commit\b|stash\b|reset\b|"
     r"merge\b|rebase\b|push\b|tag\b"
     r")",
-    re.IGNORECASE,
+    re.IGNORECASE | re.MULTILINE,
 )
 MUTATING_TASKMASTER_RE = re.compile(
     r"(^|[;&|]\s*)task-master\s+("
     r"add-task|add-subtask|set-status|update|update-task|update-subtask|"
     r"expand|generate|parse-prd|move|add-dependency|remove-dependency|fix-dependencies"
     r")\b",
-    re.IGNORECASE,
+    re.IGNORECASE | re.MULTILINE,
 )
 MUTATING_AEGIS_RE = re.compile(
     r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+("
     r"install|uninstall|verify|start|kickoff|observe|log|closeout|enforce"
     r")\b",
-    re.IGNORECASE,
+    re.IGNORECASE | re.MULTILINE,
 )
 AEGIS_REPAIR_APPLY_RE = re.compile(
     r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+repair\b[^\n;&|]*\s--apply\b",
@@ -115,6 +115,37 @@ APPLY_PATCH_MOVE_RE = re.compile(r"^\*\*\*\s+Move\s+to:\s*(.+?)\s*$", re.MULTILI
 SHELL_CONTROL_SPLIT_RE = re.compile(r"\s*(?:&&|\|\||;|\|)\s*")
 HARD_POLICY_SHELL_CONTROL_TOKENS = {"&", "&&", "(", ")", ";", "|", "||"}
 HARD_POLICY_SHELLS = {"bash", "dash", "ksh", "sh", "zsh"}
+RAW_DESTRUCTIVE_GIT_RE = re.compile(
+    r"\bgit(?:\s+(?:-C|-c|--git-dir|--work-tree)\s+\S+)*\s+"
+    r"(?:reset|clean|push|checkout|switch|restore|branch|remote|config)\b",
+    re.IGNORECASE | re.MULTILINE,
+)
+RAW_TASKMASTER_WRITE_RE = re.compile(
+    r"(?:\b(?:cp|install|mv|rm|tee|touch)\b|(?<![<])>>?)"
+    r"[^\n;&|]*\.taskmaster(?:/|\\)",
+    re.IGNORECASE | re.MULTILINE,
+)
+RAW_BEADS_AUTHORITY_RE = re.compile(
+    r"(?:^|[\s;&|()`])(?:[^\s;&|()]*/)?bd\s+"
+    r"(?:claim|close|create|delete|import|migrate|remove|set|sync|update)\b",
+    re.IGNORECASE | re.MULTILINE,
+)
+RAW_DOLT_AUTHORITY_RE = re.compile(
+    r"(?:^|[\s;&|()`])(?:[^\s;&|()]*/)?dolt\s+"
+    r"(?:add|branch|checkout|commit|fetch|merge|pull|push|remote|reset|schema|sql|sql-server|table)\b",
+    re.IGNORECASE | re.MULTILINE,
+)
+RAW_NESTED_SYNTHESIS_RE = re.compile(
+    r"`|\$\(|<<|<\(|>\(|(?:^|[\s;&|()])(?:eval|source)\b|"
+    r"(?:^|[\s;&|()])(?:bash|dash|ksh|sh|zsh)\b[^\n;&|]*\s-[A-Za-z]*c[A-Za-z]*\b|"
+    r"(?:^|[\s;&|()])python3?\s+-c\b",
+    re.IGNORECASE | re.MULTILINE,
+)
+RAW_UNSUPPORTED_SYNTHESIS_RE = re.compile(
+    r"`|\$\(|<<|<\(|>\(|(?:^|[\s;&|()])(?:eval|source)\b|"
+    r"(?:^|[\s;&|()])python3?\s+-c\b",
+    re.IGNORECASE | re.MULTILINE,
+)
 GITHUB_GOVERNANCE_PATH_RE = re.compile(
     r"(?:^|/|\s)repos/[^/\s]+/[^/\s]+/(?:branches/[^/\s]+/protection(?:/|\s|$)|rulesets(?:/|\s|$))",
     re.IGNORECASE,
@@ -229,9 +260,11 @@ MCP_MUTATION_TOOL_RE = re.compile(
 )
 TASKMASTER_SET_STATUS_RE = re.compile(
     r"(^|[;&|]\s*)task-master\s+set-status\b(?P<args>[^;&|]*)",
-    re.IGNORECASE,
+    re.IGNORECASE | re.MULTILINE,
 )
-TASKMASTER_GENERATE_RE = re.compile(r"(^|[;&|]\s*)task-master\s+generate\b", re.IGNORECASE)
+TASKMASTER_GENERATE_RE = re.compile(
+    r"(^|[;&|]\s*)task-master\s+generate\b", re.IGNORECASE | re.MULTILINE
+)
 SHELL_REDIRECT_TOKEN_RE = re.compile(r"^\d?>&\d$")
 AEGIS_READ_ONLY_MCP_TOOL_SUFFIXES = {
     "inspect",
@@ -606,9 +639,14 @@ def _consume_override_token(root: Path, reason: str) -> dict[str, Any] | None:
     token_reason = str(token.get("reason_class") or "")
     if token_reason not in {"", "any", reason} and token_reason != reason:
         return None
-    expires_at = str(token.get("expires_at") or "")
-    now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-    if expires_at and now > expires_at:
+    expires_at_raw = str(token.get("expires_at") or "").strip()
+    try:
+        expires_at = datetime.fromisoformat(expires_at_raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if expires_at.tzinfo is None or expires_at.utcoffset() is None:
+        return None
+    if expires_at.astimezone(timezone.utc) <= datetime.now(timezone.utc):
         try:
             path.unlink()
         except OSError:
@@ -1111,16 +1149,82 @@ def strip_shell_prefixes(tokens: list[str]) -> list[str]:
     return stripped
 
 
-def hard_policy_shell_segments(command: str) -> list[list[str]]:
-    """Tokenize shell control flow without splitting control characters inside quotes."""
+class HardPolicyParseError(ValueError):
+    """The hard-policy shell subset could not be parsed safely."""
+
+
+def raw_hard_policy_families(command: str) -> frozenset[str]:
+    """Total, non-throwing preclassification independent of shell parsing.
+
+    This deliberately overclassifies. Membership makes parser failure fail closed; it
+    does not by itself prohibit a successfully parsed command.
+    """
 
     try:
-        lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|()")
+        families: set[str] = set()
+        if RAW_DESTRUCTIVE_GIT_RE.search(command):
+            families.add("destructive_git")
+        if GITHUB_GOVERNANCE_PATH_RE.search(command) or GITHUB_GOVERNANCE_GRAPHQL_RE.search(
+            command
+        ):
+            families.add("github_governance")
+        if MUTATING_TASKMASTER_RE.search(command):
+            families.add("taskmaster_mutation")
+        if RAW_TASKMASTER_WRITE_RE.search(command):
+            families.add("taskmaster_write")
+        if RAW_BEADS_AUTHORITY_RE.search(command):
+            families.add("beads_authority")
+        if RAW_DOLT_AUTHORITY_RE.search(command):
+            families.add("dolt_authority")
+        if RAW_NESTED_SYNTHESIS_RE.search(command):
+            families.add("nested_synthesis")
+        return frozenset(families)
+    except Exception:  # noqa: BLE001 - the preclassifier must be total and fail closed.
+        return frozenset({"preclassifier_failure"})
+
+
+def normalize_hard_policy_line_boundaries(command: str) -> str:
+    """Turn unquoted CR/LF boundaries into shell separators before tokenization."""
+
+    rendered: list[str] = []
+    quote = ""
+    escaped = False
+    for character in command:
+        if escaped:
+            rendered.append(character)
+            escaped = False
+            continue
+        if character == "\\" and quote != "'":
+            rendered.append(character)
+            escaped = True
+            continue
+        if quote:
+            rendered.append(character)
+            if character == quote:
+                quote = ""
+            continue
+        if character in {"'", '"'}:
+            quote = character
+            rendered.append(character)
+            continue
+        rendered.append(";" if character in {"\r", "\n"} else character)
+    return "".join(rendered)
+
+
+def hard_policy_shell_segments(command: str) -> list[list[str]]:
+    """Tokenize shell control flow without losing unquoted line boundaries."""
+
+    try:
+        lexer = shlex.shlex(
+            normalize_hard_policy_line_boundaries(command),
+            posix=True,
+            punctuation_chars=";&|()",
+        )
         lexer.whitespace_split = True
         lexer.commenters = ""
         raw_tokens = list(lexer)
-    except ValueError:
-        return []
+    except ValueError as exc:
+        raise HardPolicyParseError(str(exc)) from exc
     segments: list[list[str]] = []
     current: list[str] = []
     for token in raw_tokens:
@@ -1453,8 +1557,20 @@ def github_governance_violation(tokens: list[str]) -> str | None:
 def hard_policy_violations(command: str, root: Path, *, depth: int = 0) -> list[str]:
     if depth > 2:
         return ["nested shell command exceeds the destructive-operation inspection limit"]
+    families = raw_hard_policy_families(command)
+    sensitive_families = families - {"nested_synthesis"}
+    if sensitive_families and RAW_UNSUPPORTED_SYNTHESIS_RE.search(command):
+        return [
+            "sensitive hard-policy command uses unsupported shell synthesis or concealment"
+        ]
+    try:
+        shell_segments = hard_policy_shell_segments(command)
+    except HardPolicyParseError as exc:
+        if families:
+            return [f"hard-policy shell parse failed closed ({exc})"]
+        return []
     violations: list[str] = []
-    for raw_tokens in hard_policy_shell_segments(command):
+    for raw_tokens in shell_segments:
         tokens = strip_hard_policy_prefixes(raw_tokens)
         if not tokens:
             continue
@@ -1495,23 +1611,8 @@ def bash_is_mutation(command: str) -> bool:
         return False
     if bash_is_read_only(command):
         return False
-    if any(is_persistent_redirect_target(target) for target in redirect_targets(command)):
-        return True
-    if re.search(r"(^|[;&|]\s*)(sed\b[^;\n]*\s-i\b|sed\s+-i\b)", command):
-        return True
-    if re.search(r"(^|[;&|]\s*)tee\b", command):
-        return True
-    if re.search(r"(^|[;&|]\s*)(rm|mv|cp|install|touch|chmod|chown|mkdir|rmdir)\b", command):
-        return True
-    if (
-        MUTATING_GIT_RE.search(command)
-        or MUTATING_TASKMASTER_RE.search(command)
-        or MUTATING_AEGIS_RE.search(command)
-        or AEGIS_REPAIR_APPLY_RE.search(command)
-    ):
-        return True
-    if re.search(r"python3?\s+-c\s+['\"][^'\"]*(open|write_text)", command):
-        return True
+    # Classification is allowlist-based: anything not proven read-only is a mutation.
+    # Keep this explicit instead of presenting an incomplete blocklist as authoritative.
     return True
 
 
@@ -3156,6 +3257,7 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
             )
 
     if payload.tool_name == "Bash":
+        hard_families = raw_hard_policy_families(bash_command(payload))
         try:
             hard_violations = hard_policy_violations(bash_command(payload), root)
         except (
@@ -3166,14 +3268,25 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
             ]
         if hard_violations:
             details = "\n".join(f"  - {violation}" for violation in hard_violations)
+            destructive_families = {
+                "destructive_git",
+                "github_governance",
+                "nested_synthesis",
+            }
+            hard_reason = (
+                "destructive_git_operation"
+                if hard_families and hard_families <= destructive_families
+                else "hard_policy_violation"
+            )
             return gate_hard_block(
                 root,
                 payload,
                 "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
                 f"Tool: Bash\nCommand: {bash_command(payload)}\n"
                 f"Non-overridable violation(s):\n{details}\n\n"
-                "Aegis advisory mode relaxes workflow ceremony, not destructive Git or repository-governance safety.",
-                reason="destructive_git_operation",
+                "Aegis advisory mode relaxes workflow ceremony, not destructive Git or repository-governance safety. "
+                "Parser and authority-policy failures are equally non-overridable.",
+                reason=hard_reason,
             )
 
     clear_client_reload_marker(root, hook_invoking_agent(payload))
