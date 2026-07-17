@@ -12,7 +12,7 @@ unchanged.
 - [x] Add adversarial gate tests before implementation and capture the red result.
 - [x] Close newline, concealment, parser-failure, mutation-classification, and RFC3339 gaps.
 - [x] Keep source and packaged gate implementations byte-identical.
-- [ ] Obtain complete local and draft-PR verification evidence.
+- [x] Obtain complete local and draft-PR verification evidence.
 
 ## Progress Log
 - **2026-07-17 11:25** — [S:20260717|W:task288-gate-hard-policy-parser|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M:%S %Z %z"`] Confirmed the working timestamp as `2026-07-17 11:25:43 CEST +0200` before recording timestamped workflow evidence.
@@ -22,12 +22,14 @@ unchanged.
 - **2026-07-17 11:25** — [S:20260717|W:task288-gate-hard-policy-parser|H:pytest:regression|E:tests/claude_adapter/test_pretooluse_gates.py] Passed 222 focused gate tests, 643 Claude-adapter tests, and 180 adjacent installer/release tests with three documented opt-in smoke skips.
 - **2026-07-17 11:25** — [S:20260717|W:task288-gate-hard-policy-parser|H:workflow:metadata|E:plans/2026-07-17-task288-gate-hard-policy-parser.md] Recorded non-Taskmaster scope metadata required by guard and witness CI.
 - **2026-07-17 11:25** — [S:20260717|W:task288-gate-hard-policy-parser|H:serena/memory|E:.serena/memories/2026-07-17_task288_gate_hard_policy_parser.md] Recorded the standalone clone, test-first evidence, preserved primary-checkout boundary, and PR continuation state.
+- **2026-07-17 11:49** — [S:20260717|W:task288-gate-hard-policy-parser|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M:%S %Z %z"`] Confirmed `2026-07-17 11:49:13 CEST +0200` before recording final PR evidence.
+- **2026-07-17 11:49** — [S:20260717|W:task288-gate-hard-policy-parser|H:github:pr-checks|E:https://github.com/loucmane/codex-starter-pack/pull/289] Draft PR #289 passed Python 3.11 and 3.12, all guard jobs, Aegis witness, and evidence-gated delivery; the policy-authorized merge job correctly remained skipped for a draft.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Freeze prerequisite PR and no-Taskmaster boundaries.
 - [x] plan-step-test-first — Add and run adversarial tests before implementation.
 - [x] plan-step-implement — Implement fail-closed gate behavior and packaged parity.
-- [ ] plan-step-verify — Complete local guard/witness and draft-PR CI verification.
+- [x] plan-step-verify — Complete local guard/witness and draft-PR CI verification.
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes

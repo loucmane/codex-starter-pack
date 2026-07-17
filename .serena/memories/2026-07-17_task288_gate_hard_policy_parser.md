@@ -13,5 +13,7 @@
   suites pass.
 - Scope ID `288` is PR-workflow compatibility metadata only. Taskmaster remains frozen and
   unchanged.
-- Next: complete local guard/witness checks, publish the replacement draft PR, verify CI,
-  then perform read-only tx35a Checkpoint A and stop.
+- Draft PR #289 is open and passed Python 3.11/3.12, all guard jobs, Aegis witness, and
+  evidence-gated delivery at head `2c9f71cb44d7a7dfeccded84b93a7590776f6e11`.
+- Next: push the evidence-only metadata update, confirm its final CI rerun, then finish
+  read-only tx35a Checkpoint A and stop.

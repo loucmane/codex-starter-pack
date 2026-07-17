@@ -376,5 +376,11 @@
     "plan_hash": "41b2f6d90fa2feeb5bd68e306f578cb5ef9fa71b642800cc0837b55d176594b8",
     "tracker_hash": "b67f619a2bebbc52542d14564ac60e424eb14053094fc7eac4a1d457f29b9796",
     "synced_at": "2026-07-17T11:31:34.486638+02:00"
+  },
+  {
+    "plan": "plans/2026-07-17-task288-gate-hard-policy-parser.md",
+    "plan_hash": "31e07e93b915fa0e8026ac859299dee33d94f2a5f7b30c95b2531fc4f7ffe0a5",
+    "tracker_hash": "21eb4c5e1afd104bcf83bb35e66be6e1110b5cf5071c4d61333c2cf0580213d6",
+    "synced_at": "2026-07-17T11:50:16.204250+02:00"
   }
 ]

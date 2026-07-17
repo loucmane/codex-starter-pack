@@ -12,3 +12,5 @@
   could not map the original branch to a numeric scope. No failure implicated gate behavior.
 - 2026-07-17 — **Taskmaster boundary** — Workflow metadata can satisfy guard/witness using
   a PR-scoped numeric identifier without creating or updating Taskmaster state.
+- 2026-07-17 — **Replacement PR green** — Draft PR #289 passed Python 3.11 and 3.12 in
+  6m49s/6m59s, all three guard runs, Aegis witness, and evidence-gated delivery.

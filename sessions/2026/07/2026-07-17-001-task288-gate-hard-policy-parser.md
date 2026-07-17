@@ -21,7 +21,7 @@ title: PR Scope 288 - Gate Hard-Policy Parser
 - [x] Write the adversarial gate corpus before the implementation.
 - [x] Prove the new corpus fails against the vulnerable implementation.
 - [x] Implement the fail-closed gate behavior in source and packaged copies.
-- [ ] Obtain complete local and draft-PR verification evidence.
+- [x] Obtain complete local and draft-PR verification evidence.
 - [ ] Stop after tx35a Checkpoint A.
 
 ### Progress Log
@@ -31,3 +31,5 @@ title: PR Scope 288 - Gate Hard-Policy Parser
 - **[11:25]** — [S:20260717|W:task288-gate-hard-policy-parser|H:.claude/scripts/gate_lib.py|E:tests/claude_adapter/test_pretooluse_gates.py] Implemented raw hard-policy preclassification, fail-closed parser handling, concealment detection, multiline separation, and timezone-aware RFC3339 expiry parsing.
 - **[11:25]** — [S:20260717|W:task288-gate-hard-policy-parser|H:pytest:focused|E:tests/claude_adapter/test_break_glass.py] Passed the 44-case new selection, 222 focused gate tests, 643 Claude-adapter tests, and 180 adjacent installer/release tests with only documented opt-in smoke skips.
 - **[11:25]** — [S:20260717|W:task288-gate-hard-policy-parser|H:workflow:metadata|E:docs/ai/work-tracking/active/20260717-task288-gate-hard-policy-parser-ACTIVE/TRACKER.md] Added PR-scoped plan/session/tracker metadata solely to satisfy repository guard and witness accounting without mutating Taskmaster.
+- **[11:49]** — [S:20260717|W:task288-gate-hard-policy-parser|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M:%S %Z %z"`] Confirmed `2026-07-17 11:49:13 CEST +0200` before recording final PR evidence.
+- **[11:49]** — [S:20260717|W:task288-gate-hard-policy-parser|H:github:pr-checks|E:https://github.com/loucmane/codex-starter-pack/pull/289] Confirmed Python 3.11/3.12, guard, witness, and delivery CI passed on the replacement draft PR.
