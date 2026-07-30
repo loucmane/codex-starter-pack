@@ -1,8 +1,8 @@
-model = "gpt-5.5"
+model = "gpt-5.6-sol"
 model_provider = "openai"
 approval_policy = "never"
 default_permissions = "aegis-autonomous"
-model_reasoning_effort = "xhigh"
+model_reasoning_effort = "ultra"
 model_reasoning_summary = "detailed"
 model_verbosity = "high"
 personality = "pragmatic"
@@ -34,3 +34,20 @@ enabled = true
 
 [tui.model_availability_nux]
 "gpt-5.5" = 2
+
+[hooks.state]
+
+[hooks.state."/home/loucmane/codex/.codex/hooks.json:pre_tool_use:0:0"]
+trusted_hash = "sha256:f5132c252015de24e8137f5fda1deecf35c2381c2c696cb783b97f9bcadcbe0d"
+
+[hooks.state."/home/loucmane/codex/.codex/hooks.json:post_tool_use:0:0"]
+trusted_hash = "sha256:bae0278c955e99f1deb8dce44f01e65a662a33ab79f9041240ad4e9ac0fcd355"
+
+[hooks.state."/home/loucmane/codex/.codex/hooks.json:stop:0:0"]
+trusted_hash = "sha256:737f5b18030b7c1c77dddcffb1a6dd0f8669f59063cb8f1bcd19ce3f66380cb3"
+
+[hooks.state."/home/loucmane/codex/.codex/hooks.json:stop:0:1"]
+trusted_hash = "sha256:57fd65a72cf7da5468f70873c60e498452f6e8aef173fea52842365ddf950647"
+
+[apps.connector_76869538009648d5b282a4bb21c3d157.tools."github.mark_pull_request_ready_for_review"]
+approval_mode = "approve"
