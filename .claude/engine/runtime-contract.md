@@ -8,15 +8,17 @@ Claude must run as a gated participant in the portable Codex foundation. The ada
 
 ## Required State Before Claude Mutations
 Claude may perform persistent mutations only when all required pointers align:
-- current branch contains the active Taskmaster task ID;
-- Taskmaster parent task is `in-progress`;
+- current branch contains the active bead ID or compatibility Taskmaster task ID;
+- bead-native source work has matching plan/session/tracker identity, or the compatibility Taskmaster parent is `in-progress`;
 - `sessions/current` points to the active session;
 - `plans/current` points to the active plan;
-- exactly one ACTIVE work-tracking folder exists for the task;
+- exactly one ACTIVE work-tracking folder exists for the work;
 - the plan and tracker agree on required plan-step checkboxes;
 - readiness returns `READY`.
 
-The uninstalled Aegis source checkout also has a terminal completed-state projection. A done
+The uninstalled Aegis source checkout additionally accepts active bead-native work when a
+`codex/<bead-id>-...` branch, current plan, current session, and one ACTIVE tracker all identify
+the same bead and the plan/tracker statuses align. It also has a terminal completed-state projection. A done
 task branch may resolve one matching completed archive when no installed manifest, current-work
 state, or ACTIVE folder exists and Taskmaster/session/plan/tracker evidence agrees. This keeps
 source closeout and the next guided kickoff possible without weakening installed-target rules.
@@ -35,7 +37,7 @@ The full fail-closed contract is `docs/aegis/source-checkout-closeout-contract.m
 7. Every guard emits an actionable remediation message instead of a silent warning.
 
 ## Implemented Gate Components
-- `.claude/scripts/readiness.sh` verifies branch, Taskmaster, session, plan, tracker, and plan/tracker alignment; source-only completed archives use the Task 244 derivation contract.
+- `.claude/scripts/readiness.sh` verifies branch, work authority, session, plan, tracker, and plan/tracker alignment; bead-native source work is Taskmaster-free, while source-only completed numeric-task archives use the Task 244 derivation contract.
 - `.claude/scripts/pretooluse-gate.sh` is the dispatcher registered for `Edit|Write|MultiEdit|NotebookEdit|Bash`.
 - `.claude/scripts/posttooluse-tracking.sh` records pending S:W:H:E tracking after successful persistent mutations.
 - `.claude/scripts/tracking-stop-gate.sh` blocks session stop until pending S:W:H:E tracking is logged.

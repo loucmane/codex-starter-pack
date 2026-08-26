@@ -10,3 +10,4 @@
   Taskmaster remains frozen and is neither read as authority nor mutated.
 - 2026-07-17 — **Accepted** — The primary checkout remains untouched until attended tx35a
   Checkpoint F reconciliation.
+- 2026-08-26 — Archived through the supported archive helper; no historical evidence was deleted or relabeled.

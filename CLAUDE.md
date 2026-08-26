@@ -2,6 +2,17 @@
 
 This repo uses Claude as a gated participant in the portable Codex foundation. The adapter is a runtime system, not a reminder document: readiness, PreToolUse/PostToolUse/Stop hooks, tests, and work-tracking evidence define whether Claude may mutate project state.
 
+## Beads Migration Status
+
+Gas City beads are authoritative for all new work; see `AGENTS.md`. Do not create or mutate a
+Taskmaster task to duplicate a bead or merely to satisfy this adapter.
+
+The strict Claude/Aegis readiness implementation supports bead-native work in this uninstalled
+source checkout and retains Taskmaster as a compatibility path for historical numeric tasks.
+Bead-native readiness requires a `codex/<bead-id>-...` branch, matching `Bead IDs` and branch
+policy in the current plan, a matching current session, and exactly one matching ACTIVE tracker.
+It does not read or mutate the historical Taskmaster graph.
+
 ## First Rule
 Before Claude performs any persistent mutation, readiness must be `READY`.
 
@@ -15,18 +26,18 @@ The PreToolUse dispatcher in `.claude/scripts/pretooluse-gate.sh` enforces this 
 
 ## Required Workflow State
 Claude mutations require all of these to align:
-- current branch contains the active Taskmaster task ID;
-- Taskmaster parent task is `in-progress`;
-- `sessions/current` points to the active session for the task;
-- `plans/current` points to the active plan for the task;
-- exactly one ACTIVE work-tracking folder exists for the task;
+- current branch contains the active bead ID or compatibility Taskmaster task ID;
+- bead-native source work has matching `Bead IDs` and branch policy, while compatibility task work has an in-progress Taskmaster/Aegis authority;
+- `sessions/current` points to the active session for that work;
+- `plans/current` points to the active plan for that work;
+- exactly one ACTIVE work-tracking folder exists for that work;
 - `TRACKER.md` and the active plan agree on plan-step status;
 - `bash .claude/scripts/readiness.sh --quick` exits `0`.
 
 ## Operating Loop
 1. Run readiness and stop on `BLOCKED`.
 2. Read `sessions/current`, `plans/current`, and the active `HANDOFF.md`.
-3. Review the Taskmaster task with `task-master show <id>` or the read-only Taskmaster MCP equivalents (`next_task`, `get_task`) when MCP is available.
+3. Review the authoritative Gas City bead for new work; consult Taskmaster only for an explicitly historical numeric-task compatibility flow.
 4. Work one subtask at a time.
 5. For every meaningful step, run `aegis log` or `./.aegis/bin/aegis log` before attempting the next mutation. The log must update the active session, tracker, implementation log, changelog, handoff, and current plan evidence; add `--surface findings` or `--surface decisions` when the mutation captured one of those records.
 6. Capture command evidence under the active work-tracking `reports/` folder.

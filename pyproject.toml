@@ -50,6 +50,7 @@ Issues = "https://github.com/loucmane/codex-starter-pack/issues"
 [project.scripts]
 aegis = "aegis_foundation.cli:main"
 aegis-mcp-server = "aegis_mcp.server:main"
+codex-wsl-readiness = "aegis_foundation.reboot_readiness:main"
 
 [dependency-groups]
 dev = [

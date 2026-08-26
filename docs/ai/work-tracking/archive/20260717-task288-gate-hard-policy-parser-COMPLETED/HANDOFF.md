@@ -19,3 +19,4 @@
 
 Do not modify `/home/loucmane/codex`, Taskmaster, Gas City runtime state, or credentials as
 part of this PR. Any contradiction stops the transaction.
+- Archived on 2026-08-26 15:44 CEST — Folder moved to archive and tracker marked COMPLETED.

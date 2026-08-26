@@ -8,7 +8,7 @@ evidence_summary:
   - tests/fixtures/aegis/gate-hard-policy-corpus.json
   - tests/claude_adapter/test_pretooluse_gates.py
   - tests/claude_adapter/test_break_glass.py
-  - docs/ai/work-tracking/active/20260717-task288-gate-hard-policy-parser-ACTIVE/
+  - docs/ai/work-tracking/archive/20260717-task288-gate-hard-policy-parser-COMPLETED/
 plan_version: v1
 emergency_bypass: false
 ---
@@ -21,7 +21,7 @@ emergency_bypass: false
 - **Handler Target (H)**: `.claude/scripts/gate_lib.py`
 - **Task IDs**: 288
 - **Branch Policy**: codex/task-288-gate-hard-policy-parser
-- **Evidence Summary (E)**: `tests/fixtures/aegis/gate-hard-policy-corpus.json`, `tests/claude_adapter/test_pretooluse_gates.py`, `tests/claude_adapter/test_break_glass.py`, `docs/ai/work-tracking/active/20260717-task288-gate-hard-policy-parser-ACTIVE/`
+- **Evidence Summary (E)**: `tests/fixtures/aegis/gate-hard-policy-corpus.json`, `tests/claude_adapter/test_pretooluse_gates.py`, `tests/claude_adapter/test_break_glass.py`, `docs/ai/work-tracking/archive/20260717-task288-gate-hard-policy-parser-COMPLETED/`
 - **Plan Version**: v1
 - **Emergency Bypass**: false
 
@@ -35,7 +35,7 @@ updates, regenerates, or reinitializes no Taskmaster state.
 | plan-step-scope | Freeze the prerequisite PR boundary, sensitive command families, and no-Taskmaster constraint | plans/2026-07-17-task288-gate-hard-policy-parser.md | completed |
 | plan-step-test-first | Add a shared adversarial corpus and prove the vulnerable implementation fails before changing gate behavior | tests/fixtures/aegis/gate-hard-policy-corpus.json; tests/claude_adapter/test_pretooluse_gates.py; tests/claude_adapter/test_break_glass.py | completed |
 | plan-step-implement | Make both source and packaged gates fail closed for concealed sensitive commands and parse RFC3339 expiry values as datetimes | .claude/scripts/gate_lib.py; aegis_foundation/assets/.claude/scripts/gate_lib.py | completed |
-| plan-step-verify | Run focused, adapter, release, lint, parity, guard, witness, and CI verification without touching the dirty primary checkout | docs/ai/work-tracking/active/20260717-task288-gate-hard-policy-parser-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260717-task288-gate-hard-policy-parser-ACTIVE/TRACKER.md | completed |
+| plan-step-verify | Run focused, adapter, release, lint, parity, guard, witness, and CI verification without touching the dirty primary checkout | docs/ai/work-tracking/archive/20260717-task288-gate-hard-policy-parser-COMPLETED/HANDOFF.md; docs/ai/work-tracking/archive/20260717-task288-gate-hard-policy-parser-COMPLETED/TRACKER.md | completed |
 | plan-step-emergency | Record any emergency bypass and post-mortem requirement | plans/2026-07-17-task288-gate-hard-policy-parser.md | n/a |
 
 ## Scope
@@ -49,7 +49,7 @@ updates, regenerates, or reinitializes no Taskmaster state.
 - `sessions/2026/07/2026-07-17-001-task288-gate-hard-policy-parser.md`
 - `sessions/current`
 - `sessions/state.json`
-- `docs/ai/work-tracking/active/20260717-task288-gate-hard-policy-parser-ACTIVE/`
+- `docs/ai/work-tracking/archive/20260717-task288-gate-hard-policy-parser-COMPLETED/`
 - `.serena/memories/2026-07-17_task288_gate_hard_policy_parser.md`
 - `.plan_state/sync.log`
 

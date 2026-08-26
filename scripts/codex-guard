@@ -157,6 +157,7 @@ PLAN_STATUS_COMPLETE = {"completed", "done"}
 PLAN_STATUS_INCOMPLETE = {"pending", "in_progress", "todo"}
 PLAN_STATUS_PASSIVE = {"not-needed", "n/a", "optional"}
 TASK_IDS_PATTERN = re.compile(r"\*\*Task IDs\*\*:\s*(.+)")
+BEAD_IDS_PATTERN = re.compile(r"\*\*Bead IDs\*\*:\s*(.+)")
 BRANCH_POLICY_PATTERN = re.compile(r"\*\*Branch Policy\*\*:\s*(.+)")
 TEMPLATE_METADATA_POLICY_PATH = Path(
     os.environ.get(
@@ -202,6 +203,7 @@ class PlanDetails:
     scope: List[str]
     emergency_bypass: bool
     task_ids: List[str]
+    bead_ids: List[str]
     branch_policy: Optional[str]
     text: str
 
@@ -358,12 +360,40 @@ def compute_changed_files(entries: List[tuple[str, str]], include_untracked: boo
             continue
         absolute = (REPO_ROOT / cleaned).resolve()
         if absolute.is_dir():
-            for candidate in absolute.rglob('*'):
-                if candidate.is_file():
-                    changed.append(candidate)
+            if status == "??":
+                changed.extend(_untracked_directory_files(absolute))
+            else:
+                for candidate in absolute.rglob('*'):
+                    if candidate.is_file():
+                        changed.append(candidate)
             continue
         changed.append(absolute)
     return sorted(set(changed))
+
+
+def _untracked_directory_files(root: Path) -> List[Path]:
+    """Return untracked files without crossing into nested Git repositories.
+
+    A parent checkout cannot commit the contents of an embedded repository as ordinary
+    files. Recursing into those roots made ``--include-untracked`` lint unrelated
+    worktrees and their runtime caches, while still missing the actual gitlink boundary.
+    """
+
+    if (root / '.git').exists():
+        return []
+    files: List[Path] = []
+    for current, directories, names in os.walk(root):
+        current_path = Path(current)
+        directories[:] = [
+            name
+            for name in directories
+            if name != '.git' and not (current_path / name / '.git').exists()
+        ]
+        for name in names:
+            candidate = current_path / name
+            if candidate.is_file():
+                files.append(candidate)
+    return files
 
 
 def detect_untracked_active_folders(entries: List[tuple[str, str]]) -> List[Path]:
@@ -627,6 +657,8 @@ def validate_session_edit_dates(changed_paths: Iterable[Path]) -> List[Validatio
             and _session_marked_complete(absolute)
         ):
             continue
+        if _is_archive_reference_only_session_edit(relative, absolute):
+            continue
         issues.append(
             ValidationIssue(
                 relative,
@@ -634,6 +666,36 @@ def validate_session_edit_dates(changed_paths: Iterable[Path]) -> List[Validatio
             )
         )
     return issues
+
+
+def _is_archive_reference_only_session_edit(relative: Path, session_path: Path) -> bool:
+    """Recognize the exact historical-reference rewrite made by the archive helper."""
+
+    result = subprocess.run(
+        ['git', 'show', f'HEAD:{relative.as_posix()}'],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return False
+    try:
+        current = session_path.read_text(encoding='utf-8')
+    except FileNotFoundError:
+        return False
+    archive_pattern = re.compile(
+        rf'{re.escape(WORK_TRACKING_ARCHIVE_RELATIVE.as_posix())}/'
+        r'(?P<name>\d{8}-.+)-COMPLETED'
+    )
+    normalized = archive_pattern.sub(
+        lambda match: (
+            f'{WORK_TRACKING_RELATIVE.as_posix()}/'
+            f'{match.group("name")}-ACTIVE'
+        ),
+        current,
+    )
+    return normalized == result.stdout and current != result.stdout
 
 
 def detect_untracked_active_folders(entries: List[tuple[str, str]]) -> List[Path]:
@@ -1153,6 +1215,19 @@ def parse_task_ids(text: str) -> List[str]:
     return ids
 
 
+def parse_bead_ids(text: str) -> List[str]:
+    match = BEAD_IDS_PATTERN.search(text)
+    if not match:
+        return []
+    raw = match.group(1)
+    ids: List[str] = []
+    for token in raw.split(','):
+        cleaned = token.strip()
+        if cleaned:
+            ids.append(cleaned)
+    return ids
+
+
 def parse_branch_policy(text: str) -> Optional[str]:
     match = BRANCH_POLICY_PATTERN.search(text)
     if not match:
@@ -1266,8 +1341,21 @@ def validate_plan(plan_path: Path) -> Tuple[List[ValidationIssue], Optional[Plan
         issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'Plan header missing Emergency Bypass field'))
 
     task_ids = parse_task_ids(plan_text)
-    if not task_ids:
-        issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'Plan header missing Task IDs entry'))
+    bead_ids = parse_bead_ids(plan_text)
+    if not task_ids and not bead_ids:
+        issues.append(
+            ValidationIssue(
+                plan_path.relative_to(REPO_ROOT),
+                'Plan header missing work identity (Task IDs or Bead IDs)',
+            )
+        )
+    if task_ids and bead_ids:
+        issues.append(
+            ValidationIssue(
+                plan_path.relative_to(REPO_ROOT),
+                'Plan must declare either Task IDs or Bead IDs, not both',
+            )
+        )
 
     branch_policy = parse_branch_policy(plan_text)
     if not branch_policy:
@@ -1278,6 +1366,7 @@ def validate_plan(plan_path: Path) -> Tuple[List[ValidationIssue], Optional[Plan
         scope=scope_entries,
         emergency_bypass=emergency_required,
         task_ids=task_ids,
+        bead_ids=bead_ids,
         branch_policy=branch_policy,
         text=plan_text,
     )
@@ -1499,6 +1588,31 @@ def _load_source_workflow_state():
 
 
 def get_active_tracker_path() -> Path:
+    override = os.environ.get('CODEX_WORK_TRACKING_FOLDER', '').strip()
+    if override:
+        override_path = Path(override)
+        if (
+            override_path.name != override
+            or override_path.is_absolute()
+            or not override.endswith('-ACTIVE')
+        ):
+            raise SystemExit(
+                'CODEX_WORK_TRACKING_FOLDER must be one ACTIVE folder name, not a path'
+            )
+        selected = WORK_TRACKING_PREFIX / override
+        if (
+            not selected.is_dir()
+            or selected.is_symlink()
+            or selected.resolve().parent != WORK_TRACKING_PREFIX.resolve()
+        ):
+            raise SystemExit(
+                f'CODEX_WORK_TRACKING_FOLDER does not name a contained ACTIVE folder: {override}'
+            )
+        tracker = selected / 'TRACKER.md'
+        if not tracker.is_file() or tracker.is_symlink():
+            raise SystemExit(f'Tracker file missing at {tracker}')
+        return tracker
+
     candidates = (
         [p for p in WORK_TRACKING_PREFIX.iterdir() if p.is_dir() and p.name.endswith('-ACTIVE')]
         if WORK_TRACKING_PREFIX.is_dir()
@@ -1506,7 +1620,10 @@ def get_active_tracker_path() -> Path:
     )
     if len(candidates) > 1:
         names = ", ".join(p.name for p in candidates)
-        raise SystemExit(f"Multiple ACTIVE work-tracking folders found ({names}); specify via override or clean up")
+        raise SystemExit(
+            f"Multiple ACTIVE work-tracking folders found ({names}); set "
+            "CODEX_WORK_TRACKING_FOLDER to one exact folder name or clean up"
+        )
     if candidates:
         tracker = candidates[0] / 'TRACKER.md'
     else:
@@ -1825,14 +1942,15 @@ def validate_branch_policy(plan_details: PlanDetails) -> List[ValidationIssue]:
             issues.append(ValidationIssue(Path('git'), f'Branch policy is main-only but current branch is {branch}'))
         return issues
 
-    allowed_ids = {task_id.strip() for task_id in plan_details.task_ids if task_id.strip()}
+    allowed_task_ids = {task_id.strip() for task_id in plan_details.task_ids if task_id.strip()}
+    allowed_bead_ids = {bead_id.strip() for bead_id in plan_details.bead_ids if bead_id.strip()}
     prefixes = ('feat', 'feature', 'task', 'fix')
     branch_ok = False
     for prefix in prefixes:
         if branch.startswith(f'{prefix}/'):
             remainder = branch.split('/', 1)[1]
             candidate_id = extract_task_id_slug(remainder)
-            if candidate_id and candidate_id in allowed_ids:
+            if candidate_id and candidate_id in allowed_task_ids:
                 branch_ok = True
                 break
 
@@ -1842,9 +1960,11 @@ def validate_branch_policy(plan_details: PlanDetails) -> List[ValidationIssue]:
             branch_ok = True
 
     if not branch_ok:
+        allowed_ids = allowed_task_ids | allowed_bead_ids
         if allowed_ids:
             expected = ', '.join(sorted(allowed_ids))
-            message = f'Branch {branch} does not match expected Task IDs ({expected}) for policy {plan_details.branch_policy}'
+            identity_label = 'Bead IDs' if allowed_bead_ids and not allowed_task_ids else 'Task IDs'
+            message = f'Branch {branch} does not match expected {identity_label} ({expected}) for policy {plan_details.branch_policy}'
         else:
             message = f'Branch {branch} does not satisfy branch policy {plan_details.branch_policy}'
         issues.append(ValidationIssue(Path('git'), message))

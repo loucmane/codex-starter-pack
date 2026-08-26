@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  echo "usage: install-codex-wsl-readiness --check|--apply [--dest PATH]" >&2
+  exit 64
+}
+
+mode=""
+dest="${HOME}/.local/bin/codex-wsl-readiness"
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --check|--apply)
+      [ -z "$mode" ] || usage
+      mode="$1"
+      shift
+      ;;
+    --dest)
+      [ "$#" -ge 2 ] || usage
+      dest="$2"
+      shift 2
+      ;;
+    *)
+      usage
+      ;;
+  esac
+done
+[ -n "$mode" ] || usage
+
+repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
+source_file="${repo_root}/aegis_foundation/reboot_readiness.py"
+[ -f "$source_file" ] || {
+  echo "readiness source missing: $source_file" >&2
+  exit 1
+}
+
+if [ "$mode" = "--check" ]; then
+  [ -x "$dest" ] || {
+    echo "stable readiness doctor missing or non-executable: $dest" >&2
+    exit 1
+  }
+  cmp -s -- "$source_file" "$dest" || {
+    echo "stable readiness doctor differs from reviewed source: $dest" >&2
+    exit 1
+  }
+  "$dest" --version
+  exit 0
+fi
+
+parent=$(dirname -- "$dest")
+/usr/bin/install -d -m 0755 -- "$parent"
+tmp=$(mktemp -- "${dest}.tmp.XXXXXX")
+cleanup() {
+  rm -f -- "$tmp"
+}
+trap cleanup EXIT HUP INT TERM
+/usr/bin/install -m 0755 -- "$source_file" "$tmp"
+"$tmp" --version >/dev/null
+/usr/bin/mv -f -- "$tmp" "$dest"
+trap - EXIT HUP INT TERM
+"$dest" --version

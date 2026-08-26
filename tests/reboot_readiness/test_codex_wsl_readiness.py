@@ -1,0 +1,334 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Mapping, Sequence
+
+from aegis_foundation.reboot_readiness import (
+    CommandResult,
+    ProbeConfig,
+    build_report,
+    check_desktop,
+    check_gc_status,
+    check_supervisor_units,
+    check_windows_bootstrap,
+    check_wsl_systemd,
+    exit_code,
+    render_human,
+)
+
+
+class FakeRunner:
+    def __init__(self, responses: Mapping[tuple[str, ...], CommandResult]) -> None:
+        self.responses = dict(responses)
+        self.calls: list[tuple[str, ...]] = []
+
+    def run(
+        self,
+        argv: Sequence[str],
+        *,
+        env: Mapping[str, str] | None = None,
+        timeout: float = 15,
+    ) -> CommandResult:
+        key = tuple(argv)
+        self.calls.append(key)
+        if key not in self.responses:
+            raise AssertionError(f"unexpected command: {key!r}")
+        return self.responses[key]
+
+
+def write_windows_config(path: Path, *, workaround: bool = True) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = [
+        "[desktop]",
+        "runCodexInWindowsSubsystemForLinux = true",
+        "",
+    ]
+    if workaround:
+        lines.extend(
+            [
+                "[mcp_servers.codex_app]",
+                'command = "/bin/false"',
+                "enabled = false",
+            ]
+        )
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def make_config(tmp_path: Path, *, stale_units: int = 0) -> ProbeConfig:
+    city = tmp_path / "gascity/city"
+    city.mkdir(parents=True)
+    windows_config = tmp_path / "windows/.codex/config.toml"
+    write_windows_config(windows_config)
+    wsl_config = tmp_path / "etc/wsl.conf"
+    wsl_config.parent.mkdir(parents=True)
+    wsl_config.write_text("[boot]\nsystemd=true\n", encoding="utf-8")
+    boot_id = tmp_path / "proc/boot_id"
+    boot_id.parent.mkdir(parents=True)
+    boot_id.write_text("test-boot-id\n", encoding="utf-8")
+    unit_dir = tmp_path / "systemd/user"
+    wants_dir = tmp_path / "systemd/wants"
+    unit_dir.mkdir(parents=True)
+    wants_dir.mkdir(parents=True)
+    canonical_name = "gascity-supervisor-home-test.service"
+    canonical = unit_dir / canonical_name
+    canonical.write_text(
+        f'[Service]\nEnvironment=GC_HOME="{city.parent / "home"}"\n',
+        encoding="utf-8",
+    )
+    (wants_dir / canonical_name).symlink_to(canonical)
+    for index in range(stale_units):
+        stale = unit_dir / f"gascity-supervisor-home-stale{index}.service"
+        stale.write_text('[Service]\nEnvironment=GC_HOME="/tmp/stale"\n', encoding="utf-8")
+        (wants_dir / stale.name).symlink_to(stale)
+    return ProbeConfig(
+        city=city,
+        gc=Path("/managed/gc"),
+        windows_config=windows_config,
+        wsl_config=wsl_config,
+        boot_id_path=boot_id,
+        user_unit_dir=unit_dir,
+        user_wants_dir=wants_dir,
+        supervisor_unit=canonical_name,
+        user="tester",
+    )
+
+
+def powershell_version_command() -> tuple[str, ...]:
+    return (
+        "powershell.exe",
+        "-NoProfile",
+        "-Command",
+        "$p=Get-AppxPackage OpenAI.Codex -ErrorAction SilentlyContinue; "
+        "if($null -eq $p){exit 3}; $p.Version.ToString()",
+    )
+
+
+def powershell_task_command(name: str = "GasCity-WSL-Bootstrap") -> tuple[str, ...]:
+    return (
+        "powershell.exe",
+        "-NoProfile",
+        "-Command",
+        f"$t=Get-ScheduledTask -TaskName '{name}' -ErrorAction SilentlyContinue; "
+        "if($null -eq $t){exit 3}; $a=@($t.Actions)[0]; $g=@($t.Triggers)[0]; "
+        "[pscustomobject]@{State=$t.State.ToString();Execute=$a.Execute;"
+        "Arguments=$a.Arguments;UserId=$t.Principal.UserId;"
+        "RunLevel=$t.Principal.RunLevel.ToString();"
+        "TriggerClass=$g.CimClass.CimClassName;Delay=$g.Delay} | "
+        "ConvertTo-Json -Compress",
+    )
+
+
+def healthy_task() -> str:
+    return json.dumps(
+        {
+            "State": "Ready",
+            "Execute": r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+            "Arguments": (
+                '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File '
+                '"C:\\Users\\tester\\AppData\\Local\\GasCity\\bootstrap\\'
+                'gas-city-wsl-bootstrap.ps1"'
+            ),
+            "UserId": r"TEST\tester",
+            "RunLevel": "Limited",
+            "TriggerClass": "MSFT_TaskLogonTrigger",
+            "Delay": "PT30S",
+        }
+    )
+
+
+def healthy_responses(config: ProbeConfig) -> dict[tuple[str, ...], CommandResult]:
+    responses: dict[tuple[str, ...], CommandResult] = {
+        ("loginctl", "show-user", "tester", "-p", "Linger", "--value"): CommandResult(
+            0, "yes\n"
+        ),
+        powershell_version_command(): CommandResult(0, "26.820.7780.0\n"),
+        powershell_task_command(): CommandResult(0, healthy_task()),
+        (
+            "/managed/gc",
+            "--city",
+            str(config.city),
+            "status",
+            "--json",
+        ): CommandResult(
+            0,
+            json.dumps(
+                {
+                    "controller": {"running": True},
+                    "beads": {"native_store_eligible": True},
+                    "rigs": [{"name": "gascity", "suspended": True}],
+                }
+            ),
+        ),
+    }
+    units = (
+        (True, config.supervisor_unit),
+        (False, config.signer_service),
+        (False, config.signer_socket),
+    )
+    for user, unit in units:
+        prefix = ("systemctl", "--user") if user else ("systemctl",)
+        responses[(*prefix, "is-enabled", unit)] = CommandResult(0, "enabled\n")
+        responses[(*prefix, "is-active", unit)] = CommandResult(0, "active\n")
+    return responses
+
+
+def by_key(report, key: str):
+    return next(check for check in report.checks if check.key == key)
+
+
+def test_affected_desktop_build_requires_workaround(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    runner = FakeRunner({powershell_version_command(): CommandResult(0, "26.820.7780.0\n")})
+
+    checks = check_desktop(config, runner, "host-wsl")
+    keyed = {check.key: check for check in checks}
+
+    assert keyed["desktop.config"].status == "pass"
+    assert keyed["desktop.wsl_mode"].status == "pass"
+    assert keyed["desktop.version"].status == "warn"
+    assert keyed["desktop.codex_app_workaround"].status == "pass"
+
+
+def test_affected_desktop_build_without_workaround_fails(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    assert config.windows_config is not None
+    write_windows_config(config.windows_config, workaround=False)
+    runner = FakeRunner({powershell_version_command(): CommandResult(0, "26.820.7780.0\n")})
+
+    checks = check_desktop(config, runner, "host-wsl")
+
+    assert next(check for check in checks if check.key.endswith("workaround")).status == "fail"
+
+
+def test_newer_desktop_build_requests_controlled_retest(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    runner = FakeRunner({powershell_version_command(): CommandResult(0, "26.900.1.0\n")})
+
+    checks = check_desktop(config, runner, "host-wsl")
+    version = next(check for check in checks if check.key == "desktop.version")
+
+    assert version.status == "warn"
+    assert version.details["candidate_retest"] is True
+
+
+def test_wsl_systemd_false_is_a_real_failure(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    config.wsl_config.write_text("[boot]\nsystemd=false\n", encoding="utf-8")
+
+    checks = check_wsl_systemd(config)
+
+    assert checks[0].key == "wsl.systemd_config"
+    assert checks[0].status == "fail"
+    assert checks[1].status == "pass"
+
+
+def test_stale_supervisor_units_are_reported_without_mutation(tmp_path: Path) -> None:
+    config = make_config(tmp_path, stale_units=3)
+
+    checks = check_supervisor_units(config)
+    stale = next(check for check in checks if check.key == "gascity.stale_supervisor_units")
+
+    assert stale.status == "warn"
+    assert stale.details["stale_count"] == 3
+    assert len(list(config.user_wants_dir.glob("*.service"))) == 4
+
+
+def test_windows_bootstrap_contract_drift_fails(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    task = json.loads(healthy_task())
+    task["RunLevel"] = "Highest"
+    runner = FakeRunner(
+        {powershell_task_command(): CommandResult(0, json.dumps(task))}
+    )
+
+    check = check_windows_bootstrap(config, runner, "host-wsl")
+
+    assert check.status == "fail"
+    assert "drifted" in check.summary
+
+
+def test_sandbox_socket_denial_is_unknown_not_failure(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    command = (
+        "/managed/gc",
+        "--city",
+        str(config.city),
+        "status",
+        "--json",
+    )
+    runner = FakeRunner(
+        {
+            command: CommandResult(
+                0,
+                json.dumps({"controller": {"running": False}}),
+                "dial tcp 127.0.0.1:53381: socket: operation not permitted",
+            )
+        }
+    )
+
+    check = check_gc_status(config, runner, "codex-sandbox")
+
+    assert check.status == "unknown"
+    assert check.details["observer"] == "codex-sandbox"
+
+
+def test_wsl_interop_vsock_denial_is_unknown_not_desktop_failure(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    denial = CommandResult(
+        1,
+        stderr="<3>WSL (4 - ) ERROR: UtilBindVsockAnyPort:307: socket failed 1",
+    )
+    runner = FakeRunner({powershell_version_command(): denial})
+
+    checks = check_desktop(config, runner, "codex-sandbox")
+    version = next(check for check in checks if check.key == "desktop.version")
+
+    assert version.status == "unknown"
+    assert version.details["observer"] == "codex-sandbox"
+
+
+def test_full_report_is_degraded_for_mitigated_affected_build(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    runner = FakeRunner(healthy_responses(config))
+
+    report = build_report(config, runner=runner, env={})
+
+    assert report.overall == "degraded"
+    assert report.observer == "host-wsl"
+    assert by_key(report, "desktop.version").status == "warn"
+    assert by_key(report, "desktop.codex_app_workaround").status == "pass"
+    assert by_key(report, "gascity.status").status == "pass"
+    assert exit_code(report) == 1
+    assert "Codex WSL reboot readiness: DEGRADED" in render_human(report)
+
+
+def test_full_report_allows_explicit_host_observer_for_approved_host_run(
+    tmp_path: Path,
+) -> None:
+    config = make_config(tmp_path)
+    runner = FakeRunner(healthy_responses(config))
+
+    report = build_report(
+        config,
+        runner=runner,
+        env={"CODEX_PERMISSION_PROFILE": "managed"},
+        observer_override="host-wsl",
+    )
+
+    assert report.observer == "host-wsl"
+
+
+def test_full_report_fails_when_supervisor_is_inactive(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    responses = healthy_responses(config)
+    responses[
+        ("systemctl", "--user", "is-active", config.supervisor_unit)
+    ] = CommandResult(3, "inactive\n")
+    runner = FakeRunner(responses)
+
+    report = build_report(config, runner=runner, env={})
+
+    assert report.overall == "failed"
+    assert by_key(report, "gascity.supervisor.active").status == "fail"
+    assert exit_code(report) == 2

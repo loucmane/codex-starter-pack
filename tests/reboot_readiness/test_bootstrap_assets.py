@@ -1,0 +1,65 @@
+from __future__ import annotations
+
+import subprocess
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+BOOTSTRAP = ROOT / "scripts/windows/gas-city-wsl-bootstrap.ps1"
+WINDOWS_INSTALLER = ROOT / "scripts/windows/install-gas-city-wsl-bootstrap.ps1"
+DOCTOR_INSTALLER = ROOT / "scripts/install-codex-wsl-readiness"
+
+
+def test_windows_bootstrap_is_read_only_except_evidence() -> None:
+    text = BOOTSTRAP.read_text(encoding="utf-8")
+
+    assert "--observer host-wsl --json" in text
+    assert "@('ready', 'degraded')" in text
+    assert "@(0, 1)" in text
+    assert "latest.json" in text
+    assert "Move-Item -LiteralPath $temporary" in text
+    for forbidden in (
+        "gc rig resume",
+        "gc start",
+        "systemctl",
+        "Restart-Service",
+        "Start-Service",
+        "managed-git-commit",
+    ):
+        assert forbidden not in text
+
+
+def test_windows_installer_pins_limited_delayed_logon_contract() -> None:
+    text = WINDOWS_INSTALLER.read_text(encoding="utf-8")
+
+    assert "New-ScheduledTaskTrigger -AtLogOn" in text
+    assert "$trigger.Delay = 'PT30S'" in text
+    assert "-RunLevel Limited" in text
+    assert "-StartWhenAvailable" in text
+    assert "-MultipleInstances IgnoreNew" in text
+    assert "Get-FileHash" in text
+    assert "Unregister-ScheduledTask" in text
+
+
+def test_stable_doctor_installer_applies_and_checks_in_temp(tmp_path: Path) -> None:
+    destination = tmp_path / "bin/codex-wsl-readiness"
+
+    applied = subprocess.run(
+        [str(DOCTOR_INSTALLER), "--apply", "--dest", str(destination)],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert applied.returncode == 0, applied.stderr
+    assert destination.stat().st_mode & 0o777 == 0o755
+    assert "2026.08.26.1" in applied.stdout
+
+    checked = subprocess.run(
+        [str(DOCTOR_INSTALLER), "--check", "--dest", str(destination)],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert checked.returncode == 0, checked.stderr

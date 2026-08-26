@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -96,6 +97,90 @@ task_ids: [{task_id}]
     return repo
 
 
+def make_bead_source_repo(
+    tmp_path: Path,
+    *,
+    bead_id: str = "ga-k9sd",
+    branch: str | None = None,
+) -> Path:
+    repo = make_repo(
+        tmp_path,
+        branch=branch or f"codex/{bead_id}-beads-first-guidance",
+    )
+    shutil.rmtree(repo / ".taskmaster")
+
+    # Readiness intentionally recognizes bead identity only in an uninstalled
+    # Aegis source checkout, never in an arbitrary target repository.
+    write(repo / "pyproject.toml", '[project]\nname = "aegis-foundation"\n')
+    source_markers = (
+        "schemas/aegis/foundation-manifest.schema.json",
+        "scripts/_aegis_installer.py",
+        ".claude/scripts/readiness.sh",
+        "aegis_foundation/assets/.claude/scripts/readiness.sh",
+        "aegis_foundation/assets/scripts/codex-guard",
+    )
+    for marker in source_markers:
+        write(repo / marker, "source marker\n")
+    shutil.copy2(REPO_ROOT / "scripts/_source_workflow_state.py", repo / "scripts/_source_workflow_state.py")
+
+    session_rel = Path(f"2026/08/2026-08-26-001-{bead_id}-beads-first-guidance.md")
+    old_session = (repo / "sessions" / "current").resolve()
+    (repo / "sessions" / "current").unlink()
+    old_session.unlink()
+    write(
+        repo / "sessions" / session_rel,
+        f"---\nsession_id: 2026-08-26-001\n---\n\n# Bead {bead_id} Session\n",
+    )
+    (repo / "sessions" / "current").symlink_to(session_rel)
+    write(
+        repo / "sessions" / "state.json",
+        json.dumps({"current": session_rel.name, "paused": [], "updated_at": "2026-08-26T16:00:00+02:00"}),
+    )
+
+    plan_rel = Path(f"2026-08-26-{bead_id}-beads-first-guidance.md")
+    old_plan = (repo / "plans" / "current").resolve()
+    (repo / "plans" / "current").unlink()
+    old_plan.unlink()
+    active = repo / "docs" / "ai" / "work-tracking" / "active"
+    shutil.rmtree(active)
+    tracker = active / f"20260826-{bead_id}-beads-first-guidance-ACTIVE" / "TRACKER.md"
+    write(
+        repo / "plans" / plan_rel,
+        f"""---
+bead_ids: [{bead_id}]
+branch_policy: {branch or f'codex/{bead_id}-beads-first-guidance'}
+---
+
+# Plan - Bead {bead_id}
+
+- **Bead IDs**: {bead_id}
+- **Branch Policy**: {branch or f'codex/{bead_id}-beads-first-guidance'}
+
+| Step ID | Description | Evidence | Status |
+| --- | --- | --- | --- |
+| plan-step-scope | Scope | evidence | completed |
+| plan-step-implement | Implement | evidence | pending |
+| plan-step-verify | Verify | evidence | pending |
+| plan-step-emergency | Emergency | evidence | n/a |
+""",
+    )
+    (repo / "plans" / "current").symlink_to(plan_rel)
+    write(
+        tracker,
+        f"""# Bead {bead_id} Tracker
+
+**Status**: ACTIVE
+
+## Plan Compliance Checklist
+- [x] plan-step-scope - Scope
+- [ ] plan-step-implement - Implement
+- [ ] plan-step-verify - Verify
+- [ ] plan-step-emergency (if applicable)
+""",
+    )
+    return repo
+
+
 def readiness(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return run(["bash", str(READINESS), "--root", str(repo), *args], repo)
 
@@ -137,6 +222,55 @@ def test_ready_when_task_session_plan_and_tracker_align(tmp_path: Path) -> None:
     assert "STATE: READY" in result.stdout
     assert "Taskmaster Task 103 is in-progress" in result.stdout
     assert "plan-step statuses align" in result.stdout
+
+
+def test_ready_when_bead_source_branch_session_plan_and_tracker_align(tmp_path: Path) -> None:
+    repo = make_bead_source_repo(tmp_path)
+
+    result = readiness(repo)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "STATE: READY" in result.stdout
+    assert "TASK: ga-k9sd" in result.stdout
+    assert "bead-native source work ga-k9sd" in result.stdout
+    assert "plan-step statuses align" in result.stdout
+
+
+def test_bead_source_readiness_blocks_when_plan_declares_another_bead(tmp_path: Path) -> None:
+    repo = make_bead_source_repo(tmp_path)
+    plan = (repo / "plans" / "current").resolve()
+    plan.write_text(plan.read_text(encoding="utf-8").replace("ga-k9sd", "ga-other"), encoding="utf-8")
+
+    result = readiness(repo)
+
+    assert result.returncode == 2
+    assert "current plan does not declare bead ga-k9sd" in result.stdout
+
+
+def test_bead_source_readiness_blocks_when_branch_policy_differs(tmp_path: Path) -> None:
+    repo = make_bead_source_repo(tmp_path)
+    plan = (repo / "plans" / "current").resolve()
+    plan.write_text(
+        plan.read_text(encoding="utf-8").replace(
+            "codex/ga-k9sd-beads-first-guidance",
+            "codex/ga-k9sd-other-policy",
+        ),
+        encoding="utf-8",
+    )
+
+    result = readiness(repo)
+
+    assert result.returncode == 2
+    assert "expected exactly codex/ga-k9sd-beads-first-guidance" in result.stdout
+
+
+def test_bead_branch_does_not_bypass_readiness_in_arbitrary_repository(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, branch="codex/ga-k9sd-beads-first-guidance")
+
+    result = readiness(repo)
+
+    assert result.returncode == 2
+    assert "does not contain a task ID" in result.stdout
 
 
 def test_readiness_default_verbose_and_all_detail_modes(tmp_path: Path) -> None:
