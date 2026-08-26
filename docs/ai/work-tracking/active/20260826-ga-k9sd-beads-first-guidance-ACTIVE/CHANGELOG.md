@@ -9,3 +9,4 @@
 ## Progress Log
 
 - **2026-08-26 16:15** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:claude-readiness:bead-native|E:tests/claude_adapter/test_readiness_gate.py] Added RED-first bead readiness coverage, arbitrary-repository refusal coverage, and packaged-script parity.
+- **2026-08-26 17:14** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:windows-bootstrap:principal-sid|E:tests/reboot_readiness/test_bootstrap_assets.py] Added fail-closed scheduled-task principal SID resolution and RED/GREEN contract coverage.

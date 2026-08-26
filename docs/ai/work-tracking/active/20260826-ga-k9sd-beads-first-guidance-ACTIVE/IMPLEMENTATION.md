@@ -20,3 +20,4 @@
 ## Progress Log
 
 - **2026-08-26 16:15** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:claude-readiness:bead-native|E:.claude/scripts/readiness.sh] Added bead identity parsing and fail-closed source readiness while preserving the numeric Taskmaster compatibility path.
+- **2026-08-26 17:14** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:windows-bootstrap:principal-sid|E:tests/reboot_readiness/test_bootstrap_assets.py] Implemented canonical SID binding for the Windows scheduled-task verifier and kept the returned display-form user_id in the evidence contract.

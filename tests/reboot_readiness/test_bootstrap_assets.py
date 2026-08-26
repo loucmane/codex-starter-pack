@@ -41,6 +41,20 @@ def test_windows_installer_pins_limited_delayed_logon_contract() -> None:
     assert "Unregister-ScheduledTask" in text
 
 
+def test_windows_installer_compares_task_principal_by_canonical_sid() -> None:
+    text = WINDOWS_INSTALLER.read_text(encoding="utf-8")
+
+    assert "$CurrentIdentityName = $currentWindowsIdentity.Name" in text
+    assert "$CurrentIdentitySid = $currentWindowsIdentity.User.Value" in text
+    assert "function Resolve-PrincipalSid" in text
+    assert "user_sid = Resolve-PrincipalSid -UserId ([string]$task.Principal.UserId)" in text
+    assert "$Contract.user_sid -ne $CurrentIdentitySid" in text
+    assert "scheduled task principal cannot resolve to a SID" in text
+    assert "New-ScheduledTaskTrigger -AtLogOn -User $CurrentIdentityName" in text
+    assert "New-ScheduledTaskPrincipal -UserId $CurrentIdentityName" in text
+    assert "$Contract.user_id -ne $CurrentIdentity" not in text
+
+
 def test_stable_doctor_installer_applies_and_checks_in_temp(tmp_path: Path) -> None:
     destination = tmp_path / "bin/codex-wsl-readiness"
 

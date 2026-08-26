@@ -10,3 +10,4 @@
 ## Progress Log
 
 - **2026-08-26 16:15** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:claude-readiness:bead-native|E:.claude/engine/claude-readiness.md] Kept bead readiness source-checkout-only and retained installed Aegis and historical Taskmaster compatibility contracts unchanged.
+- **2026-08-26 17:14** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:windows-bootstrap:principal-sid|E:scripts/windows/install-gas-city-wsl-bootstrap.ps1] Treat the canonical Windows SID as principal authority; retain the user-facing account string only for task creation and evidence.

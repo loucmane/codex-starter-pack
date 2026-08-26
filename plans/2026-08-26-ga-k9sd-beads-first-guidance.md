@@ -58,6 +58,7 @@ emergency_bypass: false
 - 2026-08-26 - Bead `ga-k9sd` kickoff created through the bead-native source workflow.
 - 2026-08-26 - Scope marked complete after primary-bead readback, historical ACTIVE-folder adjudication, and Fable's reboot-package review.
 - 2026-08-26 - Scope amended to repair the readiness migration blocker with a fail-closed bead-native source path while retaining numeric Taskmaster compatibility.
+- 2026-08-26 - Scope amended after the first installation stopped safely on Task Scheduler principal-name normalization: compare the returned principal and current operator by canonical SID while preserving the current-user, Limited task contract.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)

@@ -11,3 +11,4 @@
 ## Progress Log
 
 - **2026-08-26 16:15** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:claude-readiness:bead-native|E:bash .claude/scripts/readiness.sh --all] Confirmed the prior blocker was the readiness adapter rejecting codex/ga-k9sd because it recognized only numeric task branches.
+- **2026-08-26 17:14** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:windows-bootstrap:principal-sid|E:tests/reboot_readiness/test_bootstrap_assets.py] The first installation failure was caused by representation-sensitive principal-name comparison after Task Scheduler normalized the registered identity; no task or bootstrap artifact survived rollback.

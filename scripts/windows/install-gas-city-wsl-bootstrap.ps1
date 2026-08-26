@@ -22,7 +22,26 @@ $ErrorActionPreference = 'Stop'
 $InstallRoot = Join-Path $env:LOCALAPPDATA 'GasCity\bootstrap'
 $InstalledScript = Join-Path $InstallRoot 'gas-city-wsl-bootstrap.ps1'
 $PowerShellExe = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
-$CurrentIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+$currentWindowsIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+$CurrentIdentityName = $currentWindowsIdentity.Name
+$CurrentIdentitySid = $currentWindowsIdentity.User.Value
+
+function Resolve-PrincipalSid {
+    param([Parameter(Mandatory)] [string]$UserId)
+
+    try {
+        return ([System.Security.Principal.SecurityIdentifier]::new($UserId)).Value
+    }
+    catch {
+        try {
+            $account = [System.Security.Principal.NTAccount]::new($UserId)
+            return $account.Translate([System.Security.Principal.SecurityIdentifier]).Value
+        }
+        catch {
+            throw "scheduled task principal cannot resolve to a SID: $UserId"
+        }
+    }
+}
 
 function Get-TaskContract {
     $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
@@ -40,6 +59,7 @@ function Get-TaskContract {
         execute = [string]$actions[0].Execute
         arguments = [string]$actions[0].Arguments
         user_id = [string]$task.Principal.UserId
+        user_sid = Resolve-PrincipalSid -UserId ([string]$task.Principal.UserId)
         run_level = $task.Principal.RunLevel.ToString()
         trigger_class = [string]$triggers[0].CimClass.CimClassName
         delay = [string]$triggers[0].Delay
@@ -59,7 +79,7 @@ function Assert-TaskContract {
     if ($Contract.arguments -notmatch 'gas-city-wsl-bootstrap\.ps1') { throw "task script argument drifted" }
     if ($Contract.arguments -notmatch '-NoProfile') { throw "task NoProfile flag is missing" }
     if ($Contract.arguments -notmatch '-NonInteractive') { throw "task NonInteractive flag is missing" }
-    if ($Contract.user_id -ne $CurrentIdentity) { throw "task principal drifted" }
+    if ($Contract.user_sid -ne $CurrentIdentitySid) { throw "task principal drifted" }
     if ($Contract.run_level -ne 'Limited') { throw "task must run with limited privileges" }
     if ($Contract.trigger_class -ne 'MSFT_TaskLogonTrigger') { throw "task trigger is not logon" }
     if ($Contract.delay -ne 'PT30S') { throw "task delay must be PT30S" }
@@ -120,9 +140,9 @@ try {
         '-File "{0}" -Distro "{1}" -LinuxUser "{2}"' -f $InstalledScript, $Distro, $LinuxUser
     )
     $action = New-ScheduledTaskAction -Execute $PowerShellExe -Argument $actionArguments
-    $trigger = New-ScheduledTaskTrigger -AtLogOn -User $CurrentIdentity
+    $trigger = New-ScheduledTaskTrigger -AtLogOn -User $CurrentIdentityName
     $trigger.Delay = 'PT30S'
-    $principal = New-ScheduledTaskPrincipal -UserId $CurrentIdentity -LogonType Interactive -RunLevel Limited
+    $principal = New-ScheduledTaskPrincipal -UserId $CurrentIdentityName -LogonType Interactive -RunLevel Limited
     $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries `
         -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 5) `
         -MultipleInstances IgnoreNew
