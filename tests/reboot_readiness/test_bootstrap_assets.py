@@ -13,7 +13,8 @@ DOCTOR_INSTALLER = ROOT / "scripts/install-codex-wsl-readiness"
 def test_windows_bootstrap_is_read_only_except_evidence() -> None:
     text = BOOTSTRAP.read_text(encoding="utf-8")
 
-    assert "--observer host-wsl --json" in text
+    assert "'--observer', 'host-wsl'" in text
+    assert "'--json'" in text
     assert "@('ready', 'degraded')" in text
     assert "@(0, 1)" in text
     assert "latest.json" in text
@@ -27,6 +28,17 @@ def test_windows_bootstrap_is_read_only_except_evidence() -> None:
         "managed-git-commit",
     ):
         assert forbidden not in text
+
+
+def test_windows_bootstrap_uses_powershell_51_compatible_process_capture() -> None:
+    text = BOOTSTRAP.read_text(encoding="utf-8")
+
+    assert "Start-Process -FilePath $WslExe" in text
+    assert "-RedirectStandardOutput $stdoutPath" in text
+    assert "-RedirectStandardError $stderrPath" in text
+    assert "$doctorExit = $process.ExitCode" in text
+    assert "$LASTEXITCODE" not in text
+    assert "ConvertFrom-Json -Depth" not in text
 
 
 def test_windows_installer_pins_limited_delayed_logon_contract() -> None:

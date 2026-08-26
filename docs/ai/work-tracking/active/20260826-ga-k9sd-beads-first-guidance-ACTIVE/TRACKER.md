@@ -22,6 +22,7 @@
 - **2026-08-26 16:03** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:scripts/codex-guard:drift-check|E:cmd`python3 scripts/codex-guard drift-check --strict --report-dir ''`] Passed strict template drift validation with zero findings
 - **2026-08-26 16:15** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:claude-readiness:bead-native|E:tests/claude_adapter/test_readiness_gate.py] Implemented the source-only codex/<bead-id> readiness path with branch, plan, session, tracker, and status-parity checks.
 - **2026-08-26 17:14** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:windows-bootstrap:principal-sid|E:scripts/windows/install-gas-city-wsl-bootstrap.ps1] Replaced raw Task Scheduler principal-name equality with fail-closed SID resolution while retaining current-user task registration and the Limited logon contract.
+- **2026-08-26 17:55** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:windows-bootstrap:powershell51|E:tests/reboot_readiness/test_bootstrap_assets.py] Added RED-first PowerShell 5.1 compatibility coverage and proved the repaired bootstrap end to end with one executable temporary doctor: bootstrap_status=pass, observer=host-wsl, zero failed checks.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope

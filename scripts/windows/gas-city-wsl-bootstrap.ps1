@@ -42,16 +42,40 @@ $attempts = [System.Collections.Generic.List[object]]::new()
 $acceptedReport = $null
 $acceptedExit = $null
 for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+    $stdoutPath = Join-Path $env:TEMP ('gas-city-wsl-bootstrap-{0}-{1}.stdout' -f $PID, $attempt)
     $stderrPath = Join-Path $env:TEMP ('gas-city-wsl-bootstrap-{0}-{1}.stderr' -f $PID, $attempt)
-    $lines = @(
-        & $WslExe -d $Distro --user $LinuxUser --exec $DoctorPath --observer host-wsl --json 2> $stderrPath
-    )
-    $doctorExit = $LASTEXITCODE
-    $stdoutText = $lines -join "`n"
+    $doctorExit = 127
+    $stdoutText = ''
     $stderrText = ''
-    if (Test-Path -LiteralPath $stderrPath -PathType Leaf) {
-        $stderrText = [System.IO.File]::ReadAllText($stderrPath)
-        Remove-Item -LiteralPath $stderrPath -Force
+    try {
+        $process = Start-Process -FilePath $WslExe `
+            -ArgumentList @(
+                '-d', $Distro,
+                '--user', $LinuxUser,
+                '--exec', $DoctorPath,
+                '--observer', 'host-wsl',
+                '--json'
+            ) `
+            -NoNewWindow -Wait -PassThru `
+            -RedirectStandardOutput $stdoutPath `
+            -RedirectStandardError $stderrPath
+        $doctorExit = $process.ExitCode
+        if (Test-Path -LiteralPath $stdoutPath -PathType Leaf) {
+            $stdoutText = [System.IO.File]::ReadAllText($stdoutPath)
+        }
+        if (Test-Path -LiteralPath $stderrPath -PathType Leaf) {
+            $stderrText = [System.IO.File]::ReadAllText($stderrPath)
+        }
+    }
+    catch {
+        $stderrText = $_.Exception.Message
+    }
+    finally {
+        foreach ($capturePath in @($stdoutPath, $stderrPath)) {
+            if (Test-Path -LiteralPath $capturePath -PathType Leaf) {
+                Remove-Item -LiteralPath $capturePath -Force
+            }
+        }
     }
     if ($stderrText.Length -gt 8192) {
         $stderrText = $stderrText.Substring(0, 8192)
@@ -60,7 +84,7 @@ for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
     $report = $null
     $parseError = $null
     try {
-        $report = $stdoutText | ConvertFrom-Json -Depth 100
+        $report = $stdoutText | ConvertFrom-Json
     }
     catch {
         $parseError = $_.Exception.Message

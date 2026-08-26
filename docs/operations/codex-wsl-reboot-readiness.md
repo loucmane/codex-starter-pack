@@ -91,9 +91,9 @@ workaround. The attended retest is:
 
 ## Current known degradation
 
-The live host currently has 34 enabled `gascity-supervisor-home-*.service` units: one canonical
-unit and 33 stale test/home units. The doctor inventories them but never disables them. Cleanup
-and the source change that makes supervisor startup self-pruning are a separate reviewed gate.
+The stale supervisor-unit inventory is clear: only the canonical per-home unit remains enabled.
+The accepted live warning is the affected Codex Desktop build, which keeps the `codex_app`
+workaround pinned until a newer-build retest passes.
 
 ## Planned boot acceptance
 
@@ -109,6 +109,10 @@ logon trigger delayed by 30 seconds, one hidden non-interactive PowerShell actio
 instance, and a five-minute execution limit. It records `latest.json` plus immutable timestamped
 history under `%LOCALAPPDATA%\GasCity\reboot-readiness`. A `DEGRADED` doctor result is accepted
 as a completed observation; a malformed report or `FAILED` result makes the bootstrap fail.
+
+The bootstrap targets the installed Windows PowerShell 5.1 runtime. It launches `wsl.exe`
+through a waited process object with redirected output and reads that object's exit code; it
+does not depend on ambient `$LASTEXITCODE` state or PowerShell 7-only JSON parameters.
 
 Neither script starts, resumes, repairs, or restarts Gas City. Removal unregisters only the
 named task and installed bootstrap script; it preserves readiness evidence.
