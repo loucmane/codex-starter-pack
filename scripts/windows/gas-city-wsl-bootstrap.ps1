@@ -9,7 +9,7 @@ param(
     [ValidatePattern('^/[A-Za-z0-9._/-]+$')]
     [string]$DoctorPath = '/home/loucmane/.local/bin/codex-wsl-readiness',
 
-    [string]$EvidenceRoot = (Join-Path $env:LOCALAPPDATA 'GasCity\reboot-readiness'),
+    [string]$EvidenceRoot = (Join-Path $env:USERPROFILE '.gas-city\reboot-readiness'),
 
     [ValidateRange(1, 12)]
     [int]$MaxAttempts = 12,

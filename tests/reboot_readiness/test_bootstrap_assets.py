@@ -53,6 +53,16 @@ def test_windows_installer_pins_limited_delayed_logon_contract() -> None:
     assert "Unregister-ScheduledTask" in text
 
 
+def test_windows_assets_use_non_virtualized_userprofile_storage() -> None:
+    bootstrap = BOOTSTRAP.read_text(encoding="utf-8")
+    installer = WINDOWS_INSTALLER.read_text(encoding="utf-8")
+
+    assert "Join-Path $env:USERPROFILE '.gas-city\\reboot-readiness'" in bootstrap
+    assert "Join-Path $env:USERPROFILE '.gas-city\\bootstrap'" in installer
+    assert "$env:LOCALAPPDATA 'GasCity\\reboot-readiness'" not in bootstrap
+    assert "$env:LOCALAPPDATA 'GasCity\\bootstrap'" not in installer
+
+
 def test_windows_installer_compares_task_principal_by_canonical_sid() -> None:
     text = WINDOWS_INSTALLER.read_text(encoding="utf-8")
 

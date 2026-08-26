@@ -19,7 +19,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-$InstallRoot = Join-Path $env:LOCALAPPDATA 'GasCity\bootstrap'
+$InstallRoot = Join-Path $env:USERPROFILE '.gas-city\bootstrap'
 $InstalledScript = Join-Path $InstallRoot 'gas-city-wsl-bootstrap.ps1'
 $PowerShellExe = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
 $currentWindowsIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent()

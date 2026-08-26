@@ -60,6 +60,7 @@ emergency_bypass: false
 - 2026-08-26 - Scope amended to repair the readiness migration blocker with a fail-closed bead-native source path while retaining numeric Taskmaster compatibility.
 - 2026-08-26 - Scope amended after the first installation stopped safely on Task Scheduler principal-name normalization: compare the returned principal and current operator by canonical SID while preserving the current-user, Limited task contract.
 - 2026-08-26 - Scope amended after the scheduled-task smoke exposed Windows PowerShell 5.1 incompatibilities: replace unreliable nested-process `$LASTEXITCODE` capture, remove unsupported `ConvertFrom-Json -Depth`, and require executable-doctor end-to-end evidence before reinstalling.
+- 2026-08-26 - Scope amended after scheduled-token diagnostics proved Codex Desktop virtualizes `%LOCALAPPDATA%`: move bootstrap and evidence custody to the shared `%USERPROFILE%\.gas-city` boundary.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)

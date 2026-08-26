@@ -107,12 +107,15 @@ The Windows bootstrap is intentionally not installed by the doctor. The reviewed
 The task contract is deliberately narrow: current interactive user, limited privileges, one
 logon trigger delayed by 30 seconds, one hidden non-interactive PowerShell action, at most one
 instance, and a five-minute execution limit. It records `latest.json` plus immutable timestamped
-history under `%LOCALAPPDATA%\GasCity\reboot-readiness`. A `DEGRADED` doctor result is accepted
+history under `%USERPROFILE%\.gas-city\reboot-readiness`. A `DEGRADED` doctor result is accepted
 as a completed observation; a malformed report or `FAILED` result makes the bootstrap fail.
 
 The bootstrap targets the installed Windows PowerShell 5.1 runtime. It launches `wsl.exe`
 through a waited process object with redirected output and reads that object's exit code; it
 does not depend on ambient `$LASTEXITCODE` state or PowerShell 7-only JSON parameters.
+Both the installed bootstrap and its evidence live under `%USERPROFILE%\.gas-city`, outside
+packaged-app `%LOCALAPPDATA%` virtualization, so Codex Desktop and an ordinary scheduled task
+observe the same bytes.
 
 Neither script starts, resumes, repairs, or restarts Gas City. Removal unregisters only the
 named task and installed bootstrap script; it preserves readiness evidence.

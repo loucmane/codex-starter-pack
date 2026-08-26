@@ -430,5 +430,11 @@
     "plan_hash": "bfee5f5cd68fce93546124263620048503b87531eb4669425182025fa71cf0aa",
     "tracker_hash": "ba1acb40f0c2998c4a6e84f1d7fe5f11e8af27e2803c2e6cb26e195e7c6da308",
     "synced_at": "2026-08-26T17:56:01.173864+02:00"
+  },
+  {
+    "plan": "plans/2026-08-26-ga-k9sd-beads-first-guidance.md",
+    "plan_hash": "98a6f2608c3e045977796fd6ee8781a2f894024949bf68035ea8d5ae9b546594",
+    "tracker_hash": "ced390745fa4720dc6e3905cd2c8ab557dd327c007bdc2f1b46358939b03f983",
+    "synced_at": "2026-08-26T18:10:22.738907+02:00"
   }
 ]
