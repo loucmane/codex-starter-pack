@@ -21,7 +21,7 @@ title: Bead ga-y1ei - Aegis Obsidian observer-authority hardening
 - [x] Start a fresh `ga-y1ei` session on its Codex branch.
 - [x] Scaffold `ga-y1ei` work tracking without Taskmaster mutation.
 - [x] Repoint `sessions/current` and `plans/current` to `ga-y1ei`.
-- [ ] Complete and verify Aegis Obsidian observer-authority hardening.
+- [x] Complete and verify Aegis Obsidian observer-authority hardening.
 
 ### Starting Context
 Bead `ga-y1ei` was kicked off via `python3 scripts/codex-task wizard kickoff --bead ga-y1ei`, which created the guarded source-workflow artifacts without allocating or mutating a Taskmaster task.

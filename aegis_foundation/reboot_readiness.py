@@ -488,8 +488,9 @@ def check_obsidian(config: ProbeConfig, runner: Runner, observer: str) -> Check:
             ),
             details,
             (
-                "Run the filesystem vault check first, then repeat this optional live-app "
-                "probe from host WSL."
+                "Run the filesystem vault check first. If it passes after an atomic WSL "
+                f"publication, run `obsidian vault={config.obsidian_vault} reload` from "
+                "host WSL, then repeat this optional live-app probe."
             ),
         )
 

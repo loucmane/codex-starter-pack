@@ -83,6 +83,12 @@ aegis vault gate \
   --output /home/loucmane/vaults/main/GasCity/<project>/Aegis
 ```
 
+Because the build swaps the managed subtree atomically, Obsidian's Windows-side watcher may
+retain its prior WSL index. After a successful filesystem gate, a host operator may run
+`obsidian vault=main reload` and repeat the managed-note read. Do not put this mutation in the
+read-only doctor, and do not reinterpret a stale index as evidence that the desktop app is
+closed.
+
 The gate blocks when ownership, inventory, hashes, source freshness, work authority, or required
 work-item presence disagrees. It does not close a bead, mutate Git, write a worklog, repair a
 vault, or run after each source edit.

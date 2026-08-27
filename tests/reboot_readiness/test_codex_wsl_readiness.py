@@ -341,6 +341,30 @@ def test_host_wsl_obsidian_probe_reads_managed_note(tmp_path: Path) -> None:
     assert check.details["probe_path"] == config.obsidian_probe_path
 
 
+def test_host_wsl_stale_obsidian_index_recommends_supported_vault_reload(
+    tmp_path: Path,
+) -> None:
+    config = make_config(tmp_path)
+    runner = FakeRunner(
+        {
+            obsidian_vaults_command(config): CommandResult(
+                0,
+                f"{config.obsidian_vault}\t/home/tester/vaults/main\n",
+            ),
+            obsidian_read_command(config): CommandResult(
+                1,
+                stderr=f'Error: File "{config.obsidian_probe_path}" not found.',
+            ),
+        }
+    )
+
+    check = check_obsidian(config, runner, "host-wsl")
+
+    assert check.status == "warn"
+    assert "filesystem vault check first" in check.remediation.lower()
+    assert f"obsidian vault={config.obsidian_vault} reload" in check.remediation
+
+
 def test_host_wsl_closed_obsidian_is_warning_not_vault_failure(tmp_path: Path) -> None:
     config = make_config(tmp_path)
     runner = FakeRunner(

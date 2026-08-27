@@ -84,6 +84,13 @@ These are deliberately separate contracts:
 - `obsidian vaults verbose` plus a managed-note read is an optional host-application smoke. It
   proves only that the running Obsidian process can see the projected bytes.
 
+The Aegis publisher atomically replaces its managed subtree. Windows-side Obsidian file
+watching over WSL can keep the previous index after that directory swap even though the new
+filesystem bytes and all vault gates are correct. If a host-WSL note read fails after the
+filesystem check passes, run the supported `obsidian vault=main reload` command and repeat the
+read. This reload is a publish-time host action, not part of the read-only doctor, and the stale
+index is never evidence that Obsidian is closed.
+
 The default doctor smoke targets vault `main` and
 `GasCity/gas-city-operations/Aegis/Beads/ga-zbmk.md`. Other projects use the same doctor with
 their own stable managed-note path:
