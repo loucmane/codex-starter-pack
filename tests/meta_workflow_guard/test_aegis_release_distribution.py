@@ -369,7 +369,7 @@ def test_mcp_client_setup_doc_covers_cross_agent_release_candidate_configs() -> 
         "aegis mcp register claude",
         "MCP is the bootstrap and control-plane interface",
         "Expected tool split:",
-        "Aegis MCP or the project-local CLI: inspect, status, next, plan_install/plan-install, install, start, kickoff for explicit external numeric task ids, log, verify, closeout_ready/closeout --dry-run, closeout, and future reconciliation.",
+        "Aegis MCP or the project-local CLI: inspect, status, next, install, bead kickoff, standalone start, historical numeric kickoff, log, verify, closeout, vault projection, and future reconciliation.",
         "Native agent tools: source reads and edits, project test commands, and git status/diff inspection.",
         "pending_event_id=current",
         "plan_step=auto",

@@ -502,5 +502,11 @@
     "plan_hash": "ae867fb24f12fe3c7df3da56dddb064e412d934a16886c17834c669438503d24",
     "tracker_hash": "3e54041fed359c060fa80c8782463a16b522e1b66ca950ec9cdbb50f63df7125",
     "synced_at": "2026-08-27T14:04:52.107077+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-zbmk-aegis-beads-obsidian.md",
+    "plan_hash": "72d8769d7bf9647f35e7b09ae5a9c2cd6e91a2339937256ec1305529adc3c004",
+    "tracker_hash": "f4fdce696df0f348af67661cafa38f6c04a9194b1199e6507d5979beaa229d71",
+    "synced_at": "2026-08-27T14:32:27.853148+02:00"
   }
 ]

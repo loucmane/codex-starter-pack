@@ -42,6 +42,12 @@ emergency_bypass: false
 - `aegis_foundation/cli.py`
 - `tests/claude_adapter/test_work_authority.py`
 - `tests/claude_adapter/test_obsidian_vault.py`
+- `tests/meta_workflow_guard/reconcile_side_effect_oracle.py`
+- `tests/meta_workflow_guard/test_aegis_invocation_contract.py`
+- `tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py`
+- `tests/meta_workflow_guard/test_aegis_release_distribution.py`
+- `tests/meta_workflow_guard/test_continuation_contract.py`
+- `tests/meta_workflow_guard/test_reconcile_side_effect_oracle.py`
 - `docs/aegis/obsidian-vault-projection.md`
 - `docs/aegis/LEDGER_SCHEMA.md`
 - `docs/aegis/legacy-shadow-sweh-projection-contract.md`
