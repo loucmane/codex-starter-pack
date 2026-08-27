@@ -876,7 +876,10 @@ def test_selected_channel_process_oracle_wraps_success_and_persists_artifacts(
 def test_selected_channel_process_oracle_rolls_back_validation_side_effect(
     tmp_path: Path,
 ) -> None:
-    target = _target(tmp_path / "selected-channel-validation-side-effect")
+    _require_taskmaster_cli()
+    target = _target(
+        tmp_path / "selected-channel-validation-side-effect", state_json_present=True
+    )
     before = snapshot_whole_tree(target)
     confirmation = _selected_channel_confirmation(
         tmp_path / "aegis-apply-audit" / "153" / "42" / "candidate"
@@ -911,7 +914,8 @@ def test_selected_channel_process_oracle_rolls_back_validation_side_effect(
 def test_selected_channel_process_oracle_terminal_on_process_rollback_failure(
     tmp_path: Path,
 ) -> None:
-    target = _target(tmp_path / "selected-channel-terminal")
+    _require_taskmaster_cli()
+    target = _target(tmp_path / "selected-channel-terminal", state_json_present=True)
     confirmation = _selected_channel_confirmation(
         tmp_path / "aegis-apply-audit" / "153" / "42" / "candidate"
     )

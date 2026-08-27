@@ -15,6 +15,7 @@ DEFAULT_WHOLE_TREE_IGNORE_PATTERNS = (
     ".git/FETCH_HEAD",
     ".git/logs",
     ".git/logs/**",
+    ".git/objects/maintenance.lock",
 )
 CONTROL_PLANE_REL_PATHS = (
     ".aegis",

@@ -39,6 +39,10 @@ EXIT_CODE_BY_CLASS = {
 }
 
 TASK_BRANCH_RE = re.compile(r"task-?(\d+)", re.IGNORECASE)
+BEAD_BRANCH_RE = re.compile(
+    r"(?:^|/)([a-z][a-z0-9]*-[a-z0-9]+)(?:-|$)",
+    re.IGNORECASE,
+)
 DONE_FLIP_ADDED_RE = re.compile(
     r'^\+(?!\+\+).*"status"\s*:\s*"done"',
     re.MULTILINE,
@@ -212,7 +216,8 @@ def _scope_for_branch(
     ]
     confirmed = [event for event in scopes if event.get("extra", {}).get("confirmed")]
     chosen = (confirmed or scopes)[-1] if (confirmed or scopes) else None
-    match = TASK_BRANCH_RE.search(branch or "")
+    task_match = TASK_BRANCH_RE.search(branch or "")
+    bead_match = BEAD_BRANCH_RE.search(branch or "")
     task_id = None
     globs: list[str] = []
     source = "none"
@@ -230,9 +235,12 @@ def _scope_for_branch(
             else "scope_record_inferred"
         )
         scope_event_id = chosen.get("event_id")
-    if task_id is None and match:
-        task_id = match.group(1)
+    if task_id is None and task_match:
+        task_id = task_match.group(1)
         source = source if source != "none" else "branch_convention"
+    if task_id is None and bead_match:
+        task_id = bead_match.group(1)
+        source = source if source != "none" else "bead_branch_convention"
     if not globs:
         roots = brief.get("source_roots")
         globs = (
@@ -613,7 +621,10 @@ def run_witness(
             "task_id": scope["task_id"],
             "source": scope["source"],
             "scope_event_id": scope["scope_event_id"],
-            "detail": "the branch must map to a scope record or the task-NN convention",
+            "detail": (
+                "the branch must map to a scope record, bead branch, "
+                "or the task-NN convention"
+            ),
         }
 
     accounting = _account_diff(diff_entries, scope["path_globs"])

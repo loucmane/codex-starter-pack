@@ -96,6 +96,7 @@ AEGIS_WORKFLOW_TEMPLATE_NAMES = (
     "implementation.md",
     "changelog.md",
 )
+BEAD_ID_PATTERN = re.compile(r"^[a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*$")
 AEGIS_LOG_SURFACES = {
     "implementation": "IMPLEMENTATION.md",
     "changelog": "CHANGELOG.md",
@@ -575,7 +576,7 @@ def _render_mode_aware_entrypoint(
             "",
             "## Always",
             "- Use native agent tools for source edits, tests, and Git inspection; use Aegis CLI/MCP only for workflow state.",
-            "- When Taskmaster is configured, use `task-master next` and `task-master show <id>` for task selection.",
+            "- Follow the project-declared external work authority. Beads-first projects use the Gas City bead surface and `aegis kickoff --bead`; Taskmaster is historical compatibility unless the project explicitly declares numeric-task authority.",
             "- Never write `.aegis/` directly.",
             "- If install/update reports a required client reload, restart that client before mutations.",
             "- Missing hooks or unsupported clients are degraded coverage, not successful capture.",
@@ -638,15 +639,13 @@ def _render_contract(primary_agent: str, enabled_agents: Sequence[str]) -> bytes
             "",
             "## Work Kickoff",
             "",
-            '- Start local work with `aegis start "<task title>"` or `./.aegis/bin/aegis start ...` only when no external task id exists.',
-            '- If `.taskmaster/tasks/tasks.json` contains available numeric work, run `task-master next` and `task-master show <id>` first, then use explicit `aegis kickoff --task <id> --slug <slug> --title "<title>"`.',
-            "- Taskmaster done only after Aegis closeout and doctor pass. Do not run `task-master set-status --status=done` before `aegis closeout` and read-only `aegis doctor` are both healthy.",
-            "- After Taskmaster status changes, refresh generated task files. Prefer the project's targeted helper when present (for example `python3 scripts/codex-task taskmaster generate-one --id <id>`); otherwise run `task-master generate` deliberately and report that broad generated-file refresh was used.",
-            '- Use explicit `aegis kickoff --task <id> --slug <slug> --title "<title>"` when an external task id already exists.',
+            '- When a Gas City bead is authoritative, use `aegis kickoff --bead <bead-id> --slug <slug> --title "<title>"`; never create or mutate Taskmaster work for the same scope.',
+            '- Start local work with `aegis start "<task title>"` only when no external work id exists.',
+            '- Use `aegis kickoff --task <id> ...` only for an explicitly historical numeric-task compatibility flow.',
             "- Kickoff creates Aegis-native current work state, session, plan, and work-tracking files.",
             "- `.aegis/state/current-work.json` is the portable authority for READY.",
-            "- Taskmaster is validated only when no Aegis current-work state exists or when current work explicitly marks Taskmaster required.",
-            '- Normal feature work is: confirm readiness and `aegis next`; if no current work exists, use Taskmaster next/show plus `aegis kickoff` when Taskmaster provides a numeric task, otherwise infer a short title from the user\'s request and run `aegis start "<task title>"`; mark scope complete with `aegis log --plan-step auto`; make the task-scoped code change with native tools; let PostToolUse create pending tracking; run `aegis log --pending-id current --plan-step auto` for the changed source file; run task-specific verification and log it with `--plan-step auto`; run `aegis verify --strict`; log the strict verification report with `--pending-id current --plan-step auto`; run `aegis closeout --dry-run --update-handoff` for preflight; if handoff semantic gates fail, run `aegis handoff repair`; run `aegis closeout --update-handoff`; run read-only `aegis doctor`; only then mark Taskmaster done if Taskmaster is in use.',
+            "- In beads-first projects, Taskmaster remains a read-only historical input and its MCP mutation surface should not be registered.",
+            '- Normal feature work is: confirm readiness and `aegis next`; read the authoritative bead; run bead-native kickoff; mark scope complete with `aegis log --plan-step auto`; make the bead-scoped change with native tools; log pending tracking; run focused verification; run `aegis verify --strict`; preflight and complete closeout; then close the bead through its rig-scoped surface.',
             '- After every meaningful mutation, run `aegis log --pending-id <id> --note "<past-tense note>"` to write S:W:H:E entries to the active session, tracker, and event-aware canonical surfaces.',
             "- `aegis log` updates plan state only when `--plan-step` is supplied. This prevents generic evidence logs from accidentally changing an unrelated plan step.",
             "- The next persistent mutation is blocked until pending S:W:H:E tracking is logged; this is what makes the workflow mechanical rather than advisory.",
@@ -694,7 +693,6 @@ def _render_claude_settings() -> bytes:
                 "Bash(aegis log:*)",
                 "Bash(aegis verify:*)",
                 "Bash(aegis closeout:*)",
-                "Bash(task-master *)",
                 "Bash(./.aegis/bin/aegis inspect:*)",
                 "Bash(./.aegis/bin/aegis init:*)",
                 "Bash(./.aegis/bin/aegis status:*)",
@@ -3290,8 +3288,8 @@ AEGIS_CONTINUATION_LINES = (
     "the single sanctioned step. Run `aegis doctor` when `aegis next` reports a repair or "
     "blocked state.",
     '- If readiness is BLOCKED, "continue" means fix workflow state, not mutate.',
-    "- When `.taskmaster/tasks/tasks.json` has available work, Taskmaster is the "
-    "task-selection authority; do not start Aegis-local work to bypass it.",
+    "- Follow the project-declared external work authority. In beads-first projects, inspect "
+    "the Gas City bead and use bead kickoff; never allocate parallel local or Taskmaster work.",
     "- Perform the brief's one `next_safe_action`, then re-run `aegis next`. Do not chain "
     "implement -> log -> verify -> closeout across a single intent.",
     "",
@@ -3301,7 +3299,7 @@ AEGIS_CONTINUATION_LINES = (
     "",
     "SURFACE before mutation: safe repair plans, closeout preflight, task transitions, "
     "delivery scope, and CI remediation. A valid active evidence-gated policy may authorize "
-    "routine Taskmaster transitions, deterministic safe repairs, verified closeout, "
+    "routine external work-item transitions, deterministic safe repairs, verified closeout, "
     "commit/push/PR, and CI remediation without another chat approval. Absent, invalid, "
     "revoked, attended, disabled-capability, manual-review, or protected/owned-path cases "
     "require explicit confirmation. Merge authority comes only from trusted GitHub policy "
@@ -3323,7 +3321,7 @@ AEGIS_CONTINUATION_SUMMARY = (
     "the Aegis workflow by exactly ONE safe step — resolved from `aegis next` (its "
     "`next_safe_action`), never from memory — then re-consult. It is not new authority. "
     "Surface routine workflow mutations and follow the active repository policy. A valid "
-    "evidence-gated policy may authorize safe repairs, verified closeout, task transitions, "
+    "evidence-gated policy may authorize safe repairs, verified closeout, work-item transitions, "
     "commit/push/PR, CI remediation, and trusted exact-head merge; attended/default policy "
     "requires confirmation. Never automatic: manual-review repair, force-push, history "
     "rewrite, direct `.aegis/` writes, "
@@ -4416,6 +4414,44 @@ def next_action(
             },
         )
     if not isinstance(current_work, Mapping):
+        if _uses_beads_first_authority(target_root):
+            return _workflow_guidance_payload(
+                phase="start",
+                state="beads_first_ready",
+                next_required_action=(
+                    "read the authoritative Gas City bead, then start bead-native Aegis "
+                    "work without creating or mutating Taskmaster state"
+                ),
+                suggested_cli=(
+                    "./.aegis/bin/aegis kickoff --target-dir . --bead <bead-id> "
+                    "--slug <slug> --title '<title>'"
+                ),
+                suggested_mcp_tool="aegis.bead_kickoff",
+                suggested_mcp_arguments={
+                    "target_dir": ".",
+                    "bead": "<bead-id>",
+                    "slug": "<slug>",
+                    "title": "<title>",
+                    "apply": True,
+                },
+                missing_gates=["aegis.current_work", "beads.authoritative_work"],
+                copyable_repairs=[
+                    "Read the selected bead through the rig-scoped Gas City bead surface.",
+                    (
+                        "./.aegis/bin/aegis kickoff --target-dir . --bead <bead-id> "
+                        "--slug <slug> --title '<title>'"
+                    ),
+                    "./.aegis/bin/aegis observe start --target-dir . 'Read-only audit title'",
+                ],
+                details={
+                    "work_authority": "gas-city-beads",
+                    "taskmaster": {
+                        "present": (target_root / ".taskmaster").exists(),
+                        "mutation_allowed": False,
+                        "compatibility": "historical-read-only",
+                    },
+                },
+            )
         taskmaster = _taskmaster_state(target_root)
         prd_path = _prd_state(target_root)
         if taskmaster.state == "absent":
@@ -4680,6 +4716,8 @@ def next_action(
     active_task_id = _current_work_task_id(current_work)
     if str(current_work.get("mode") or "") == "observation":
         current_task_authority = "observation-session"
+    elif str(current_work.get("mode") or "") == "bead" and active_task_id:
+        current_task_authority = f"beads:{active_task_id}"
     elif active_task_id:
         current_task_authority = f"taskmaster:{active_task_id}"
     else:
@@ -5499,6 +5537,15 @@ def _normalize_task_id(task_id: str | int) -> str:
     return value
 
 
+def _normalize_bead_id(bead_id: str) -> str:
+    value = str(bead_id).strip()
+    if not BEAD_ID_PATTERN.fullmatch(value):
+        raise AegisError(
+            "Aegis bead kickoff requires a lowercase bead id such as ga-zbmk"
+        )
+    return value
+
+
 def _normalize_task_slug(slug: str, *, task_id: str | int) -> str:
     normalized = _slugify(slug)
     task_text = _normalize_task_id(task_id)
@@ -5507,6 +5554,17 @@ def _normalize_task_slug(slug: str, *, task_id: str | int) -> str:
             stripped = normalized[len(prefix) :].strip("-")
             if stripped:
                 return stripped
+    return normalized
+
+
+def _normalize_bead_slug(slug: str, *, bead_id: str) -> str:
+    normalized = _slugify(slug)
+    normalized_bead_id = _normalize_bead_id(bead_id)
+    prefix = f"{normalized_bead_id}-"
+    if normalized.startswith(prefix):
+        stripped = normalized[len(prefix) :].strip("-")
+        if stripped:
+            return stripped
     return normalized
 
 
@@ -5538,6 +5596,11 @@ def _ensure_git_work_tree(target_root: Path) -> None:
 def _branch_task_id(branch: str) -> str | None:
     match = re.search(r"(?:^|[-_/])task-?(\d+)(?:[-_/]|$)", branch)
     return match.group(1) if match else None
+
+
+def _branch_bead_id(branch: str, *, expected_id: str) -> str | None:
+    prefix = f"codex/{expected_id}"
+    return expected_id if branch == prefix or branch.startswith(prefix + "-") else None
 
 
 def _task_ids_from_text(value: str) -> list[str]:
@@ -6511,6 +6574,44 @@ def _ensure_task_branch(
     }
 
 
+def _ensure_bead_branch(
+    target_root: Path, bead_id: str, slug: str, *, create_branch: bool
+) -> dict[str, Any]:
+    before = _current_branch(target_root)
+    if _branch_bead_id(before, expected_id=bead_id) == bead_id:
+        return {
+            "before": before,
+            "current": before,
+            "action": "already_on_bead_branch",
+            "created": False,
+        }
+    if not create_branch:
+        raise AegisError(
+            f"current branch '{before}' does not contain bead id {bead_id}; "
+            "rerun with branch creation enabled"
+        )
+
+    branch_name = f"codex/{bead_id}-{slug}"
+    exists = _run_target_git(target_root, "rev-parse", "--verify", "--quiet", branch_name)
+    if exists.returncode == 0:
+        switch = _run_target_git(target_root, "switch", branch_name)
+        action = "switched_existing_branch"
+        created = False
+    else:
+        switch = _run_target_git(target_root, "switch", "-c", branch_name)
+        action = "created_branch"
+        created = True
+    if switch.returncode != 0:
+        detail = (switch.stderr or switch.stdout or "git switch failed").strip()
+        raise AegisError(f"could not switch to bead branch '{branch_name}': {detail}")
+    return {
+        "before": before,
+        "current": _current_branch(target_root),
+        "action": action,
+        "created": created,
+    }
+
+
 def _replace_symlink(link: Path, target: str) -> None:
     link.parent.mkdir(parents=True, exist_ok=True)
     if link.exists() or link.is_symlink():
@@ -6520,22 +6621,34 @@ def _replace_symlink(link: Path, target: str) -> None:
     link.symlink_to(target)
 
 
-def _next_session_rel(target_root: Path, task_id: str, slug: str, now: datetime) -> str:
+def _next_session_rel(
+    target_root: Path,
+    task_id: str,
+    slug: str,
+    now: datetime,
+    *,
+    work_mode: str = "task",
+) -> str:
     date_text = now.strftime("%Y-%m-%d")
     month_rel = Path("sessions") / now.strftime("%Y") / now.strftime("%m")
+    identity = f"task{task_id}" if work_mode == "task" else task_id
     for index in range(1, 1000):
-        candidate = month_rel / f"{date_text}-{index:03d}-task{task_id}-{slug}.md"
+        candidate = month_rel / f"{date_text}-{index:03d}-{identity}-{slug}.md"
         if not (target_root / candidate).exists():
             return candidate.as_posix()
     raise AegisError("could not allocate session file name")
 
 
-def _plan_rel(task_id: str, slug: str, now: datetime) -> str:
-    return f"plans/{now.strftime('%Y-%m-%d')}-task{task_id}-{slug}.md"
+def _plan_rel(task_id: str, slug: str, now: datetime, *, work_mode: str = "task") -> str:
+    identity = f"task{task_id}" if work_mode == "task" else task_id
+    return f"plans/{now.strftime('%Y-%m-%d')}-{identity}-{slug}.md"
 
 
-def _work_tracking_rel(task_id: str, slug: str, now: datetime) -> str:
-    return f"docs/ai/work-tracking/active/{now.strftime('%Y%m%d')}-task{task_id}-{slug}-ACTIVE"
+def _work_tracking_rel(
+    task_id: str, slug: str, now: datetime, *, work_mode: str = "task"
+) -> str:
+    identity = f"task{task_id}" if work_mode == "task" else task_id
+    return f"docs/ai/work-tracking/active/{now.strftime('%Y%m%d')}-{identity}-{slug}-ACTIVE"
 
 
 def _normalize_observation_slug(slug: str, title: str) -> str:
@@ -7205,13 +7318,46 @@ def _workflow_template_context(
     work_rel: str,
     reports_rel: str,
     work_context: str | None = None,
+    work_mode: str = "task",
 ) -> dict[str, str]:
+    if work_mode not in {"task", "bead"}:
+        raise AegisError(f"unsupported workflow template mode: {work_mode}")
     selected_goals = list(goals or _default_goals())
     session_id = Path(session_rel).stem
-    resolved_work_context = work_context or f"task{task_id}-{slug}"
+    is_bead = work_mode == "bead"
+    work_kind = "Bead" if is_bead else "Task"
+    work_kind_lower = work_kind.lower()
+    work_label = f"{work_kind} {task_id}"
+    resolved_work_context = work_context or (
+        f"{task_id}-{slug}" if is_bead else f"task{task_id}-{slug}"
+    )
     tracker_rel = f"{work_rel}/TRACKER.md"
     return {
         "task_id": task_id,
+        "work_id": task_id,
+        "work_mode": work_mode,
+        "work_kind": work_kind,
+        "work_kind_lower": work_kind_lower,
+        "work_label": work_label,
+        "identity_frontmatter_key": "bead_ids" if is_bead else "task_ids",
+        "identity_header": "Bead IDs" if is_bead else "Task IDs",
+        "branch_policy": branch_current if is_bead else "feature-required",
+        "branch_requirement": (
+            f"the bead branch `{branch_current}`"
+            if is_bead
+            else f"a branch containing `task-{task_id}`"
+        ),
+        "work_scope": f"{work_label} only",
+        "authority_summary": (
+            f"Gas City bead `{task_id}` plus Aegis current-work state"
+            if is_bead
+            else "Aegis-native workflow state"
+        ),
+        "integration_summary": (
+            "Taskmaster is historical read-only compatibility; Serena is optional continuity only."
+            if is_bead
+            else "Taskmaster and Serena may be used when present, but are not required for READY unless this task marks them required."
+        ),
         "title": title,
         "slug": slug,
         "session_id": session_id,
@@ -7259,7 +7405,8 @@ def _workflow_next_action(
         "message": message,
         "native_tools_policy": (
             "Use native agent tools for source reads, edits, and project tests. "
-            "Use Aegis CLI/MCP only for workflow state: install, start, kickoff for explicit external numeric task ids, log, verify, closeout."
+            "Use Aegis CLI/MCP only for workflow state: install, bead kickoff, standalone start, "
+            "historical numeric kickoff, log, verify, and closeout."
         ),
     }
     if suggested_cli:
@@ -7272,6 +7419,20 @@ def _workflow_next_action(
     if details:
         payload["details"] = dict(details)
     return payload
+
+
+def _uses_beads_first_authority(target_root: Path) -> bool:
+    agents_path = target_root / "AGENTS.md"
+    if not agents_path.is_file():
+        return False
+    try:
+        text = agents_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return False
+    return (
+        "Gas City beads are the authoritative work ledger for new work" in text
+        or "Gas City beads are authoritative for all new work" in text
+    )
 
 
 def _post_init_next_action(install_report: Mapping[str, Any]) -> dict[str, Any]:
@@ -7383,6 +7544,7 @@ def kickoff(
     create_branch: bool = True,
     source_root: str | Path | None = None,
     invoking_agent: str | None = None,
+    _work_mode: str = "task",
 ) -> dict[str, Any]:
     """Create Aegis-native current work state for an installed target project."""
 
@@ -7397,11 +7559,30 @@ def kickoff(
     )
     _ensure_git_work_tree(target_root)
 
-    normalized_task_id = _normalize_task_id(task_id)
-    normalized_slug = _normalize_task_slug(slug, task_id=normalized_task_id)
+    if _work_mode == "bead":
+        normalized_task_id = _normalize_bead_id(str(task_id))
+        normalized_slug = _normalize_bead_slug(slug, bead_id=normalized_task_id)
+    elif _work_mode == "task":
+        normalized_task_id = _normalize_task_id(task_id)
+        normalized_slug = _normalize_task_slug(slug, task_id=normalized_task_id)
+    else:
+        raise AegisError(f"unsupported Aegis kickoff work mode: {_work_mode}")
     clean_title = title.strip()
     if not clean_title:
         raise AegisError("title is required")
+    work_label = (
+        f"bead {normalized_task_id}"
+        if _work_mode == "bead"
+        else f"task {normalized_task_id}"
+    )
+    task_payload = {
+        "id": normalized_task_id,
+        "slug": normalized_slug,
+        "title": clean_title,
+        "status": "in-progress",
+    }
+    if _work_mode == "bead":
+        task_payload["source"] = "gas-city-bead"
 
     existing_current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
     if isinstance(existing_current_work, Mapping):
@@ -7418,7 +7599,7 @@ def kickoff(
                 return _already_started_report(target_root, existing_current_work)
             raise AegisError(
                 "Aegis current work is already in progress: "
-                f"task {existing_id} {existing_slug}. Close it out before starting task {normalized_task_id} {normalized_slug}."
+                f"{existing_id} {existing_slug}. Close it out before starting {work_label} {normalized_slug}."
             )
         if isinstance(existing_current_work, MutableMapping):
             archived_observation_work = _archive_current_completed_observation_work_tracking(
@@ -7434,13 +7615,23 @@ def kickoff(
 
     now = datetime.now().astimezone().replace(microsecond=0)
     selected_goals = list(goals or _default_goals())
-    branch = _ensure_task_branch(
-        target_root, normalized_task_id, normalized_slug, create_branch=create_branch
+    branch = (
+        _ensure_bead_branch(
+            target_root, normalized_task_id, normalized_slug, create_branch=create_branch
+        )
+        if _work_mode == "bead"
+        else _ensure_task_branch(
+            target_root, normalized_task_id, normalized_slug, create_branch=create_branch
+        )
     )
 
-    session_rel = _next_session_rel(target_root, normalized_task_id, normalized_slug, now)
-    plan_rel = _plan_rel(normalized_task_id, normalized_slug, now)
-    work_rel = _work_tracking_rel(normalized_task_id, normalized_slug, now)
+    session_rel = _next_session_rel(
+        target_root, normalized_task_id, normalized_slug, now, work_mode=_work_mode
+    )
+    plan_rel = _plan_rel(normalized_task_id, normalized_slug, now, work_mode=_work_mode)
+    work_rel = _work_tracking_rel(
+        normalized_task_id, normalized_slug, now, work_mode=_work_mode
+    )
     reports_rel = f"{work_rel}/reports/{normalized_slug}"
     template_context = _workflow_template_context(
         task_id=normalized_task_id,
@@ -7453,6 +7644,7 @@ def kickoff(
         plan_rel=plan_rel,
         work_rel=work_rel,
         reports_rel=reports_rel,
+        work_mode=_work_mode,
     )
 
     _write_text(
@@ -7467,12 +7659,7 @@ def kickoff(
         "schema_version": SCHEMA_VERSION,
         "current": Path(session_rel).name,
         "current_path": session_rel,
-        "task": {
-            "id": normalized_task_id,
-            "slug": normalized_slug,
-            "title": clean_title,
-            "status": "in-progress",
-        },
+        "task": dict(task_payload),
         "updated_at": _iso_now(),
     }
     _write_text(target_root, "sessions/state.json", _dump_json(state_payload))
@@ -7511,15 +7698,11 @@ def kickoff(
 
     current_work = {
         "schema_version": SCHEMA_VERSION,
+        "mode": _work_mode,
         "status": "in-progress",
         "created_at": now.isoformat().replace("+00:00", "Z"),
         "updated_at": _iso_now(),
-        "task": {
-            "id": normalized_task_id,
-            "slug": normalized_slug,
-            "title": clean_title,
-            "status": "in-progress",
-        },
+        "task": dict(task_payload),
         "branch": branch,
         "paths": {
             "session": session_rel,
@@ -7534,6 +7717,7 @@ def kickoff(
             "taskmaster": {
                 "required": False,
                 "detected": (target_root / ".taskmaster").exists(),
+                **({"mutation_allowed": False} if _work_mode == "bead" else {}),
             },
             "serena": {
                 "required": False,
@@ -7541,6 +7725,12 @@ def kickoff(
             },
         },
     }
+    if _work_mode == "bead":
+        current_work["authority"] = {
+            "kind": "gas-city-bead",
+            "id": normalized_task_id,
+            "mutable": True,
+        }
     _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(current_work))
     _update_manifest_after_kickoff(target_root)
 
@@ -7583,6 +7773,32 @@ def kickoff(
     }
     _write_text(target_root, AEGIS_KICKOFF_REPORT_REL, _dump_json(report))
     return report
+
+
+def kickoff_bead(
+    target_dir: str | Path,
+    *,
+    bead_id: str,
+    slug: str,
+    title: str,
+    goals: Sequence[str] | None = None,
+    create_branch: bool = True,
+    source_root: str | Path | None = None,
+    invoking_agent: str | None = None,
+) -> dict[str, Any]:
+    """Create bead-native Aegis current-work state without Taskmaster mutation."""
+
+    return kickoff(
+        target_dir,
+        task_id=bead_id,
+        slug=slug,
+        title=title,
+        goals=goals,
+        create_branch=create_branch,
+        source_root=source_root,
+        invoking_agent=invoking_agent,
+        _work_mode="bead",
+    )
 
 
 def start_observation(
@@ -8148,7 +8364,7 @@ def start_local_work(
     source_root: str | Path | None = None,
     invoking_agent: str | None = None,
 ) -> dict[str, Any]:
-    """Allocate a local task id and reuse kickoff for projects without Taskmaster."""
+    """Allocate local work only for projects without an external work authority."""
 
     target_root = _resolve_target_root(target_dir)
     if not (target_root / AEGIS_MANIFEST_REL).is_file():
@@ -8164,6 +8380,12 @@ def start_local_work(
     clean_title = title.strip()
     if not clean_title:
         raise AegisError("task title is required")
+    if _uses_beads_first_authority(target_root):
+        raise AegisError(
+            "Gas City beads are the declared work authority for this project; use "
+            "./.aegis/bin/aegis kickoff --target-dir . --bead <bead-id> --slug <slug> "
+            "--title '<title>' instead of allocating a local Aegis task"
+        )
     normalized_slug = _slugify(slug or clean_title)
     existing_current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
     if isinstance(existing_current_work, Mapping):
@@ -10088,6 +10310,41 @@ def _strict_current_work_checks(
                     details={
                         "branch": branch,
                         "current_work_task_id": task_id,
+                        "mode": work_mode,
+                    },
+                )
+            )
+        except AegisError as exc:
+            checks.append(
+                _strict_check(
+                    "workflow.branch_task_alignment",
+                    category="workflow",
+                    required=True,
+                    passed=False,
+                    message=str(exc),
+                    details={"mode": work_mode},
+                )
+            )
+    elif task_id and work_mode == "bead":
+        try:
+            branch = _current_branch(target_root)
+            branch_bead = _branch_bead_id(branch, expected_id=task_id)
+            branch_matches = branch_bead == task_id
+            checks.append(
+                _strict_check(
+                    "workflow.branch_task_alignment",
+                    category="workflow",
+                    required=True,
+                    passed=branch_matches,
+                    message=(
+                        "branch bead id matches current work"
+                        if branch_matches
+                        else "branch bead id does not match current work"
+                    ),
+                    details={
+                        "branch": branch,
+                        "branch_bead_id": branch_bead,
+                        "current_work_bead_id": task_id,
                         "mode": work_mode,
                     },
                 )

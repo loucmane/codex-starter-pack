@@ -81,6 +81,23 @@ def test_build_parser_accepts_wizard_kickoff() -> None:
     assert args.task == "96"
 
 
+def test_build_parser_accepts_bead_native_wizard_kickoff() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "wizard",
+        "kickoff",
+        "--bead",
+        "ga-k9sd",
+        "--slug",
+        "beads-first-guidance",
+    ])
+    assert args.command == "wizard"
+    assert args.subcommand == "kickoff"
+    assert args.bead == "ga-k9sd"
+    assert args.task is None
+
+
 def test_build_parser_accepts_migration_archive() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -700,6 +717,96 @@ def test_handle_wizard_kickoff_creates_artifacts(monkeypatch, tmp_path) -> None:
     assert any(cmd[:2] == ["task-master", "generate"] and "--output" in cmd for cmd in commands)
 
 
+def test_handle_wizard_kickoff_creates_bead_native_artifacts_without_taskmaster(
+    monkeypatch, tmp_path
+) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    sessions_dir = repo / "sessions"
+    plans_dir = repo / "plans"
+    active_dir = repo / "docs" / "ai" / "work-tracking" / "active"
+    sessions_dir.mkdir(parents=True)
+    plans_dir.mkdir(parents=True)
+    active_dir.mkdir(parents=True)
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "SESSIONS_DIR", sessions_dir)
+    monkeypatch.setattr(module, "WORK_TRACKING_BASE", active_dir)
+    monkeypatch.setattr(module, "PLAN_CURRENT", plans_dir / "current")
+    monkeypatch.setattr(module, "PLAN_STATE_DIR", repo / ".plan_state")
+    monkeypatch.setattr(module, "PLAN_SYNC_LOG", repo / ".plan_state" / "sync.log")
+    monkeypatch.setattr(module, "SESSION_STATE_PATH", sessions_dir / "state.json")
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    commands = []
+
+    def fake_run(cmd, cwd=None, capture_output=False, text=False, check=False):
+        commands.append(cmd)
+        if cmd[:3] == ["git", "branch", "--show-current"]:
+            return FakeCompletedProcess(stdout="codex/ga-k9sd-beads-first-guidance\n")
+        return FakeCompletedProcess(stdout="")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    module.handle_wizard_kickoff(
+        argparse.Namespace(
+            task=None,
+            bead="ga-k9sd",
+            slug="beads-first-guidance",
+            title="Beads-first guidance and reboot hardening",
+            goal=["Replace Taskmaster-first guidance with beads-native workflow"],
+            task_source="Primary Gas City bead ga-k9sd",
+            handler_target="scripts/codex-task",
+            force=False,
+            dry_run=False,
+        )
+    )
+
+    active_folder = active_dir / "20260424-ga-k9sd-beads-first-guidance-ACTIVE"
+    session_path = (
+        sessions_dir / "2026" / "04" / "2026-04-24-001-ga-k9sd-beads-first-guidance.md"
+    )
+    plan_path = plans_dir / "2026-04-24-ga-k9sd-beads-first-guidance.md"
+
+    assert active_folder.exists()
+    assert session_path.exists()
+    assert plan_path.exists()
+    assert (sessions_dir / "current").resolve() == session_path
+    assert (plans_dir / "current").resolve() == plan_path
+
+    tracker_text = (active_folder / "TRACKER.md").read_text(encoding="utf-8")
+    assert "# Bead ga-k9sd" in tracker_text
+    assert "H:bd:show|E:bead:ga-k9sd" in tracker_text
+    session_text = session_path.read_text(encoding="utf-8")
+    assert "**Bead**: `ga-k9sd`" in session_text
+    assert "Marked Taskmaster Task" not in session_text
+    plan_text = plan_path.read_text(encoding="utf-8")
+    assert "bead_ids: [ga-k9sd]" in plan_text
+    assert "- **Bead IDs**: ga-k9sd" in plan_text
+    assert "branch_policy: codex/ga-k9sd-beads-first-guidance" in plan_text
+    assert not any(cmd and cmd[0] == "task-master" for cmd in commands)
+
+
+def test_handle_wizard_kickoff_rejects_invalid_bead_id(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    monkeypatch.setattr(module, "REPO_ROOT", tmp_path)
+
+    with pytest.raises(module.TaskError, match="Invalid bead ID"):
+        module.handle_wizard_kickoff(
+            argparse.Namespace(
+                task=None,
+                bead="not a bead",
+                slug="invalid",
+                title="Invalid",
+                goal=None,
+                task_source=None,
+                handler_target=None,
+                force=False,
+                dry_run=True,
+            )
+        )
+
+
 def test_handle_work_tracking_archive_preserves_completed_bundle(monkeypatch, tmp_path) -> None:
     module = load_task_module()
     repo = tmp_path
@@ -714,6 +821,7 @@ def test_handle_work_tracking_archive_preserves_completed_bundle(monkeypatch, tm
 
 ## Progress Log
 - [S:test|W:task99|H:test|E:{active_reference}/reports/source-closeout/evidence.md] Verified archive evidence.
+- [S:test|W:task99|H:serena/memory|E:.serena/memories/task99-source-closeout.md] Preserved continuity.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope - Scope
@@ -723,6 +831,8 @@ def test_handle_work_tracking_archive_preserves_completed_bundle(monkeypatch, tm
         encoding="utf-8",
     )
     (active / "CHANGELOG.md").write_text("# Changelog\n", encoding="utf-8")
+    (active / "FINDINGS.md").write_text("# Findings\n\n- 2029-12-31 — Prior finding.\n", encoding="utf-8")
+    (active / "DECISIONS.md").write_text("# Decisions\n\n- 2029-12-31 — Prior decision.\n", encoding="utf-8")
     (active / "HANDOFF.md").write_text("# Handoff\n", encoding="utf-8")
     evidence = active / "reports" / "source-closeout" / "evidence.md"
     evidence.parent.mkdir(parents=True)
@@ -782,6 +892,18 @@ def test_handle_work_tracking_archive_preserves_completed_bundle(monkeypatch, tm
     assert archive_reference in session.read_text(encoding="utf-8")
     assert active_reference not in (archived / "TRACKER.md").read_text(encoding="utf-8")
     assert archive_reference in (archived / "TRACKER.md").read_text(encoding="utf-8")
+    assert "H:scripts/codex-task:work-tracking-archive" in (
+        archived / "TRACKER.md"
+    ).read_text(encoding="utf-8")
+    assert "H:serena/memory:archive-reference" in (
+        archived / "TRACKER.md"
+    ).read_text(encoding="utf-8")
+    assert "Archive preconditions were satisfied" in (
+        archived / "FINDINGS.md"
+    ).read_text(encoding="utf-8")
+    assert "supported archive helper" in (
+        archived / "DECISIONS.md"
+    ).read_text(encoding="utf-8")
 
     sync_entries = json.loads((plan_state_dir / "sync.log").read_text(encoding="utf-8"))
     assert sync_entries[-1]["plan"] == plan.relative_to(repo).as_posix()

@@ -98,6 +98,29 @@ def task_id_from_branch(branch: str) -> str | None:
     return None
 
 
+def bead_id_from_branch(branch: str) -> str | None:
+    match = re.fullmatch(r"codex/([a-z][a-z0-9]*-[a-z0-9]+)(?:[-/].*)?", branch)
+    return match.group(1) if match else None
+
+
+def plan_bead_ids(plan_text: str) -> set[str]:
+    values: list[str] = []
+    for match in re.finditer(r"^bead_ids:\s*\[([^\]]*)\]\s*$", plan_text, flags=re.MULTILINE):
+        values.extend(match.group(1).split(","))
+    for match in re.finditer(r"^-\s+\*\*Bead IDs\*\*:\s*(.+?)\s*$", plan_text, flags=re.MULTILINE):
+        values.extend(match.group(1).split(","))
+    return {value.strip().strip("`'\"") for value in values if value.strip()}
+
+
+def plan_branch_policies(plan_text: str) -> set[str]:
+    values: list[str] = []
+    for match in re.finditer(r"^branch_policy:\s*(\S+)\s*$", plan_text, flags=re.MULTILINE):
+        values.append(match.group(1))
+    for match in re.finditer(r"^-\s+\*\*Branch Policy\*\*:\s*(\S+)\s*$", plan_text, flags=re.MULTILINE):
+        values.append(match.group(1))
+    return {value.strip().strip("`'\"") for value in values if value.strip()}
+
+
 def text_references_task(text: str, task_id: str) -> bool:
     patterns = [
         rf"\bTaskmaster\s+Task\s+{re.escape(task_id)}\b",
@@ -467,6 +490,118 @@ def build_observation_checks(root: Path, branch: str, aegis_work: object) -> tup
     return work_id, checks
 
 
+def build_bead_source_checks(root: Path, branch: str, bead_id: str) -> tuple[str, list[Check]]:
+    checks: list[Check] = [
+        Check(READY, f"branch '{branch}' maps to bead-native source work {bead_id}")
+    ]
+
+    session_current = root / "sessions" / "current"
+    session_path, session_target = symlink_target(session_current)
+    if session_path is None or session_target is None:
+        checks.append(Check(BLOCKED, "sessions/current symlink missing"))
+    elif not session_path.is_file():
+        checks.append(Check(BLOCKED, f"sessions/current points to missing file: {session_target}"))
+    else:
+        session_text = read_text(session_path)
+        if not text_references_work(session_text, bead_id):
+            checks.append(Check(BLOCKED, f"current session does not reference bead {bead_id}"))
+        else:
+            checks.append(Check(READY, f"current session references bead {bead_id}"))
+
+        state_path = root / "sessions" / "state.json"
+        if not state_path.is_file():
+            checks.append(Check(BLOCKED, "sessions/state.json missing"))
+        else:
+            try:
+                state = read_json(state_path)
+            except Exception as exc:  # noqa: BLE001 - surface exact readiness failure.
+                checks.append(Check(BLOCKED, f"sessions/state.json invalid: {exc}"))
+            else:
+                current_value = state.get("current") if isinstance(state, dict) else None
+                if current_value != session_path.name:
+                    checks.append(
+                        Check(
+                            BLOCKED,
+                            f"sessions/state.json current is {current_value!r}, expected {session_path.name!r}",
+                        )
+                    )
+                else:
+                    checks.append(Check(READY, "sessions/state.json current matches sessions/current"))
+
+    plan_current = root / "plans" / "current"
+    plan_path, plan_target = symlink_target(plan_current)
+    plan_text: str | None = None
+    if plan_path is None or plan_target is None:
+        checks.append(Check(BLOCKED, "plans/current symlink missing"))
+    elif not plan_path.is_file():
+        checks.append(Check(BLOCKED, f"plans/current points to missing file: {plan_target}"))
+    else:
+        plan_text = read_text(plan_path)
+        bead_ids = plan_bead_ids(plan_text)
+        if bead_id not in bead_ids:
+            checks.append(Check(BLOCKED, f"current plan does not declare bead {bead_id}"))
+        else:
+            checks.append(Check(READY, f"current plan declares bead {bead_id}"))
+        policies = plan_branch_policies(plan_text)
+        if policies != {branch}:
+            rendered = ", ".join(sorted(policies)) or "none"
+            checks.append(
+                Check(BLOCKED, f"current plan branch policy is {rendered}, expected exactly {branch}")
+            )
+        else:
+            checks.append(Check(READY, f"current plan branch policy matches {branch}"))
+
+    active_root = root / "docs" / "ai" / "work-tracking" / "active"
+    tracker_text: str | None = None
+    if not active_root.is_dir():
+        checks.append(Check(BLOCKED, "active work-tracking root missing"))
+    else:
+        active_folders = sorted(
+            path for path in active_root.iterdir() if path.is_dir() and path.name.endswith("-ACTIVE")
+        )
+        if len(active_folders) != 1:
+            checks.append(
+                Check(BLOCKED, f"expected exactly one ACTIVE work-tracking folder, found {len(active_folders)}")
+            )
+        else:
+            active_folder = active_folders[0]
+            bead_token = re.compile(
+                rf"(?:^|[-_]){re.escape(bead_id)}(?:[-_]|$)", flags=re.IGNORECASE
+            )
+            if not bead_token.search(active_folder.name):
+                checks.append(
+                    Check(BLOCKED, f"ACTIVE folder '{active_folder.name}' does not match bead {bead_id}")
+                )
+            else:
+                checks.append(
+                    Check(READY, f"ACTIVE folder '{active_folder.name}' matches bead {bead_id}")
+                )
+
+            tracker_path = active_folder / "TRACKER.md"
+            if not tracker_path.is_file():
+                checks.append(Check(BLOCKED, f"{tracker_path.relative_to(root)} missing"))
+            else:
+                tracker_text = read_text(tracker_path)
+                if not text_references_work(tracker_text, bead_id):
+                    checks.append(Check(BLOCKED, f"active tracker does not reference bead {bead_id}"))
+                elif not re.search(
+                    r"^\*\*Status\*\*:\s*ACTIVE\s*$", tracker_text, flags=re.MULTILINE
+                ):
+                    checks.append(Check(BLOCKED, "active tracker status is not ACTIVE"))
+                else:
+                    checks.append(Check(READY, f"active tracker references bead {bead_id}"))
+
+    if plan_text is not None and tracker_text is not None:
+        alignment_issues = check_plan_tracker_alignment(plan_text, tracker_text)
+        if alignment_issues:
+            for issue in alignment_issues:
+                checks.append(Check(BLOCKED, f"plan/tracker alignment failure: {issue}"))
+        else:
+            checks.append(Check(READY, "plan-step statuses align between plan and tracker"))
+
+    return bead_id, checks
+
+
 def build_checks(root: Path) -> tuple[str | None, list[Check]]:
     checks: list[Check] = []
 
@@ -501,6 +636,27 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
             else:
                 checks.append(Check(BLOCKED, f"Aegis observation status is {status!r}, expected 'in-progress' or 'completed'"))
                 return None, checks
+        if aegis_work_mode(aegis_work) == "bead":
+            task = aegis_work_task(aegis_work)
+            bead_id = str(task.get("id") if task else "").strip()
+            status = str(task.get("status") if task else "").strip()
+            branch_bead_id = bead_id_from_branch(branch)
+            if not task or not bead_id or status != "in-progress":
+                checks.append(
+                    Check(BLOCKED, "bead current work is missing id or in-progress status")
+                )
+                return bead_id or None, checks
+            if branch_bead_id != bead_id:
+                checks.append(
+                    Check(
+                        BLOCKED,
+                        f"branch bead is {branch_bead_id!r}, expected current-work bead {bead_id}",
+                    )
+                )
+                return bead_id, checks
+            work_id, bead_checks = build_bead_source_checks(root, branch, bead_id)
+            bead_checks.insert(1, Check(READY, f"Aegis current work bead {bead_id} is in-progress"))
+            return work_id, bead_checks
 
     source_work = None
     if not aegis_work_path.is_file():
@@ -528,6 +684,9 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
                 )
             )
             return build_completed_source_checks(root, task_id, source_work, checks)
+        source_bead_id = bead_id_from_branch(branch)
+        if source_module is not None and source_bead_id is not None:
+            return build_bead_source_checks(root, branch, source_bead_id)
 
     task_id = task_id_from_branch(branch)
     if not task_id:
@@ -770,7 +929,7 @@ def print_full(
                 "",
                 "## Remediation",
                 "- Start or repair the workflow before Claude performs persistent mutations.",
-                "- Required state: task branch, Aegis current work or Taskmaster in-progress task, sessions/current, plans/current, and one ACTIVE tracker for the same task.",
+                "- Required state: aligned work branch, authoritative work identity, sessions/current, plans/current, and one ACTIVE tracker for the same work.",
                 "- Use the project kickoff workflow instead of writing files or memory by hand.",
             ]
         )

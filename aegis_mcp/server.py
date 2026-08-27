@@ -56,6 +56,7 @@ V1_TOOL_NAMES = (
     "aegis.closeout_ready",
     "aegis.handoff_repair",
     "aegis.kickoff",
+    "aegis.bead_kickoff",
     "aegis.start",
     "aegis.observe_start",
     "aegis.observe_stop",
@@ -1289,6 +1290,45 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             callback=call_core,
         )
 
+    @server.tool(name="aegis.bead_kickoff")
+    def aegis_bead_kickoff(
+        target_dir: str,
+        bead: str,
+        slug: str,
+        title: str,
+        goals: list[str] | None = None,
+        create_branch: bool = True,
+        apply: bool = False,
+    ) -> dict[str, Any]:
+        """Start Aegis current work from a Gas City bead; next action is logging plan-step-scope before source edits; requires apply=true."""
+
+        if apply is not True:
+            return _error_tool_response(
+                "aegis.bead_kickoff",
+                code="apply_required",
+                message="aegis.bead_kickoff creates workflow state and requires apply=true.",
+                status="refused",
+                details={"apply": apply},
+            )
+
+        def call_core() -> dict[str, Any]:
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
+            return installer.kickoff_bead(
+                target,
+                bead_id=bead,
+                slug=slug,
+                title=title,
+                goals=goals or [],
+                create_branch=create_branch,
+                source_root=config.source_root,
+            )
+
+        return run_tool(
+            "aegis.bead_kickoff",
+            read_only=False,
+            callback=call_core,
+        )
+
     @server.tool(name="aegis.start")
     def aegis_start(
         target_dir: str,
@@ -1793,10 +1833,10 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
                     f"Title: `{title}`",
                     "1. Run `aegis.status` and `aegis.next` first.",
                     "2. If `aegis.next` returns `restart_claude_before_mutation`, stop and ask the user to restart Claude before source edits.",
-                    "3. If `.taskmaster/` exists, run `task-master next` and `task-master show <id>` or the Taskmaster MCP equivalents before choosing a start path.",
-                    "4. Use `aegis.kickoff apply=true` with the Taskmaster numeric task id when Taskmaster returns available work.",
-                    "5. If no current work exists and no external task id is available, call `aegis.start apply=true` with a short normal-language title.",
-                    "6. Use `aegis.kickoff apply=true` only when the user, Taskmaster, or project gives an explicit external numeric task id.",
+                    "3. For Gas City work, read the authoritative bead and call `aegis.bead_kickoff apply=true` with its exact id; do not create or mutate Taskmaster work.",
+                    "4. Use `aegis.kickoff apply=true` only for an explicitly historical numeric-task compatibility flow.",
+                    "5. If no current work exists and no external work id is available, call `aegis.start apply=true` with a short normal-language title.",
+                    "6. Treat Taskmaster as read-only historical compatibility whenever a bead is authoritative.",
                     "7. Confirm readiness is READY after start/kickoff.",
                     "8. Before source edits, log scope with `aegis.log apply=true`, `plan_step=auto`, and `plan_status=completed`.",
                     "9. Native agent tools do implementation; Aegis records workflow state and evidence.",
@@ -2014,6 +2054,10 @@ async def _threaded_stdio_server():
     async with anyio.create_task_group() as tg:
         tg.start_soon(stdin_reader)
         tg.start_soon(stdout_writer)
+        # Let both transport workers reach their first wait point before FastMCP starts.
+        # Without this handoff, a fast client can expose a scheduler race where the server
+        # waits on the read stream before the stdin worker has begun forwarding frames.
+        await anyio.lowlevel.checkpoint()
         try:
             yield read_stream, write_stream
         finally:

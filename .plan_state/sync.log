@@ -382,5 +382,131 @@
     "plan_hash": "31e07e93b915fa0e8026ac859299dee33d94f2a5f7b30c95b2531fc4f7ffe0a5",
     "tracker_hash": "21eb4c5e1afd104bcf83bb35e66be6e1110b5cf5071c4d61333c2cf0580213d6",
     "synced_at": "2026-07-17T11:50:16.204250+02:00"
+  },
+  {
+    "plan": "plans/2026-07-17-task288-gate-hard-policy-parser.md",
+    "plan_hash": "8ba4c1c8ac90aa8fb363d89cf98b56a950ff354ab51cca13b9d73ecc08ca996c",
+    "tracker_hash": "bd1a83b7ed9a674d6036f3810ca7eb98b89847a42011fad666ff22658e23aafd",
+    "synced_at": "2026-08-26T15:44:21.450869+02:00"
+  },
+  {
+    "plan": "plans/2026-08-26-ga-k9sd-beads-first-guidance.md",
+    "plan_hash": "6d24f9eaa8069a15483831274faa3d6bb10bf87c8c84520aea53c5667f6dfa80",
+    "tracker_hash": "81615e1ed2c380271c59f24d62df771b1bc34728095f369353f76d9ed9908dd3",
+    "synced_at": "2026-08-26T15:52:14.454160+02:00"
+  },
+  {
+    "plan": "plans/2026-08-26-ga-k9sd-beads-first-guidance.md",
+    "plan_hash": "3c322a8e70f0d4d7c168b4aa2cad53c448b9710b8fe380ef54c9e11c0d21e0fd",
+    "tracker_hash": "b59f22d19f8b313f28ca889c26f184a2fb0c039b2c2016fb3c5577115b874142",
+    "synced_at": "2026-08-26T15:54:22.202938+02:00"
+  },
+  {
+    "plan": "plans/2026-08-26-ga-k9sd-beads-first-guidance.md",
+    "plan_hash": "3c322a8e70f0d4d7c168b4aa2cad53c448b9710b8fe380ef54c9e11c0d21e0fd",
+    "tracker_hash": "b59f22d19f8b313f28ca889c26f184a2fb0c039b2c2016fb3c5577115b874142",
+    "synced_at": "2026-08-26T16:02:40.887023+02:00"
+  },
+  {
+    "plan": "plans/2026-08-26-ga-k9sd-beads-first-guidance.md",
+    "plan_hash": "b9d1584da73005c54cf8af81e513c26481a7c472a037ec2922824451123bce59",
+    "tracker_hash": "f4c91d92f7068dc0cb9cd8bbdfaa523389cf2a3f032992293890212a34694615",
+    "synced_at": "2026-08-26T16:04:20.492866+02:00"
+  },
+  {
+    "plan": "plans/2026-08-26-ga-k9sd-beads-first-guidance.md",
+    "plan_hash": "39f73ee3e6db076273907eba032dbdf3dc1e02007e5ca372e2672542b93793a5",
+    "tracker_hash": "7033d3776b97e62abc3028c9694b63ae8bc0dd1f509781e2daca77156efdc86c",
+    "synced_at": "2026-08-26T16:15:53.462134+02:00"
+  },
+  {
+    "plan": "plans/2026-08-26-ga-k9sd-beads-first-guidance.md",
+    "plan_hash": "580cb212022e224c875a75d1ecb90523fe14624315a1663d189bb8db3f3bd289",
+    "tracker_hash": "a5955f0ac8791f3d8202a17757a95833ab8ae949ffdfaf34a79e77b5b46b9843",
+    "synced_at": "2026-08-26T17:14:54.404640+02:00"
+  },
+  {
+    "plan": "plans/2026-08-26-ga-k9sd-beads-first-guidance.md",
+    "plan_hash": "bfee5f5cd68fce93546124263620048503b87531eb4669425182025fa71cf0aa",
+    "tracker_hash": "ba1acb40f0c2998c4a6e84f1d7fe5f11e8af27e2803c2e6cb26e195e7c6da308",
+    "synced_at": "2026-08-26T17:56:01.173864+02:00"
+  },
+  {
+    "plan": "plans/2026-08-26-ga-k9sd-beads-first-guidance.md",
+    "plan_hash": "98a6f2608c3e045977796fd6ee8781a2f894024949bf68035ea8d5ae9b546594",
+    "tracker_hash": "ced390745fa4720dc6e3905cd2c8ab557dd327c007bdc2f1b46358939b03f983",
+    "synced_at": "2026-08-26T18:10:22.738907+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-zbmk-aegis-beads-obsidian.md",
+    "plan_hash": "4d1b8c9c43ddb348b543dd54034911e8692589ab07de8ce8b4d57cd1b39bd419",
+    "tracker_hash": "d450e83f79da2626446dd92ae7de6b383dee5190ab24df573819a6762791d83e",
+    "synced_at": "2026-08-27T12:21:47.194527+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-zbmk-aegis-beads-obsidian.md",
+    "plan_hash": "0070a619a37e864dae2136d5bce44d00b12369100b1cc25f2c7a7e19f7888d7e",
+    "tracker_hash": "cf890155457f0c7c90a07c17e97be5dd0d60bf63575bce052c808c1bd5cadbf0",
+    "synced_at": "2026-08-27T12:23:14.991554+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-zbmk-aegis-beads-obsidian.md",
+    "plan_hash": "cea2a56a224ad8f65cc22334d423578af2c0363247dc5daa460e9989a0dbddc7",
+    "tracker_hash": "cf890155457f0c7c90a07c17e97be5dd0d60bf63575bce052c808c1bd5cadbf0",
+    "synced_at": "2026-08-27T12:25:10.052456+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-zbmk-aegis-beads-obsidian.md",
+    "plan_hash": "2e6b36410ee2109064c0a685320508cddba2b8b8a22d7703ae1f0a2fb226022d",
+    "tracker_hash": "cf890155457f0c7c90a07c17e97be5dd0d60bf63575bce052c808c1bd5cadbf0",
+    "synced_at": "2026-08-27T12:37:52.868659+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-zbmk-aegis-beads-obsidian.md",
+    "plan_hash": "ae867fb24f12fe3c7df3da56dddb064e412d934a16886c17834c669438503d24",
+    "tracker_hash": "a6fe2d1c27326cdf79647de7a9378d9378387c85187e9b1fbf0b8cba82f05f37",
+    "synced_at": "2026-08-27T12:47:12.010797+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-zbmk-aegis-beads-obsidian.md",
+    "plan_hash": "ae867fb24f12fe3c7df3da56dddb064e412d934a16886c17834c669438503d24",
+    "tracker_hash": "a6fe2d1c27326cdf79647de7a9378d9378387c85187e9b1fbf0b8cba82f05f37",
+    "synced_at": "2026-08-27T12:58:22.475459+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-zbmk-aegis-beads-obsidian.md",
+    "plan_hash": "ae867fb24f12fe3c7df3da56dddb064e412d934a16886c17834c669438503d24",
+    "tracker_hash": "a6fe2d1c27326cdf79647de7a9378d9378387c85187e9b1fbf0b8cba82f05f37",
+    "synced_at": "2026-08-27T13:36:09.967782+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-zbmk-aegis-beads-obsidian.md",
+    "plan_hash": "ae867fb24f12fe3c7df3da56dddb064e412d934a16886c17834c669438503d24",
+    "tracker_hash": "a6fe2d1c27326cdf79647de7a9378d9378387c85187e9b1fbf0b8cba82f05f37",
+    "synced_at": "2026-08-27T13:36:35.854723+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-zbmk-aegis-beads-obsidian.md",
+    "plan_hash": "ae867fb24f12fe3c7df3da56dddb064e412d934a16886c17834c669438503d24",
+    "tracker_hash": "2a67a908c5385759b51e8032558bf78eaa8e67610c32c52f07b8c2a42bca1b35",
+    "synced_at": "2026-08-27T13:37:01.107867+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-zbmk-aegis-beads-obsidian.md",
+    "plan_hash": "ae867fb24f12fe3c7df3da56dddb064e412d934a16886c17834c669438503d24",
+    "tracker_hash": "3e54041fed359c060fa80c8782463a16b522e1b66ca950ec9cdbb50f63df7125",
+    "synced_at": "2026-08-27T14:03:48.698170+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-zbmk-aegis-beads-obsidian.md",
+    "plan_hash": "ae867fb24f12fe3c7df3da56dddb064e412d934a16886c17834c669438503d24",
+    "tracker_hash": "3e54041fed359c060fa80c8782463a16b522e1b66ca950ec9cdbb50f63df7125",
+    "synced_at": "2026-08-27T14:04:52.107077+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-zbmk-aegis-beads-obsidian.md",
+    "plan_hash": "72d8769d7bf9647f35e7b09ae5a9c2cd6e91a2339937256ec1305529adc3c004",
+    "tracker_hash": "f4fdce696df0f348af67661cafa38f6c04a9194b1199e6507d5979beaa229d71",
+    "synced_at": "2026-08-27T14:32:27.853148+02:00"
   }
 ]

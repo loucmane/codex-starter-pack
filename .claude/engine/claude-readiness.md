@@ -14,7 +14,7 @@ bash .claude/scripts/readiness.sh --quick
 `--quick` is intended for PreToolUse hooks. It returns the same exit code as the full command but emits a single status line.
 
 ## States
-- `READY` exits `0`: ordinary in-progress state aligns, or the uninstalled Aegis source checkout derives one completed archive from matching branch, Taskmaster, session, plan, and tracker evidence.
+- `READY` exits `0`: ordinary in-progress state aligns, bead-native source work aligns across branch/plan/session/tracker, or the uninstalled Aegis source checkout derives one completed archive from matching branch, Taskmaster, session, plan, and tracker evidence.
 - `WARN` exits `0`: soft issues are present but mutation can proceed. No soft warnings are currently emitted by the first implementation.
 - `BLOCKED` exits `2`: required workflow state is missing or inconsistent. Hookable persistent mutations must be refused.
 
@@ -30,6 +30,22 @@ Readiness blocks unless all of these are true:
 - exactly one `docs/ai/work-tracking/active/*-ACTIVE` folder exists;
 - that ACTIVE folder and its `TRACKER.md` reference the task;
 - `plan-step-scope`, `plan-step-implement`, and `plan-step-verify` statuses match between the plan table and tracker checklist.
+
+### Bead-Native Aegis Source Checkout
+
+New work in the uninstalled Aegis source checkout may use a Gas City bead without allocating a
+shadow Taskmaster task. Readiness accepts that path only when all of these independent records
+align:
+
+- the branch is `codex/<bead-id>-...`;
+- the current plan declares that exact bead in `bead_ids`/`Bead IDs` and declares the exact current branch policy;
+- `sessions/current` and `sessions/state.json` identify a session that references the bead;
+- exactly one ACTIVE work-tracking folder exists, its name and tracker reference the bead, and its tracker status is `ACTIVE`;
+- the required plan/tracker step statuses align.
+
+This source-only path does not query or mutate Taskmaster. Installed targets retain their Aegis
+current-work contract, and historical numeric task branches retain the Taskmaster compatibility
+path below.
 
 ### Completed Aegis Source Checkout
 

@@ -241,7 +241,7 @@ def test_invocation_contract_documents_local_checkout_adoption_commands() -> Non
     required_snippets = [
         "aegis mcp register claude",
         "aegis init",
-        'aegis start "Improve BrandMark accessibility"',
+        'aegis kickoff --bead ga-example --slug improve-brandmark-accessibility --title "Improve BrandMark accessibility"',
         "aegis --source-root /path/to/codex inspect --target-dir .",
         "aegis --source-root /path/to/codex plan-install --target-dir . --primary-agent claude --agent claude",
         "aegis --source-root /path/to/codex status --target-dir .",
@@ -329,7 +329,7 @@ def test_invocation_contract_documents_editable_package_style_commands() -> None
 
     required_snippets = [
         "aegis init",
-        'aegis start "Improve BrandMark accessibility"',
+        'aegis kickoff --bead ga-example --slug improve-brandmark-accessibility --title "Improve BrandMark accessibility"',
         "python3 -m venv .venv-aegis",
         ".venv-aegis/bin/python -m pip install -e /path/to/codex",
         "aegis inspect --target-dir .",

@@ -48,6 +48,7 @@ from _aegis_installer import (
     inspect_project as aegis_inspect_project,
     install as aegis_install,
     kickoff as aegis_kickoff,
+    kickoff_bead as aegis_kickoff_bead,
     list_profiles as aegis_list_profiles,
     log_work as aegis_log_work,
     next_action as aegis_next_action,
@@ -75,8 +76,8 @@ WORK_TRACKING_ARCHIVE_REL = REPO_STRUCTURE.work_tracking_archive_root.relative_t
 WORK_TRACKING_DEFAULT_DOCS = {
     "FINDINGS.md": "# Findings\n\n- {today} — _Pending_ — document new findings here.\n",
     "DECISIONS.md": "# Decisions\n\n- {today} — _Pending_ — capture decisions with context.\n",
-    "IMPLEMENTATION.md": "# Task {task} {title} – Implementation Notes\n\n## Planned Workstreams\n- _Pending_\n",
-    "HANDOFF.md": "# Task {task} {title} – Handoff Summary\n\n## Current State\n- _Pending_\n\n## Next Steps\n- _Pending_\n",
+    "IMPLEMENTATION.md": "# {work_kind} {work_id} {title} – Implementation Notes\n\n## Planned Workstreams\n- _Pending_\n",
+    "HANDOFF.md": "# {work_kind} {work_id} {title} – Handoff Summary\n\n## Current State\n- _Pending_\n\n## Next Steps\n- _Pending_\n",
 }
 
 WORK_TRACKING_PRESETS = {
@@ -120,6 +121,7 @@ TASKMASTER_TASKS_JSON_REL = REPO_STRUCTURE.taskmaster_tasks_json.relative_to(REP
 SESSIONS_CURRENT_REL = REPO_STRUCTURE.current_session_link.relative_to(REPO_ROOT).as_posix()
 PLANS_CURRENT_REL = REPO_STRUCTURE.current_plan_link.relative_to(REPO_ROOT).as_posix()
 SESSION_STATE_REL = REPO_STRUCTURE.session_state_path.relative_to(REPO_ROOT).as_posix()
+BEAD_ID_PATTERN = re.compile(r"^[a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*$")
 BOOTSTRAP_SETUP_REL = ".codex/bootstrap/FOUNDATION-SETUP.md"
 BOOTSTRAP_STRUCTURE_KEYS = tuple(DEFAULT_REPO_STRUCTURE.keys())
 AGENT_COMPATIBILITY_MATRIX = REPO_ROOT / "templates" / "registry" / "agent-compatibility-matrix.json"
@@ -946,7 +948,29 @@ def handle_aegis_certify_release(args: argparse.Namespace) -> None:
 
 def handle_aegis_kickoff(args: argparse.Namespace) -> None:
     try:
-        if args.local:
+        selected_identities = sum(
+            bool(value) for value in (args.task, args.bead, args.local)
+        )
+        if selected_identities > 1:
+            raise AegisError(
+                "aegis kickoff accepts exactly one of --bead, --task, or --local"
+            )
+        if args.bead:
+            missing = [name for name in ("slug", "title") if not getattr(args, name)]
+            if missing:
+                raise AegisError(
+                    f"aegis kickoff --bead requires: {', '.join('--' + name for name in missing)}"
+                )
+            payload = aegis_kickoff_bead(
+                args.target_dir,
+                bead_id=args.bead,
+                slug=args.slug,
+                title=args.title,
+                goals=list(args.goal or []),
+                create_branch=not args.no_create_branch,
+                source_root=REPO_ROOT,
+            )
+        elif args.local:
             if not args.title:
                 raise AegisError("aegis kickoff --local requires --title")
             payload = aegis_start_local_work(
@@ -1191,6 +1215,22 @@ def _validate_branch_for_task(branch: str, task_id: str) -> None:
         )
 
 
+def _validate_bead_id(bead_id: str) -> None:
+    if not BEAD_ID_PATTERN.fullmatch(bead_id):
+        raise TaskError(
+            f"Invalid bead ID '{bead_id}'; expected a lowercase namespace and token such as ga-k9sd"
+        )
+
+
+def _validate_branch_for_bead(branch: str, bead_id: str) -> None:
+    expected = f"codex/{bead_id}"
+    if not branch.startswith(expected):
+        raise TaskError(
+            f"Current branch '{branch}' does not satisfy bead branch policy for {bead_id}; "
+            f"expected prefix '{expected}'"
+        )
+
+
 def _build_session_lines(
     session_id: str,
     now: datetime,
@@ -1422,7 +1462,257 @@ def _build_plan_lines(
     ]
 
 
+def _build_bead_session_lines(
+    session_id: str,
+    now: datetime,
+    bead_id: str,
+    title: str,
+    branch: str,
+    source: str,
+    work_context: str,
+    tracker_relative: str,
+) -> List[str]:
+    date_iso = now.strftime("%Y-%m-%d")
+    time_label = now.strftime("%H:%M %Z")
+    timestamp_full = now.strftime("%Y-%m-%d %H:%M:%S %Z %z")
+    session_value = now.strftime("%Y%m%d")
+    return [
+        "---",
+        f"session_id: {session_id}",
+        f"date: {date_iso}",
+        f"time: {time_label}",
+        f"title: Bead {bead_id} - {title}",
+        "---",
+        "",
+        f"## Session: {date_iso} {time_label}",
+        "**AI Assistant**: Codex",
+        "**Developer**: loucmane",
+        f"**Bead**: `{bead_id}`",
+        f"**Work**: Establish guarded session, plan, and work-tracking state for {title}.",
+        f"**Work Source**: {source}",
+        "",
+        "### Session Validation",
+        f"- [x] Date confirmed (`date '+%Y-%m-%d %H:%M:%S %Z %z'` -> `{timestamp_full}`)",
+        f"- [x] Git branch checked (`{branch}`)",
+        f"- [x] Bead identity recorded (`{bead_id}`)",
+        "",
+        "### Session Goals",
+        f"- [x] Start a fresh `{bead_id}` session on its Codex branch.",
+        f"- [x] Scaffold `{bead_id}` work tracking without Taskmaster mutation.",
+        f"- [x] Repoint `{SESSIONS_CURRENT_REL}` and `{PLANS_CURRENT_REL}` to `{bead_id}`.",
+        f"- [ ] Complete and verify {title}.",
+        "",
+        "### Starting Context",
+        f"Bead `{bead_id}` was kicked off via `python3 scripts/codex-task wizard kickoff --bead {bead_id}`, which created the guarded source-workflow artifacts without allocating or mutating a Taskmaster task.",
+        "",
+        "### 📝 Progress Log",
+        f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:shell:date|E:cmd`date \"+%Y-%m-%d %H:%M:%S %Z %z\"`] Confirmed current timestamp as `{timestamp_full}`",
+        f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:scripts/codex-task|E:{tracker_relative}] Scaffolded the `{bead_id}` ACTIVE work-tracking folder through the bead-native kickoff flow",
+        f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:bd:show|E:bead:{bead_id}] Bound the source-workflow record to primary bead `{bead_id}`",
+        f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:{SESSIONS_CURRENT_REL}|E:{SESSIONS_CURRENT_REL}] Repointed current session, plan, and session state to `{bead_id}`",
+    ]
+
+
+def _build_bead_plan_lines(
+    session_id: str,
+    bead_id: str,
+    title: str,
+    work_context: str,
+    handler_target: str,
+    tracker_relative: str,
+    branch: str,
+) -> List[str]:
+    work_root = tracker_relative.rsplit("/", 1)[0]
+    evidence_items = [work_root, f"bead:{bead_id}", "scripts/codex-task"]
+    if handler_target not in evidence_items:
+        evidence_items.insert(1, handler_target)
+    scope_items = [work_root, handler_target, "scripts/codex-task", "scripts/codex-guard", "tests/"]
+    scope_items = list(dict.fromkeys(scope_items))
+    lines = [
+        "---",
+        f"session_id: {session_id}",
+        f"work_context: {work_context}",
+        f"handler_target: {handler_target}",
+        f"bead_ids: [{bead_id}]",
+        f"branch_policy: {branch}",
+        "evidence_summary:",
+    ]
+    lines.extend(f"  - {item}" for item in evidence_items)
+    lines.extend([
+        "plan_version: v1",
+        "emergency_bypass: false",
+        "---",
+        "",
+        f"# Plan - Bead {bead_id} {title}",
+        "",
+        "## Header",
+        f"- **Session ID (S)**: {session_id}",
+        f"- **Work Context (W)**: {work_context}",
+        f"- **Handler Target (H)**: {handler_target}",
+        f"- **Bead IDs**: {bead_id}",
+        f"- **Branch Policy**: {branch}",
+        f"- **Evidence Summary (E)**: {', '.join(evidence_items)}",
+        "- **Plan Version**: v1",
+        "- **Emergency Bypass**: false",
+        "",
+        "## Plan Table",
+        "| Step ID | Description | Evidence | Status |",
+        "|---|---|---|---|",
+        f"| plan-step-scope | Confirm scope and authority for {title} | {work_root}/FINDINGS.md | pending |",
+        f"| plan-step-implement | Implement {title} through the reviewed helper surface | {handler_target}; {work_root}/IMPLEMENTATION.md | pending |",
+        f"| plan-step-verify | Capture tests, review evidence, and bead readback | {work_root}/HANDOFF.md; {tracker_relative} | pending |",
+        "| plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |",
+        "",
+        "## Scope",
+    ])
+    lines.extend(f"- `{item}`" for item in scope_items)
+    lines.extend([
+        f"- Primary bead `{bead_id}`",
+        "",
+        "## Branch Policy",
+        f"- Working branch: `{branch}`",
+        "",
+        "## Amendments & Versioning",
+        f"- {datetime.now().date().isoformat()} - Bead `{bead_id}` kickoff created through the bead-native source workflow.",
+        "",
+        "## Continuation & Handoff",
+        "- Next owner: loucmane (default)",
+        "- Context reload steps:",
+        f"  1. Read `{SESSIONS_CURRENT_REL}` and this plan.",
+        f"  2. Read primary bead `{bead_id}` through the rig-scoped bead surface.",
+        f"  3. Review `{tracker_relative}` before changing implementation.",
+        "  4. Run `python3 scripts/codex-task plan sync` after tracker updates.",
+        "- Outstanding risks/todos: preserve bead authority and avoid allocating shadow Taskmaster work.",
+        "",
+        "## Conflict & Scope Declaration",
+        "- Related plans: none declared at kickoff.",
+        "- Guard cross-check: bead-native work must preserve plan/tracker/session compliance.",
+        "",
+        "## Evidence Checklist",
+        "- Bead readback and reviewed authority",
+        "- Tracker/session entries for implementation progress",
+        "- Focused tests and guard evidence",
+        "",
+        "## Emergency Bypass Protocol",
+        "- No bypass authorized.",
+    ])
+    return lines
+
+
+def _build_bead_tracker_entries(
+    now: datetime,
+    bead_id: str,
+    work_context: str,
+    tracker_relative: str,
+) -> List[str]:
+    session_value = now.strftime("%Y%m%d")
+    timestamp = now.strftime("%Y-%m-%d %H:%M")
+    return [
+        f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:shell:date|E:cmd`date \"+%Y-%m-%d %H:%M %Z\"`] Confirmed current timestamp as `{now.strftime('%Y-%m-%d %H:%M %Z')}`",
+        f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:scripts/codex-task|E:{tracker_relative}] Scaffolded the `{bead_id}` ACTIVE work-tracking folder through the bead-native kickoff flow",
+        f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:bd:show|E:bead:{bead_id}] Bound this source-workflow record to primary bead `{bead_id}` without Taskmaster mutation",
+        f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:{SESSIONS_CURRENT_REL}|E:{SESSIONS_CURRENT_REL}] Repointed current session, plan, and session state to `{bead_id}`",
+    ]
+
+
+def _handle_bead_wizard_kickoff(args: argparse.Namespace) -> None:
+    now = datetime.now().astimezone()
+    bead_id = args.bead
+    _validate_bead_id(bead_id)
+    title = args.title or _prompt_with_default("Bead title")
+    slug = _slugify(args.slug or _prompt_with_default("Bead slug", _slugify(title)))
+    goals = args.goal or _default_goals_for_title(title)
+    source = args.task_source or f"Primary bead {bead_id}"
+    handler_target = args.handler_target or "scripts/codex-task"
+    work_context = f"{bead_id}-{slug}"
+    branch = subprocess.run(
+        ["git", "branch", "--show-current"],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+        check=False,
+    ).stdout.strip() or f"codex/{bead_id}-{slug}"
+    _validate_branch_for_bead(branch, bead_id)
+
+    handle_work_tracking_scaffold(
+        argparse.Namespace(
+            task=None,
+            bead=bead_id,
+            slug=slug,
+            title=title,
+            goal=goals,
+            force=args.force,
+            dry_run=args.dry_run,
+        )
+    )
+
+    session_id = _next_session_id(now)
+    session_dir = SESSIONS_DIR / now.strftime("%Y") / now.strftime("%m")
+    session_path = session_dir / f"{session_id}-{bead_id}-{slug}.md"
+    plan_path = PLAN_CURRENT.parent / f"{now.strftime('%Y-%m-%d')}-{bead_id}-{slug}.md"
+    tracker_relative = (
+        WORK_TRACKING_BASE
+        / f"{now.strftime('%Y%m%d')}-{bead_id}-{slug}-ACTIVE"
+        / "TRACKER.md"
+    ).relative_to(REPO_ROOT).as_posix()
+
+    session_lines = _build_bead_session_lines(
+        session_id,
+        now,
+        bead_id,
+        title,
+        branch,
+        source,
+        work_context,
+        tracker_relative,
+    )
+    plan_lines = _build_bead_plan_lines(
+        session_id,
+        bead_id,
+        title,
+        work_context,
+        handler_target,
+        tracker_relative,
+        branch,
+    )
+    if args.dry_run:
+        print(f"Would create session {session_path.relative_to(REPO_ROOT)}")
+        print(f"Would create plan {plan_path.relative_to(REPO_ROOT)}")
+        return
+
+    session_dir.mkdir(parents=True, exist_ok=True)
+    _write_file_lines(session_path, session_lines)
+    _write_file_lines(plan_path, plan_lines)
+    _symlink_to(SESSIONS_DIR / "current", session_path)
+    _symlink_to(PLAN_CURRENT, plan_path)
+    _write_session_state(session_path.name, now)
+    tracker_path = REPO_ROOT / tracker_relative
+    tracker_lines = _load_file_lines(tracker_path)
+    for entry in _build_bead_tracker_entries(now, bead_id, work_context, tracker_relative):
+        tracker_lines = _insert_progress_entry(
+            tracker_lines, PROGRESS_HEADING_TRACKER, entry
+        )
+    _write_file_lines(tracker_path, tracker_lines)
+    handle_plan_sync(
+        argparse.Namespace(
+            plan=plan_path.relative_to(REPO_ROOT).as_posix(),
+            tracker=tracker_relative,
+            dry_run=False,
+        )
+    )
+    print(f"Created session: {session_path.relative_to(REPO_ROOT)}")
+    print(f"Created plan: {plan_path.relative_to(REPO_ROOT)}")
+    print(
+        f"Repointed {SESSIONS_CURRENT_REL}, {PLANS_CURRENT_REL}, and {SESSION_STATE_REL}"
+    )
+
+
 def handle_wizard_kickoff(args: argparse.Namespace) -> None:
+    if getattr(args, "bead", None):
+        if getattr(args, "task", None):
+            raise TaskError("Choose exactly one work identity: --task or --bead")
+        _handle_bead_wizard_kickoff(args)
+        return
     now = datetime.now().astimezone()
     task_id = args.task or _prompt_with_default("Task ID")
     task_meta = _load_task_metadata(task_id)
@@ -1444,6 +1734,7 @@ def handle_wizard_kickoff(args: argparse.Namespace) -> None:
 
     scaffold_args = argparse.Namespace(
         task=task_id,
+        bead=None,
         slug=slug,
         title=title,
         goal=goals,
@@ -1949,8 +2240,22 @@ def handle_work_tracking_scaffold(args: argparse.Namespace) -> None:
     date_prefix = now.strftime("%Y%m%d")
     iso_today = now.date().isoformat()
     slug = _slugify(args.slug)
-    task_token = f"task{args.task}"
-    folder_name = f"{date_prefix}-{task_token}-{slug}-ACTIVE"
+    bead_id = getattr(args, "bead", None)
+    task_id = getattr(args, "task", None)
+    if bead_id and task_id:
+        raise TaskError("Choose exactly one work identity: --task or --bead")
+    if bead_id:
+        _validate_bead_id(bead_id)
+        work_id = bead_id
+        work_kind = "Bead"
+        work_token = bead_id
+    elif task_id:
+        work_id = str(task_id)
+        work_kind = "Task"
+        work_token = f"task{task_id}"
+    else:
+        raise TaskError("A work-tracking scaffold requires --task or --bead")
+    folder_name = f"{date_prefix}-{work_token}-{slug}-ACTIVE"
     folder_path = WORK_TRACKING_BASE / folder_name
 
     WORK_TRACKING_BASE.mkdir(parents=True, exist_ok=True)
@@ -1973,7 +2278,7 @@ def handle_work_tracking_scaffold(args: argparse.Namespace) -> None:
     goals = args.goal or ["Document alignment prerequisites", "Implement alignment workflow and guard", "Capture evidence"]
 
     tracker_lines = [
-        f"# Task {args.task} {title} Tracker",
+        f"# {work_kind} {work_id} {title} Tracker",
         "",
         f"**Started**: {iso_today}",
         "**Status**: ACTIVE",
@@ -1997,14 +2302,20 @@ def handle_work_tracking_scaffold(args: argparse.Namespace) -> None:
 
     timestamp = now.strftime("%Y-%m-%d %H:%M %Z")
     changelog_lines = [
-        f"# Task {args.task} {title} – Changelog",
+        f"# {work_kind} {work_id} {title} – Changelog",
         "",
         f"- {timestamp} — Initialized active work-tracking folder.",
     ]
     _write_file_lines(folder_path / "CHANGELOG.md", changelog_lines)
 
     for doc_name, template in WORK_TRACKING_DEFAULT_DOCS.items():
-        content = template.format(today=iso_today, task=args.task, title=title)
+        content = template.format(
+            today=iso_today,
+            task=task_id or "",
+            work_kind=work_kind,
+            work_id=work_id,
+            title=title,
+        )
         (folder_path / doc_name).write_text(content, encoding='utf-8')
 
     print(f"Created active work-tracking folder: {folder_path.relative_to(REPO_ROOT)}")
@@ -2083,6 +2394,35 @@ def handle_work_tracking_archive(args: argparse.Namespace) -> None:
     tracker_path = folder / "TRACKER.md"
     if tracker_path.exists():
         lines = _load_file_lines(tracker_path)
+        folder_token = folder.name.split("-", 1)[1].removesuffix("-ACTIVE")
+        tracker_timestamp = now.strftime("%Y-%m-%d %H:%M")
+        archive_entry = (
+            f"- **{tracker_timestamp}** — [S:{now.strftime('%Y%m%d')}|W:{folder_token}|"
+            f"H:scripts/codex-task:work-tracking-archive|E:"
+            f"{tracker_path.relative_to(REPO_ROOT).as_posix()}] "
+            "Archived the completed work-tracking bundle through the supported helper"
+        )
+        if any(line.strip() == PROGRESS_HEADING_TRACKER for line in lines):
+            lines = _insert_progress_entry(lines, PROGRESS_HEADING_TRACKER, archive_entry)
+        else:
+            lines.extend(["", PROGRESS_HEADING_TRACKER, archive_entry])
+        memory_match = None
+        for line in lines:
+            if "serena/memory" not in line.lower():
+                continue
+            candidate_match = re.search(r"E:(\.serena/memories/[^\]]+)\]", line)
+            if candidate_match is not None:
+                memory_match = candidate_match
+                break
+        if memory_match is not None:
+            memory_entry = (
+                f"- **{tracker_timestamp}** — [S:{now.strftime('%Y%m%d')}|W:{folder_token}|"
+                f"H:serena/memory:archive-reference|E:{memory_match.group(1)}] "
+                "Preserved the existing continuity memory while archiving the completed bundle"
+            )
+            lines = _insert_progress_entry(
+                lines, PROGRESS_HEADING_TRACKER, memory_entry
+            )
         if not _replace_line_with_prefix(lines, "**Status**:", "**Status**: COMPLETED"):
             lines.insert(3, "**Status**: COMPLETED")
         if not _replace_line_with_prefix(lines, "**Last Updated**:", f"**Last Updated**: {iso_today}"):
@@ -2094,6 +2434,22 @@ def handle_work_tracking_archive(args: argparse.Namespace) -> None:
         lines = _load_file_lines(changelog_path)
         lines.append(f"- {timestamp} — Archived active work-tracking folder.")
         _write_file_lines(changelog_path, lines)
+
+    findings_path = folder / "FINDINGS.md"
+    if findings_path.exists():
+        lines = _load_file_lines(findings_path)
+        lines.append(
+            f"- {iso_today} — Archive preconditions were satisfied and the completed bundle was preserved."
+        )
+        _write_file_lines(findings_path, lines)
+
+    decisions_path = folder / "DECISIONS.md"
+    if decisions_path.exists():
+        lines = _load_file_lines(decisions_path)
+        lines.append(
+            f"- {iso_today} — Archived through the supported archive helper; no evidence was deleted."
+        )
+        _write_file_lines(decisions_path, lines)
 
     handoff_path = folder / "HANDOFF.md"
     if handoff_path.exists():
@@ -17719,7 +18075,9 @@ def build_parser() -> argparse.ArgumentParser:
     work_parser = subparsers.add_parser("work-tracking", help="Work-tracking document operations")
     work_sub = work_parser.add_subparsers(dest="subcommand", required=True)
     work_scaffold = work_sub.add_parser("scaffold", help="Create a new active work-tracking folder")
-    work_scaffold.add_argument("--task", required=True, help="Task ID (numeric)")
+    work_identity = work_scaffold.add_mutually_exclusive_group(required=True)
+    work_identity.add_argument("--task", help="Task ID (numeric)")
+    work_identity.add_argument("--bead", help="Primary bead ID (for example, ga-k9sd)")
     work_scaffold.add_argument("--slug", required=True, help="Slug for the folder name")
     work_scaffold.add_argument("--title", help="Human-readable title for tracker")
     work_scaffold.add_argument("--goal", action="append", help="Goal checklist item (repeatable)")
@@ -18715,6 +19073,7 @@ def build_parser() -> argparse.ArgumentParser:
     aegis_kickoff_parser = aegis_sub.add_parser("kickoff", help="Create Aegis-native session, plan, and work-tracking state")
     aegis_kickoff_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
     aegis_kickoff_parser.add_argument("--task", help="Numeric task/work id")
+    aegis_kickoff_parser.add_argument("--bead", help="Gas City bead id, for example ga-zbmk")
     aegis_kickoff_parser.add_argument("--slug", help="Short lowercase work slug")
     aegis_kickoff_parser.add_argument("--title", help="Human-readable work title")
     aegis_kickoff_parser.add_argument("--local", action="store_true", help="Allocate a local Aegis task id from --title")
@@ -18917,8 +19276,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     wizard_parser = subparsers.add_parser("wizard", help="Guided workflow operations")
     wizard_sub = wizard_parser.add_subparsers(dest="subcommand", required=True)
-    wizard_kickoff = wizard_sub.add_parser("kickoff", help="Interactively scaffold a task session, plan, and work-tracking state")
+    wizard_kickoff = wizard_sub.add_parser("kickoff", help="Interactively scaffold a bead or task session, plan, and work-tracking state")
     wizard_kickoff.add_argument("--task", help="Task ID (numeric)")
+    wizard_kickoff.add_argument("--bead", help="Primary bead ID (for example, ga-k9sd)")
     wizard_kickoff.add_argument("--slug", help="Slug for session/plan/work-tracking naming")
     wizard_kickoff.add_argument("--title", help="Human-readable task title")
     wizard_kickoff.add_argument("--goal", action="append", help="Goal checklist item (repeatable)")

@@ -41,6 +41,117 @@ def load_guard_module():
     return module
 
 
+def test_bead_ids_are_first_class_plan_identity() -> None:
+    module = load_guard_module()
+    text = """
+- **Bead IDs**: ga-k9sd, gct-e0q3
+- **Branch Policy**: codex/ga-k9sd-beads-first-guidance
+"""
+
+    assert module.parse_task_ids(text) == []
+    assert module.parse_bead_ids(text) == ["ga-k9sd", "gct-e0q3"]
+
+
+def test_bead_plan_branch_policy_accepts_exact_codex_branch(monkeypatch) -> None:
+    module = load_guard_module()
+    monkeypatch.setattr(
+        module, "get_current_branch", lambda: "codex/ga-k9sd-beads-first-guidance"
+    )
+    details = module.PlanDetails(
+        steps={},
+        scope=[],
+        emergency_bypass=False,
+        task_ids=[],
+        bead_ids=["ga-k9sd"],
+        branch_policy="codex/ga-k9sd-beads-first-guidance",
+        text="",
+    )
+
+    assert module.validate_branch_policy(details) == []
+
+
+def test_compute_changed_files_does_not_descend_into_untracked_nested_repo(
+    monkeypatch, tmp_path
+) -> None:
+    module = load_guard_module()
+    repo = tmp_path
+    nested = repo / ".worktrees" / "foreign-repo"
+    nested.mkdir(parents=True)
+    (nested / ".git").write_text("gitdir: /tmp/foreign.git\n", encoding="utf-8")
+    (nested / "__pycache__").mkdir()
+    (nested / "__pycache__" / "foreign.pyc").write_bytes(b"runtime")
+    intended = repo / "docs" / "new-evidence"
+    intended.mkdir(parents=True)
+    evidence = intended / "report.md"
+    evidence.write_text("evidence\n", encoding="utf-8")
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+
+    changed = module.compute_changed_files(
+        [("??", ".worktrees/"), ("??", "docs/new-evidence/")],
+        include_untracked=True,
+    )
+
+    assert evidence in changed
+    assert not any(path.suffix == ".pyc" for path in changed)
+
+
+def test_session_date_guard_allows_only_supported_archive_reference_rewrite(
+    monkeypatch, tmp_path
+) -> None:
+    module = load_guard_module()
+    repo = tmp_path
+    session = repo / "sessions" / "2026" / "07" / "2026-07-17-001-task288.md"
+    session.parent.mkdir(parents=True)
+    active = "docs/ai/work-tracking/active/20260717-task288-parser-ACTIVE/TRACKER.md"
+    archived = "docs/ai/work-tracking/archive/20260717-task288-parser-COMPLETED/TRACKER.md"
+    session.write_text(f"Evidence: {archived}\n", encoding="utf-8")
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "TODAY_ISO", "2026-08-26")
+    monkeypatch.setattr(module, "CURRENT_SESSION_PATH", None)
+    monkeypatch.setattr(module, "_find_latest_prior_session", lambda: None)
+
+    def fake_run(command, **_kwargs):
+        assert command[:2] == ["git", "show"]
+        return SimpleNamespace(returncode=0, stdout=f"Evidence: {active}\n", stderr="")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    assert module.validate_session_edit_dates([session]) == []
+
+    session.write_text(f"Evidence: {archived}\nUnrelated edit\n", encoding="utf-8")
+    issues = module.validate_session_edit_dates([session])
+    assert any("expected 2026-08-26" in issue.message for issue in issues)
+
+
+def test_active_tracker_override_selects_exact_folder(monkeypatch, tmp_path) -> None:
+    module = load_guard_module()
+    repo = tmp_path
+    active_root = repo / "docs" / "ai" / "work-tracking" / "active"
+    first = active_root / "20260826-ga-first-work-ACTIVE"
+    selected = active_root / "20260826-ga-k9sd-beads-first-ACTIVE"
+    first.mkdir(parents=True)
+    selected.mkdir(parents=True)
+    (first / "TRACKER.md").write_text("first\n", encoding="utf-8")
+    (selected / "TRACKER.md").write_text("selected\n", encoding="utf-8")
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "WORK_TRACKING_PREFIX", active_root)
+    monkeypatch.setenv("CODEX_WORK_TRACKING_FOLDER", selected.name)
+
+    assert module.get_active_tracker_path() == selected / "TRACKER.md"
+
+
+def test_active_tracker_override_rejects_path_traversal(monkeypatch, tmp_path) -> None:
+    module = load_guard_module()
+    active_root = tmp_path / "docs" / "ai" / "work-tracking" / "active"
+    active_root.mkdir(parents=True)
+    monkeypatch.setattr(module, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(module, "WORK_TRACKING_PREFIX", active_root)
+    monkeypatch.setenv("CODEX_WORK_TRACKING_FOLDER", "../outside-ACTIVE")
+
+    with pytest.raises(SystemExit, match="must be one ACTIVE folder name"):
+        module.get_active_tracker_path()
+
+
 def test_merge_parent_inherited_entries_are_not_current_work(monkeypatch) -> None:
     module = load_guard_module()
     entries = [

@@ -119,6 +119,7 @@ def test_whole_tree_snapshot_tolerates_only_declared_git_discovery_churn(tmp_pat
     target = tmp_path / "fixture"
     (target / ".git" / "refs" / "heads").mkdir(parents=True)
     (target / ".git" / "logs").mkdir(parents=True)
+    (target / ".git" / "objects").mkdir(parents=True)
     (target / ".git" / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
     (target / ".git" / "refs" / "heads" / "main").write_text("0" * 40 + "\n", encoding="utf-8")
     (target / ".git" / "packed-refs").write_text("# pack-refs\n", encoding="utf-8")
@@ -126,6 +127,9 @@ def test_whole_tree_snapshot_tolerates_only_declared_git_discovery_churn(tmp_pat
 
     (target / ".git" / "FETCH_HEAD").write_text("fetch metadata\n", encoding="utf-8")
     (target / ".git" / "logs" / "HEAD").write_text("log metadata\n", encoding="utf-8")
+    (target / ".git" / "objects" / "maintenance.lock").write_text(
+        "transient git maintenance lock\n", encoding="utf-8"
+    )
 
     before.assert_matches(snapshot_whole_tree(target))
     before_refs = snapshot_whole_tree(target)

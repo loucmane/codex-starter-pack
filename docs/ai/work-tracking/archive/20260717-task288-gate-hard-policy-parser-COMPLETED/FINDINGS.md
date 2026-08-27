@@ -14,3 +14,4 @@
   a PR-scoped numeric identifier without creating or updating Taskmaster state.
 - 2026-07-17 — **Replacement PR green** — Draft PR #289 passed Python 3.11 and 3.12 in
   6m49s/6m59s, all three guard runs, Aegis witness, and evidence-gated delivery.
+- 2026-08-26 — Archive preconditions were satisfied: PR #289 was merged, the tracker was complete, and the bundle was preserved intact.

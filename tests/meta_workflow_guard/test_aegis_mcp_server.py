@@ -333,6 +333,7 @@ def test_server_registers_exact_v1_tool_set(tmp_path: Path) -> None:
         "aegis.handoff_repair",
         "aegis.start",
         "aegis.kickoff",
+        "aegis.bead_kickoff",
         "aegis.observe_start",
         "aegis.observe_stop",
         "aegis.runtime_status",
@@ -380,6 +381,7 @@ def test_workflow_tools_describe_required_next_actions(tmp_path: Path) -> None:
     init_description = tool_by_name(server, "aegis.init").description or ""
     start_description = tool_by_name(server, "aegis.start").description or ""
     kickoff_description = tool_by_name(server, "aegis.kickoff").description or ""
+    bead_kickoff_description = tool_by_name(server, "aegis.bead_kickoff").description or ""
     observe_start_description = tool_by_name(server, "aegis.observe_start").description or ""
     observe_stop_description = tool_by_name(server, "aegis.observe_stop").description or ""
     log_description = tool_by_name(server, "aegis.log").description or ""
@@ -398,6 +400,8 @@ def test_workflow_tools_describe_required_next_actions(tmp_path: Path) -> None:
     assert "Public project setup" in init_description
     assert "Public local-task kickoff" in start_description
     assert "plan-step-scope before source edits" in kickoff_description
+    assert "Gas City bead" in bead_kickoff_description
+    assert "plan-step-scope before source edits" in bead_kickoff_description
     assert "Start observation mode" in observe_start_description
     assert "Stop observation mode" in observe_stop_description
     assert "pending_event_id=current" in log_description
@@ -594,6 +598,16 @@ def test_kickoff_schema_requires_explicit_apply_and_task_inputs(tmp_path: Path) 
     schema = tool_by_name(server, "aegis.kickoff").inputSchema
 
     assert set(schema["required"]) == {"target_dir", "task", "slug", "title"}
+    assert schema["properties"]["apply"]["default"] is False
+    assert schema["properties"]["create_branch"]["default"] is True
+
+
+def test_bead_kickoff_schema_requires_explicit_bead_inputs(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    schema = tool_by_name(server, "aegis.bead_kickoff").inputSchema
+
+    assert set(schema["required"]) == {"target_dir", "bead", "slug", "title"}
     assert schema["properties"]["apply"]["default"] is False
     assert schema["properties"]["create_branch"]["default"] is True
 
@@ -1108,6 +1122,70 @@ def test_kickoff_requires_apply_true_before_core_mutation(tmp_path: Path) -> Non
     assert payload["error"]["status"] == "refused"
     assert not (target / ".aegis" / "state" / "current-work.json").exists()
     assert not (target / ".aegis").exists()
+
+
+def test_bead_kickoff_requires_apply_true_before_core_mutation(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    target = tmp_path / "target"
+    target.mkdir()
+
+    payload = call_tool_payload(
+        server,
+        "aegis.bead_kickoff",
+        {
+            "target_dir": target.as_posix(),
+            "bead": "ga-zbmk",
+            "slug": "aegis-beads-obsidian",
+            "title": "Aegis Beads Obsidian",
+            "apply": False,
+        },
+    )
+
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "apply_required"
+    assert payload["error"]["status"] == "refused"
+    assert not (target / ".aegis").exists()
+
+
+def test_bead_kickoff_creates_native_current_work(tmp_path: Path) -> None:
+    target = tmp_path / "target"
+    target.mkdir()
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=target)
+    server = create_server(config)
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    simulate_claude_reload(target)
+
+    payload = call_tool_payload(
+        server,
+        "aegis.bead_kickoff",
+        {
+            "target_dir": target.as_posix(),
+            "bead": "ga-zbmk",
+            "slug": "aegis-beads-obsidian",
+            "title": "Aegis Beads Obsidian",
+            "apply": True,
+        },
+    )
+
+    assert payload["ok"] is True
+    assert payload["read_only"] is False
+    assert payload["result"]["task"]["id"] == "ga-zbmk"
+    assert payload["result"]["branch"]["current"] == "codex/ga-zbmk-aegis-beads-obsidian"
 
 
 def test_log_requires_apply_true_before_core_mutation(tmp_path: Path) -> None:
@@ -1951,12 +2029,12 @@ def test_prompts_preserve_workflow_and_evidence_invariants(tmp_path: Path) -> No
     assert "aegis.status" in start_task
     assert "aegis.next" in start_task
     assert "restart_claude_before_mutation" in start_task
-    assert "task-master next" in start_task
-    assert "task-master show <id>" in start_task
+    assert "aegis.bead_kickoff apply=true" in start_task
+    assert "authoritative bead" in start_task
+    assert "Taskmaster as read-only historical compatibility" in start_task
     assert "aegis.start apply=true" in start_task
     assert "aegis.kickoff" in start_task
-    assert "Taskmaster numeric task id" in start_task
-    assert "explicit external numeric task id" in start_task
+    assert "historical numeric-task compatibility" in start_task
     assert "plan_step=auto" in start_task
 
     implement_task = get_prompt_text(server, "aegis.implement_task")

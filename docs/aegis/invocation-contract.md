@@ -10,10 +10,16 @@ The stable public adoption commands are:
 aegis mcp register claude
 aegis init
 # restart Claude if init reports client_reload.required=true
-aegis start "Improve BrandMark accessibility"
+aegis kickoff --bead ga-example --slug improve-brandmark-accessibility --title "Improve BrandMark accessibility"
 ```
 
-`aegis init` is the task-master-init style setup command. `aegis start "<title>"` is the local-task path for projects without an external task id. In projects that already use Taskmaster, the public path is `task-master next`, `task-master show <id>`, then `aegis kickoff --task <id> --slug <slug> --title "<title>"` so Aegis uses Taskmaster's numeric task id instead of allocating a local one. The lower-level `inspect`, `plan-install`, and `install --apply` commands remain supported for advanced use and debugging.
+`aegis init` installs the workflow runtime. In a beads-first project, inspect or create the
+authoritative Gas City bead first, then use `aegis kickoff --bead ...`; Aegis refuses
+`aegis start` there so it cannot allocate a parallel local task. `aegis start "<title>"`
+remains the standalone path for projects with no external work ledger. Numeric
+`aegis kickoff --task ...` remains a historical compatibility path for repositories that
+explicitly retain Taskmaster authority. The lower-level `inspect`, `plan-install`, and
+`install --apply` commands remain supported for advanced use and debugging.
 
 The private GitHub adoption commands are the pre-publication/private counterpart to the public package path:
 
@@ -39,7 +45,8 @@ Task 112 deliberately separates two modes:
 - **Package-style mode**: use the `aegis` and `aegis-mcp-server` console commands. This is the canonical portable surface.
 - **Development checkout mode**: use a local checkout only to provide package assets while keeping the same command semantics.
 
-Taskmaster and Serena are optional integrations. The installed runtime must still work without either one by using Aegis-native workflow state.
+Gas City beads are the preferred external work authority. Taskmaster and Serena are optional
+compatibility integrations; the installed runtime must work without either one.
 
 ## Release Package Identity
 
@@ -96,14 +103,27 @@ process-success because native required checks own CI greenness, but it remains
 semantically distinct from a fully derivable local pass. Git-derivable failures always
 take precedence.
 
-Start tracked local work without requiring Taskmaster or Serena:
+Start tracked work from an authoritative Gas City bead:
+
+```bash
+aegis kickoff --target-dir . --bead ga-example --slug first-task --title "First Task"
+bash .claude/scripts/readiness.sh --quick
+```
+
+This creates `codex/ga-example-first-task`, records `mode=bead` and a mutable
+`gas-city-bead` authority in current work, and renders bead-native session, plan, and
+work-tracking surfaces. It does not create or mutate Taskmaster state.
+
+For a standalone project with no external work ledger, start local work with:
 
 ```bash
 aegis start --target-dir . "First Task"
 bash .claude/scripts/readiness.sh --quick
 ```
 
-`aegis start` allocates the next local Aegis task id, derives the slug, creates the task branch, and renders `.aegis/state/current-work.json`, `sessions/current`, `plans/current`, and `docs/ai/work-tracking/active/<date>-task<id>-<slug>-ACTIVE/`. The active folder is not a placeholder: it includes `TRACKER.md`, `FINDINGS.md`, `DECISIONS.md`, `HANDOFF.md`, `IMPLEMENTATION.md`, `CHANGELOG.md`, `designs/`, and `reports/<slug>/` rendered from packaged workflow templates. The templates are installed for inspection under `.aegis/templates/workflow/`. Use `aegis kickoff --task ...` only when the project or user provides an explicit external numeric task id.
+`aegis start` allocates the next local Aegis task id only when the project declares no
+external work authority. The active scaffold is identical in shape to bead mode. Use
+`aegis kickoff --task ...` only for an explicitly historical numeric-task compatibility flow.
 
 Start tracked work from Taskmaster when a numeric task already exists:
 
@@ -133,7 +153,13 @@ If the global command is not on PATH, use the installed project shim:
 ./.aegis/bin/aegis log --target-dir . --pending-id current --note "Recorded task result evidence" --plan-step plan-step-implement --plan-status completed
 ```
 
-`aegis log` appends a `[S:<date>|W:task<id>-<slug>|H:<handler>|E:<evidence>]` line to `sessions/current` and the active `TRACKER.md`; it clears the matching pending event; and it updates current plan evidence only when `--plan-step` is supplied. Omit `--surface` for event-aware canonical defaults: scope logs update `FINDINGS.md`, `DECISIONS.md`, and `HANDOFF.md`; implementation logs update `IMPLEMENTATION.md`, `CHANGELOG.md`, and `HANDOFF.md`; verification logs update `IMPLEMENTATION.md`, `CHANGELOG.md`, and `HANDOFF.md`. Use repeated `--surface <name>` only to override those defaults for a targeted repair. Use `--pending-id <id>` or `--pending-id current` when the hook has already recorded the handler/evidence pair in `.aegis/state/pending-tracking.json`; use explicit `--handler` and `--evidence` when logging evidence that did not come from a pending event. This is the portable Aegis equivalent of this repository's S:W:H:E progress discipline; it does not require Taskmaster or Serena.
+`aegis log` appends a `[S:<session>|W:<work-id>|H:<handler>|E:<evidence>]` line to
+`sessions/current` and the active `TRACKER.md`; in bead mode, `W` is the exact bead id.
+It clears the matching pending event and updates current plan evidence only when
+`--plan-step` is supplied. Omit `--surface` for event-aware canonical defaults: scope logs
+update `FINDINGS.md`, `DECISIONS.md`, and `HANDOFF.md`; implementation and verification
+logs update `IMPLEMENTATION.md`, `CHANGELOG.md`, and `HANDOFF.md`. This is the portable
+S:W:H:E discipline and does not depend on Taskmaster or Serena.
 
 Finish task work with the closeout gate:
 

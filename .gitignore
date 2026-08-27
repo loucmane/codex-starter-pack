@@ -69,3 +69,14 @@ node_modules/
 
 # Personal Claude Code config — holds local API keys, never track (TM 222)
 .claude.json
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
+
+# Owner-local Aegis / Gas City runtime projections
+/.aegis/
+/.agents/
+/.gc/

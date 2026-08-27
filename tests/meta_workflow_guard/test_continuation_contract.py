@@ -28,7 +28,8 @@ def test_contract_md_carries_full_continuation_contract() -> None:
     assert "## Continuation Contract" in text
     assert "advance the current Aegis workflow by exactly ONE safe step" in text
     assert "Run `aegis next`" in text and "next_safe_action" in text
-    assert "Taskmaster is the task-selection authority" in text
+    assert "Follow the project-declared external work authority" in text
+    assert "never allocate parallel local or Taskmaster work" in text
 
 
 def test_agents_claude_and_codex_surfaces_carry_the_summary() -> None:

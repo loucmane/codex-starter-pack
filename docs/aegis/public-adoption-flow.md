@@ -7,18 +7,25 @@ aegis mcp register claude
 cd /path/to/project
 aegis init
 # restart Claude if init reports client_reload.required=true
-aegis start "Improve BrandMark accessibility"
+aegis kickoff --bead ga-example --slug improve-brandmark-accessibility --title "Improve BrandMark accessibility"
 ```
 
-For projects that already use Taskmaster, replace the local `aegis start` step with Taskmaster discovery and explicit-id kickoff:
+The project work authority decides the kickoff form:
 
 ```bash
-task-master next
-task-master show <id>
+# Gas City beads (preferred external authority)
+aegis kickoff --bead ga-example --slug <slug> --title "<title>"
+
+# No external work ledger
+aegis start "<title>"
+
+# Historical numeric compatibility only
 aegis kickoff --task <id> --slug <slug> --title "<title>"
 ```
 
-If the client has Taskmaster MCP available, the read-only discovery equivalents (`help`, `get_tasks`, `next_task`, `get_task`) may be used before kickoff even while readiness is `BLOCKED`. Taskmaster MCP mutations and unknown Taskmaster MCP tools remain blocked until Aegis kickoff makes readiness `READY`.
+Beads-first projects refuse `aegis start`, never allocate a duplicate local or Taskmaster task,
+and do not register Taskmaster MCP. Historical Taskmaster repositories may retain their
+numeric compatibility flow until separately migrated.
 
 ## Command Roles
 
@@ -26,25 +33,28 @@ If the client has Taskmaster MCP available, the read-only discovery equivalents 
 |---|---|
 | `aegis mcp register claude` | Registers the Aegis MCP server with Claude using the native `claude mcp add` path. Defaults to package mode, user scope, project-local uv cache/tool dirs, and `--default-target-dir .`. |
 | `aegis init` | Installs the Aegis runtime into the current project with conservative defaults: generic profile, Claude primary adapter, Claude hooks, managed `CLAUDE.md` merge, and standard verification. |
+| `aegis kickoff --bead <id> ...` | Starts current work from an authoritative Gas City bead and renders bead-native branch, session, plan, tracker, and current-work state. |
 | `aegis start "<task title>"` | Allocates a local Aegis task id, derives a slug, creates the task branch, session, plan, work-tracking folder, current-work state, and readiness evidence. |
-| `aegis kickoff --task <id> ...` | Starts Aegis current work from an external numeric task id such as Taskmaster. It creates the same branch, session, plan, and work-tracking scaffold without allocating a local Aegis task. |
+| `aegis kickoff --task <id> ...` | Historical numeric-task compatibility for a project that explicitly retains that authority. |
 
 ## Normal Claude Use
 
 After `aegis init`, a fresh Claude session should not need a large workflow prompt. The installed `CLAUDE.md`, `.aegis/contract.md`, and hooks tell Claude to:
 
 1. Run readiness/status/next.
-2. If no current work exists and `.taskmaster/` has available numeric work, run `task-master next` and `task-master show <id>` or the read-only Taskmaster MCP discovery equivalents, then run `aegis kickoff --task <id> --slug <slug> --title "<title>"`.
-3. If no Taskmaster numeric task is available, infer a short task title from the user request and run `aegis start "<task title>"`.
+2. Follow the declared work authority. In a beads-first project, inspect the exact bead and run `aegis kickoff --bead <id> ...`.
+3. Use `aegis start` only when no external ledger is declared; use numeric kickoff only for an explicitly historical compatibility project.
 4. Log scope before source edits.
 5. Use native tools for source reads, edits, tests, and git inspection.
 6. Let hooks create pending S:W:H:E tracking after mutations.
 7. Clear pending tracking with `aegis log --pending-id current --plan-step auto --plan-status completed`.
 8. Run task verification, strict Aegis verification, closeout preflight, final closeout, and one read-only `aegis doctor` health check before reporting completion.
-9. If Taskmaster is in use, mark the Taskmaster task done only after Aegis closeout and doctor pass.
-10. Refresh Taskmaster generated task files after marking done. Use the project helper when present; otherwise run broad `task-master generate` deliberately and report it.
+9. Close or update the authoritative external work item only after Aegis closeout and doctor pass.
+10. Build and gate the managed Obsidian projection at readiness, closeout, or publication boundaries when the project enables it.
 
-For MCP clients, the standalone public path is `aegis.init apply=true` followed by a Claude restart when `client_reload.required=true`, then `aegis.start apply=true` or Taskmaster-backed `aegis.kickoff apply=true`. In Taskmaster projects, `aegis.next` should recommend `task-master next/show` or Taskmaster MCP equivalents plus `aegis.kickoff apply=true` with the Taskmaster numeric id. `aegis.plan_install` and `aegis.install` remain advanced/debug equivalents once `aegis.init` exists.
+For MCP clients, the public path is `aegis.init apply=true`, a client restart when required,
+then `aegis.bead_kickoff apply=true` for beads-first work. `aegis.start` and legacy
+`aegis.kickoff` remain available only for their declared authority modes.
 
 Claude Code loads `.claude/settings.json` hooks at session start. If `aegis init` or `aegis install` creates or changes `.claude/settings.json` or `.claude/scripts/*`, Aegis writes `.aegis/state/client-reload-required.json`; while that marker exists, `aegis.start` and `aegis.kickoff` are refused. The agent must stop before source edits and ask the user to restart Claude in the project. After restart, the installed `PreToolUse` hook clears the marker, and `aegis next` resumes the normal workflow with active hooks.
 
@@ -75,9 +85,10 @@ The flow is done only when behavior proves it:
 - Existing `CLAUDE.md` content is preserved under the Aegis managed block.
 - No `.bak`, `.orig`, or backup sidecar files are created.
 - Projects without Taskmaster or Serena can start local work with `aegis start`.
-- Projects with an available Taskmaster numeric task use `task-master next/show` and explicit `aegis kickoff`; `aegis start` must not allocate a competing local task.
+- Beads-first projects use `aegis kickoff --bead`; `aegis start` must not allocate a competing local task.
+- Historical numeric-task repositories may retain explicit `aegis kickoff --task` until migration.
 - Claude can receive a normal request like `Improve BrandMark accessibility` and follow installed Aegis files/hooks without a large checklist prompt.
 - First-time Claude installs report the required restart before source edits, and post-restart sessions proceed through `aegis next`.
 - Pending tracking, strict verification, closeout, and handoff pass mechanically.
-- Taskmaster completion happens after Aegis closeout and read-only doctor, not before.
+- External work-item completion happens after Aegis closeout and read-only doctor, not before.
 - Doctor and repair can diagnose and recover safe mechanical state drift without overwriting project files or clearing unlogged work.

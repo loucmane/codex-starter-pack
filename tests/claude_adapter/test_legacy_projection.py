@@ -203,6 +203,24 @@ def test_projection_renders_normalized_witness_and_delivery_boundaries() -> None
     assert "Delivery state recorded: pr_draft for PR #6 at def5678" in rendered
 
 
+def test_projection_treats_bead_truth_as_first_class_work_evidence() -> None:
+    events = [
+        event(
+            "b1",
+            "bead_truth",
+            branch="codex/ga-zbmk-aegis-beads-obsidian",
+            extra={"bead_id": "ga-zbmk", "work_id": "ga-zbmk", "status": "in_progress"},
+        )
+    ]
+
+    projected = legacy_projection.projectable_events(events)
+    rendered = legacy_projection.render_section(projected)
+
+    assert [item["event_id"] for item in projected] == ["b1"]
+    assert "[S:sess-233 W:ga-zbmk H:work-truth E:ledger:b1]" in rendered
+    assert "Work truth recorded for ga-zbmk: in_progress." in rendered
+
+
 def test_cli_project_sweh_reads_ledger_and_updates_output(tmp_path: Path) -> None:
     repo = make_git_repo(tmp_path / "repo")
     state_home = tmp_path / "state"

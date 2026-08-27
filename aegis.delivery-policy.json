@@ -6,13 +6,13 @@
   "repository": {
     "full_name": "loucmane/codex-starter-pack",
     "default_branch": "main",
-    "task_branch_pattern": "^feat/task-[0-9]+-[a-z0-9-]+$"
+    "task_branch_pattern": "^(?:codex/[a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*-[a-z0-9-]+|feat/task-[0-9]+-[a-z0-9-]+)$"
   },
   "authority": {
     "status": "active",
     "issued_by": "project-owner",
-    "source": "Taskmaster Task 246 owner authorization",
-    "issued_at": "2026-07-12T11:00:00Z",
+    "source": "Gas City bead ga-zbmk owner authorization for the beads-first Aegis 2.0 foundation",
+    "issued_at": "2026-08-27T12:00:00Z",
     "expires_on": [
       "explicit-owner-revocation",
       "repository-identity-change",
@@ -20,7 +20,7 @@
     ]
   },
   "routine": {
-    "allow_taskmaster_transitions": true,
+    "allow_taskmaster_transitions": false,
     "allow_safe_repairs": true,
     "allow_verified_closeout": true,
     "allow_commit_push_pr": true,

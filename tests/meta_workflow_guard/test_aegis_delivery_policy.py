@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.machinery
 import importlib.util
 import json
+import re
 import subprocess
 import sys
 import tomllib
@@ -111,7 +112,15 @@ def test_source_policy_and_packaged_assets_are_valid_and_identical() -> None:
     policy = policy_module.validate_policy(_policy())
 
     assert policy["mode"] == "evidence-gated"
-    assert all(policy["routine"].values())
+    assert policy["routine"]["allow_taskmaster_transitions"] is False
+    assert all(
+        value
+        for key, value in policy["routine"].items()
+        if key != "allow_taskmaster_transitions"
+    )
+    branch_pattern = policy["repository"]["task_branch_pattern"]
+    assert re.fullmatch(branch_pattern, "codex/ga-zbmk-aegis-beads-obsidian")
+    assert re.fullmatch(branch_pattern, "feat/task-247-routine-change")
     assert SCRIPT_PATH.read_bytes() == PACKAGED_SCRIPT_PATH.read_bytes()
     assert SCHEMA_PATH.read_bytes() == PACKAGED_SCHEMA_PATH.read_bytes()
 

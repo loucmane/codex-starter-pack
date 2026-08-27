@@ -24,7 +24,7 @@ At orientation, inspect enforcement mode once:
 
 ## Always
 - Use native agent tools for source edits, tests, and Git inspection; use Aegis CLI/MCP only for workflow state.
-- When Taskmaster is configured, use `task-master next` and `task-master show <id>` for task selection.
+- Follow the project-declared external work authority. Beads-first projects use the Gas City bead surface and `aegis kickoff --bead`; Taskmaster is historical compatibility unless the project explicitly declares numeric-task authority.
 - Never write `.aegis/` directly.
 - If install/update reports a required client reload, restart that client before mutations.
 - Missing hooks or unsupported clients are degraded coverage, not successful capture.
@@ -114,6 +114,12 @@ Continuation contract: resolve continue / go / next from live `aegis next`, perf
 
 ---
 
-## 🤝 TASK MASTER INTEGRATION
-**Import Task Master’s development workflow commands and guidelines** (works with Codex when the MCP server is enabled). Treat the contents as part of this engine.
-@./.taskmaster/CLAUDE.md
+## 🤝 GAS CITY BEADS INTEGRATION
+
+`AGENTS.md` is the authoritative beads-first operating guide for new work. Use supported,
+explicitly rig-scoped `gc bd` commands and keep routing/lifecycle changes independently gated.
+Discover work with the fully scoped `gc bd ready` command from `AGENTS.md`, then inspect the
+selected bead before kickoff; do not create a duplicate Taskmaster task for bead-backed work.
+
+`.taskmaster/` remains a read-only historical compatibility surface while the Claude/Aegis
+strict adapter is migrated. Do not create or update Taskmaster tasks for new bead-backed work.

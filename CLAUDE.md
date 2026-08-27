@@ -2,6 +2,17 @@
 
 This repo uses Claude as a gated participant in the portable Codex foundation. The adapter is a runtime system, not a reminder document: readiness, PreToolUse/PostToolUse/Stop hooks, tests, and work-tracking evidence define whether Claude may mutate project state.
 
+## Beads Migration Status
+
+Gas City beads are authoritative for all new work; see `AGENTS.md`. Do not create or mutate a
+Taskmaster task to duplicate a bead or merely to satisfy this adapter.
+
+The strict Claude/Aegis readiness implementation supports bead-native work in this uninstalled
+source checkout and retains Taskmaster as a compatibility path for historical numeric tasks.
+Bead-native readiness requires a `codex/<bead-id>-...` branch, matching `Bead IDs` and branch
+policy in the current plan, a matching current session, and exactly one matching ACTIVE tracker.
+It does not read or mutate the historical Taskmaster graph.
+
 ## First Rule
 Before Claude performs any persistent mutation, readiness must be `READY`.
 
@@ -9,24 +20,24 @@ Before Claude performs any persistent mutation, readiness must be `READY`.
 bash .claude/scripts/readiness.sh
 ```
 
-`BLOCKED` means no file edits, Bash mutations, Taskmaster mutations, memory writes, Git writes, GitHub writes, or MCP mutations. Fix the workflow state first by using the kickoff/session/plan/work-tracking flow. Read-only inspection is allowed. For Taskmaster MCP, only discovery tools (`help`, `get_tasks`, `next_task`, `get_task`) count as read-only before kickoff; Taskmaster MCP mutations and unknown Taskmaster MCP tools remain blocked.
+`BLOCKED` means no file edits, Bash mutations, work-ledger mutations, memory writes, Git writes, GitHub writes, or MCP mutations. Fix the workflow state first by using the kickoff/session/plan/work-tracking flow. Read-only inspection is allowed. Taskmaster MCP is intentionally not registered in this beads-first repository; historical Taskmaster files may be inspected read-only only for legacy evidence.
 
 The PreToolUse dispatcher in `.claude/scripts/pretooluse-gate.sh` enforces this for hookable Claude file tools and tested Bash mutation patterns. After a successful mutation, `.claude/scripts/posttooluse-tracking.sh` records pending S:W:H:E tracking and `.claude/scripts/tracking-stop-gate.sh` blocks session stop until `aegis log` has updated the session, tracker, implementation log, changelog, handoff, and plan evidence.
 
 ## Required Workflow State
 Claude mutations require all of these to align:
-- current branch contains the active Taskmaster task ID;
-- Taskmaster parent task is `in-progress`;
-- `sessions/current` points to the active session for the task;
-- `plans/current` points to the active plan for the task;
-- exactly one ACTIVE work-tracking folder exists for the task;
+- current branch contains the active bead ID or compatibility Taskmaster task ID;
+- bead-native source work has matching `Bead IDs` and branch policy, while compatibility task work has an in-progress Taskmaster/Aegis authority;
+- `sessions/current` points to the active session for that work;
+- `plans/current` points to the active plan for that work;
+- exactly one ACTIVE work-tracking folder exists for that work;
 - `TRACKER.md` and the active plan agree on plan-step status;
 - `bash .claude/scripts/readiness.sh --quick` exits `0`.
 
 ## Operating Loop
 1. Run readiness and stop on `BLOCKED`.
 2. Read `sessions/current`, `plans/current`, and the active `HANDOFF.md`.
-3. Review the Taskmaster task with `task-master show <id>` or the read-only Taskmaster MCP equivalents (`next_task`, `get_task`) when MCP is available.
+3. Review the authoritative Gas City bead for new work; consult Taskmaster only for an explicitly historical numeric-task compatibility flow.
 4. Work one subtask at a time.
 5. For every meaningful step, run `aegis log` or `./.aegis/bin/aegis log` before attempting the next mutation. The log must update the active session, tracker, implementation log, changelog, handoff, and current plan evidence; add `--surface findings` or `--surface decisions` when the mutation captured one of those records.
 6. Capture command evidence under the active work-tracking `reports/` folder.
@@ -53,7 +64,7 @@ The PreToolUse gate blocks direct file edits and tested Bash bypasses against th
 This workflow is not text-only. Treat the same state discipline as mandatory for:
 - Claude file tools;
 - Bash commands;
-- Taskmaster CLI and MCP;
+- Gas City bead CLI and Aegis MCP;
 - Serena and Claude memory stores;
 - Git and GitHub operations;
 - sub-agents;
@@ -74,11 +85,11 @@ Core runtime commands:
 - `/work-tracking-update` -> `python3 scripts/codex-task work-tracking update`
 - `/scanner-run` -> `python3 scripts/codex-task scanner run`
 
-Taskmaster commands under `.claude/commands/tm/` remain available for Taskmaster-specific flows.
+Historical Taskmaster command files under `.claude/commands/tm/` are archival compatibility references, not an active mutable workflow surface.
 
 ## Supporting References
 - Runtime contract: `.claude/engine/runtime-contract.md`
 - Readiness spec: `.claude/engine/claude-readiness.md`
 - Tool mapping: `.claude/engine/tool-mapping.md`
 - Agent catalog: `.claude/AGENTS.md`
-- Taskmaster integration guide: `@./.taskmaster/CLAUDE.md`
+- Historical Taskmaster integration reference (read-only): `@./.taskmaster/CLAUDE.md`

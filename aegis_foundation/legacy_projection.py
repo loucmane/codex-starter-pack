@@ -24,10 +24,12 @@ DEFAULT_EVENT_TYPES = {
     "scope",
     "session_begin",
     "session_end",
+    "bead_truth",
     "task_truth",
     "tool_failure",
     "verification",
     "witness",
+    "work_truth",
 }
 
 ACTIVE_WORK_TRACKING_FILES = (
@@ -93,6 +95,8 @@ def _event_handler(event: Mapping[str, Any]) -> str:
         return "delivery"
     if event_type == "task_truth":
         return "task-truth"
+    if event_type in {"bead_truth", "work_truth"}:
+        return "work-truth"
     if event_type == "scope":
         return "scope"
     if event_type in {"session_begin", "session_end"}:
@@ -153,8 +157,20 @@ def _event_summary(event: Mapping[str, Any]) -> str:
         task = _short(extra.get("task_id") or extra.get("task"), default="task truth", limit=50)
         status = _short(extra.get("status") or extra.get("to_status"), default="changed", limit=40)
         return f"Task truth recorded for {task}: {status}."
+    if event_type in {"bead_truth", "work_truth"}:
+        work = _short(
+            extra.get("bead_id") or extra.get("work_id"),
+            default="work truth",
+            limit=80,
+        )
+        status = _short(extra.get("status") or extra.get("to_status"), default="changed", limit=40)
+        return f"Work truth recorded for {work}: {status}."
     if event_type == "scope":
-        task = _short(extra.get("task_id"), default="unknown task", limit=50)
+        task = _short(
+            extra.get("bead_id") or extra.get("task_id") or extra.get("work_id"),
+            default="unknown work",
+            limit=80,
+        )
         globs = extra.get("path_globs")
         suffix = ""
         if isinstance(globs, Sequence) and not isinstance(globs, (str, bytes)) and globs:

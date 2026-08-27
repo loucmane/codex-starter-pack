@@ -24,7 +24,6 @@
       "Bash(python3 scripts/codex-task:*)",
       "Bash(python3 scripts/codex-guard:*)",
       "Bash(python3 -m pytest:*)",
-      "Bash(task-master:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
@@ -50,8 +49,6 @@
       "Bash(diff:*)",
       "Bash(sort:*)",
       "Bash(readlink:*)",
-      "mcp__task-master-ai__*",
-      "mcp__taskmaster-ai__*",
       "mcp__aegis__*"
     ],
     "deny": [

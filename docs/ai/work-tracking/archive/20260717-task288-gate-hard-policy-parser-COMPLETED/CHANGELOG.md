@@ -8,3 +8,4 @@
 - 2026-07-17 11:25 CEST — Implemented fail-closed sensitive-family parsing and RFC3339
   expiry handling in byte-identical source and packaged gates.
 - 2026-07-17 11:25 CEST — Added PR-scoped workflow metadata without touching Taskmaster.
+- 2026-08-26 15:44 CEST — Archived active work-tracking folder.
