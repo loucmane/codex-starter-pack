@@ -2054,6 +2054,10 @@ async def _threaded_stdio_server():
     async with anyio.create_task_group() as tg:
         tg.start_soon(stdin_reader)
         tg.start_soon(stdout_writer)
+        # Let both transport workers reach their first wait point before FastMCP starts.
+        # Without this handoff, a fast client can expose a scheduler race where the server
+        # waits on the read stream before the stdin worker has begun forwarding frames.
+        await anyio.lowlevel.checkpoint()
         try:
             yield read_stream, write_stream
         finally:

@@ -129,5 +129,8 @@ def test_project_mcp_config_uses_aegis_without_taskmaster_mutation_surface() -> 
 def test_codex_project_config_does_not_register_taskmaster_mcp() -> None:
     text = (REPO_ROOT / ".codex" / "config.toml").read_text(encoding="utf-8")
 
+    assert "[mcp_servers.aegis]" in text
+    assert 'command = "python3"' in text
+    assert 'args = ["scripts/aegis-mcp-server"]' in text
     assert "[mcp_servers.taskmaster-ai]" not in text
     assert "task-master-ai" not in text

@@ -9,6 +9,11 @@ approval_mode = "approve"
 [mcp_servers.serena.tools.create_text_file]
 approval_mode = "approve"
 
+[mcp_servers.aegis]
+type = "stdio"
+command = "python3"
+args = ["scripts/aegis-mcp-server"]
+
 [projects."/home/loucmane/codex"]
 trust_level = "trusted"
 
