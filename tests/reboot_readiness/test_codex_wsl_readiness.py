@@ -10,6 +10,7 @@ from aegis_foundation.reboot_readiness import (
     build_report,
     check_desktop,
     check_gc_status,
+    check_obsidian,
     check_supervisor_units,
     check_windows_bootstrap,
     check_wsl_systemd,
@@ -119,6 +120,19 @@ def powershell_task_command(name: str = "GasCity-WSL-Bootstrap") -> tuple[str, .
     )
 
 
+def obsidian_vaults_command(config: ProbeConfig) -> tuple[str, ...]:
+    return (str(config.obsidian_command), "vaults", "verbose")
+
+
+def obsidian_read_command(config: ProbeConfig) -> tuple[str, ...]:
+    return (
+        str(config.obsidian_command),
+        f"vault={config.obsidian_vault}",
+        "read",
+        f"path={config.obsidian_probe_path}",
+    )
+
+
 def healthy_task() -> str:
     return json.dumps(
         {
@@ -144,6 +158,14 @@ def healthy_responses(config: ProbeConfig) -> dict[tuple[str, ...], CommandResul
         ),
         powershell_version_command(): CommandResult(0, "26.820.7780.0\n"),
         powershell_task_command(): CommandResult(0, healthy_task()),
+        obsidian_vaults_command(config): CommandResult(
+            0,
+            f"{config.obsidian_vault}\t/home/tester/vaults/main\n",
+        ),
+        obsidian_read_command(config): CommandResult(
+            0,
+            "---\nbead_id: ga-zbmk\nstatus: closed\n---\n",
+        ),
         (
             "/managed/gc",
             "--city",
@@ -273,6 +295,71 @@ def test_sandbox_socket_denial_is_unknown_not_failure(tmp_path: Path) -> None:
     assert check.details["observer"] == "codex-sandbox"
 
 
+def test_sandbox_obsidian_ipc_denial_is_unknown_not_closed(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    runner = FakeRunner(
+        {
+            obsidian_vaults_command(config): CommandResult(
+                1,
+                stderr=(
+                    "The CLI is unable to find Obsidian. "
+                    "Please make sure Obsidian is running and try again."
+                ),
+            )
+        }
+    )
+
+    check = check_obsidian(config, runner, "codex-sandbox")
+
+    assert check.status == "unknown"
+    assert check.details["observer"] == "codex-sandbox"
+    assert check.details["authority"] == "observer-limited"
+    assert "cannot establish" in check.summary.lower()
+
+
+def test_host_wsl_obsidian_probe_reads_managed_note(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    runner = FakeRunner(
+        {
+            obsidian_vaults_command(config): CommandResult(
+                0,
+                f"{config.obsidian_vault}\t/home/tester/vaults/main\n",
+            ),
+            obsidian_read_command(config): CommandResult(
+                0,
+                "---\nbead_id: ga-zbmk\nstatus: closed\n---\n",
+            ),
+        }
+    )
+
+    check = check_obsidian(config, runner, "host-wsl")
+
+    assert check.status == "pass"
+    assert check.details["observer"] == "host-wsl"
+    assert check.details["authority"] == "host-wsl-live-ipc"
+    assert check.details["vault"] == config.obsidian_vault
+    assert check.details["probe_path"] == config.obsidian_probe_path
+
+
+def test_host_wsl_closed_obsidian_is_warning_not_vault_failure(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    runner = FakeRunner(
+        {
+            obsidian_vaults_command(config): CommandResult(
+                1,
+                stderr="The CLI is unable to find Obsidian.",
+            )
+        }
+    )
+
+    check = check_obsidian(config, runner, "host-wsl")
+
+    assert check.status == "warn"
+    assert check.details["observer"] == "host-wsl"
+    assert check.details["authority"] == "host-wsl-live-ipc"
+    assert "filesystem" in check.remediation.lower()
+
+
 def test_wsl_interop_vsock_denial_is_unknown_not_desktop_failure(tmp_path: Path) -> None:
     config = make_config(tmp_path)
     denial = CommandResult(
@@ -296,11 +383,14 @@ def test_full_report_is_degraded_for_mitigated_affected_build(tmp_path: Path) ->
 
     assert report.overall == "degraded"
     assert report.observer == "host-wsl"
+    assert report.authority == "host-control-plane"
     assert by_key(report, "desktop.version").status == "warn"
     assert by_key(report, "desktop.codex_app_workaround").status == "pass"
+    assert by_key(report, "obsidian.host_ipc").status == "pass"
     assert by_key(report, "gascity.status").status == "pass"
     assert exit_code(report) == 1
     assert "Codex WSL reboot readiness: DEGRADED" in render_human(report)
+    assert "Authority: host-control-plane" in render_human(report)
 
 
 def test_full_report_allows_explicit_host_observer_for_approved_host_run(
@@ -317,6 +407,7 @@ def test_full_report_allows_explicit_host_observer_for_approved_host_run(
     )
 
     assert report.observer == "host-wsl"
+    assert report.authority == "host-control-plane"
 
 
 def test_full_report_fails_when_supervisor_is_inactive(tmp_path: Path) -> None:

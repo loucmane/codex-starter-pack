@@ -31,7 +31,7 @@ emergency_bypass: false
 |---|---|---|---|
 | plan-step-scope | Confirm scope and authority for Beads-first workflow authority and reboot hardening | docs/ai/work-tracking/active/20260826-ga-k9sd-beads-first-guidance-ACTIVE/FINDINGS.md | completed |
 | plan-step-implement | Implement Beads-first workflow authority and reboot hardening through the reviewed helper surface | scripts/codex-task; scripts/codex-guard; docs/ai/work-tracking/active/20260826-ga-k9sd-beads-first-guidance-ACTIVE/IMPLEMENTATION.md | completed |
-| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/active/20260826-ga-k9sd-beads-first-guidance-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260826-ga-k9sd-beads-first-guidance-ACTIVE/TRACKER.md | pending |
+| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/archive/20260826-ga-k9sd-beads-first-guidance-COMPLETED/HANDOFF.md; docs/ai/work-tracking/archive/20260826-ga-k9sd-beads-first-guidance-COMPLETED/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
@@ -69,7 +69,7 @@ emergency_bypass: false
   2. Read primary bead `ga-k9sd` through the rig-scoped bead surface.
   3. Review `docs/ai/work-tracking/active/20260826-ga-k9sd-beads-first-guidance-ACTIVE/TRACKER.md` before changing implementation.
   4. Run `python3 scripts/codex-task plan sync` after tracker updates.
-- Outstanding risks/todos: preserve bead authority and avoid allocating shadow Taskmaster work.
+- Outstanding risks/todos: none; completed evidence is archived under the matching COMPLETED folder.
 
 ## Conflict & Scope Declaration
 - Related plans: none declared at kickoff.

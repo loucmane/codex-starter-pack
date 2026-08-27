@@ -18,3 +18,4 @@
 ## Progress Log
 
 - **2026-08-27 13:37** — [S:20260827|W:ga-zbmk|H:codex:aegis-v2-foundation|E:pytest:329-passed;docs/aegis/beads-first-authority-and-obsidian-gate.md] Next: publish, install, register MCP, and run the real vault gate.
+- Archived on 2026-08-27 14:57 CEST — Folder moved to archive and tracker marked COMPLETED.
