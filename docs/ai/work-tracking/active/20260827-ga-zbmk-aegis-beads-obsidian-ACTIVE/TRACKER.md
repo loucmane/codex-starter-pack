@@ -19,6 +19,7 @@
 - **2026-08-27 12:41** — [S:20260827|W:ga-zbmk|H:pytest:claude-adapter|E:657-passed] Verified the complete Claude/Aegis adapter suite with 657 passing tests; the focused authority/projection suite passed 27 tests and Ruff reported no findings
 - **2026-08-27 12:41** — [S:20260827|W:ga-zbmk|H:aegis:vault-dogfood|E:/tmp/ga-zbmk-aegis-vault@38c062dcacccd896d65344794033c4a33edbd3e14860a2a1f7c09f98ebb9cbb2] Built a 2,527-file temporary projection from the exact bead readback, proved idempotence and a passing closeout gate, proved a stale snapshot blocks, and removed default assignee-email projection before publication
 - **2026-08-27 13:36** — [S:20260827|W:ga-zbmk|H:codex:aegis-v2-foundation|E:pytest:329-passed;docs/aegis/beads-first-authority-and-obsidian-gate.md] Completed bead-native kickoff, Taskmaster phase-out enforcement, MCP surface updates, documentation, and the Aegis/Obsidian regression suite.
+- **2026-08-27 14:01** — [S:20260827|W:ga-zbmk|H:aegis:witness-ci-remediation|E:PR#290;pytest:28-passed;.aegis/reports/witness-report.json] Hosted CI exposed that the delivery witness still recognized only Taskmaster branch identities and omitted three repository workflow surfaces. Added bead-branch scope mapping, complete project scope roots, mirrored packaged bytes, and regression coverage; the exact local CI witness now passes with zero unaccounted paths.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope

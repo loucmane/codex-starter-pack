@@ -9,3 +9,4 @@
 ## Progress Log
 
 - **2026-08-27 13:37** — [S:20260827|W:ga-zbmk|H:codex:aegis-v2-foundation|E:pytest:329-passed;docs/aegis/beads-first-authority-and-obsidian-gate.md] Recorded bead-native CLI/MCP, phase-out enforcement, and Obsidian boundary gating.
+- **2026-08-27 14:01** — [S:20260827|W:ga-zbmk|H:aegis:witness-ci-remediation|E:PR#290;pytest:28-passed;.aegis/reports/witness-report.json] Added bead-native delivery-witness identity mapping and complete repository scope accounting after the first hosted PR run failed closed.

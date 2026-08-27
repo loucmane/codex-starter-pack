@@ -116,6 +116,27 @@ def test_in_scope_diff_with_verification_at_head_passes(repo: Path) -> None:
     assert (repo / ".aegis" / "reports" / "delivery-report.md").is_file()
 
 
+def test_bead_branch_convention_maps_scope_in_ci(repo: Path) -> None:
+    assert git(repo, "branch", "-m", "codex/ga-zbmk-aegis-beads-obsidian").returncode == 0
+    commit_change(repo, "app/feature.py")
+
+    report = witness_lib.run_witness(repo, base="main", ci_mode=True)
+
+    scope = report["checks"]["scope_mapping"]
+    assert scope["passed"] is True
+    assert scope["task_id"] == "ga-zbmk"
+    assert scope["source"] == "bead_branch_convention"
+    assert report["checks"]["diff_accounting"]["passed"] is True
+    assert report["exit_class"] == "not_derivable_in_ci"
+    assert report["process_exit_code"] == 0
+
+
+def test_repository_brief_accounts_project_workflow_surfaces() -> None:
+    brief = json.loads((REPO_ROOT / ".aegis" / "brief.json").read_text(encoding="utf-8"))
+    always_in_scope = set(brief["witness"]["always_in_scope"])
+    assert {"templates/", ".mcp.json", "README.md"} <= always_in_scope
+
+
 def test_out_of_scope_file_fails_diff_accounting(repo: Path) -> None:
     commit_change(repo, "rogue/sneaky.txt")
     seed_verification(repo, head_short(repo))

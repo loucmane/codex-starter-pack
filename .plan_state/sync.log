@@ -490,5 +490,17 @@
     "plan_hash": "ae867fb24f12fe3c7df3da56dddb064e412d934a16886c17834c669438503d24",
     "tracker_hash": "2a67a908c5385759b51e8032558bf78eaa8e67610c32c52f07b8c2a42bca1b35",
     "synced_at": "2026-08-27T13:37:01.107867+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-zbmk-aegis-beads-obsidian.md",
+    "plan_hash": "ae867fb24f12fe3c7df3da56dddb064e412d934a16886c17834c669438503d24",
+    "tracker_hash": "3e54041fed359c060fa80c8782463a16b522e1b66ca950ec9cdbb50f63df7125",
+    "synced_at": "2026-08-27T14:03:48.698170+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-zbmk-aegis-beads-obsidian.md",
+    "plan_hash": "ae867fb24f12fe3c7df3da56dddb064e412d934a16886c17834c669438503d24",
+    "tracker_hash": "3e54041fed359c060fa80c8782463a16b522e1b66ca950ec9cdbb50f63df7125",
+    "synced_at": "2026-08-27T14:04:52.107077+02:00"
   }
 ]
