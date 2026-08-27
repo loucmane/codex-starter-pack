@@ -1,7 +1,7 @@
-# Task {{task_id}} {{title}} - Handoff Summary
+# {{work_label}} {{title}} - Handoff Summary
 
 ## Current State
-- Task {{task_id}} has been kicked off through Aegis.
+- {{work_label}} has been kicked off through Aegis.
 - Branch: `{{branch_current}}`.
 - Session: `{{session_rel}}`.
 - Plan: `{{plan_rel}}`.
@@ -24,7 +24,7 @@
 4. Update this handoff before compaction or session end.
 
 ## Important Context
-- Taskmaster is optional unless this task marks it required in `{{current_work_rel}}`.
+- {{integration_summary}}
 - Serena is optional continuity only and is not readiness evidence by itself.
 - If context is compacted, resume by reading `{{current_work_rel}}`, `sessions/current`, `plans/current`, and this file.
 

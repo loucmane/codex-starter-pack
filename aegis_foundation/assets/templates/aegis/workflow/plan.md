@@ -2,8 +2,8 @@
 session_id: {{session_id}}
 work_context: {{work_context}}
 handler_target: {{current_work_rel}}
-task_ids: [{{task_id}}]
-branch_policy: feature-required
+{{identity_frontmatter_key}}: [{{work_id}}]
+branch_policy: {{branch_policy}}
 evidence_summary:
   - {{work_rel}}/
   - {{current_work_rel}}
@@ -13,25 +13,25 @@ plan_version: v1
 emergency_bypass: false
 ---
 
-# Plan - Task {{task_id}} {{title}}
+# Plan - {{work_label}} {{title}}
 
 ## Header
 - **Session ID (S)**: {{session_id}}
 - **Work Context (W)**: {{work_context}}
 - **Handler Target (H)**: {{current_work_rel}}
-- **Task IDs**: {{task_id}}
-- **Branch Policy**: feature-required
+- **{{identity_header}}**: {{work_id}}
+- **Branch Policy**: {{branch_policy}}
 - **Evidence Summary (E)**: {{work_rel}}/, {{current_work_rel}}, {{session_rel}}, {{plan_rel}}
 - **Plan Version**: v1
 - **Emergency Bypass**: false
-- **Authority**: Aegis-native workflow state (`{{current_work_rel}}`)
-- **Optional Integrations**: Taskmaster and Serena may be used when present, but are not required for READY unless this task marks them required.
+- **Authority**: {{authority_summary}} (`{{current_work_rel}}`)
+- **Optional Integrations**: {{integration_summary}}
 
 ## Plan Table
 | Step ID | Description | Evidence | Status |
 | --- | --- | --- | --- |
-| plan-step-scope | Confirm task scope, constraints, expected outputs, and affected files before implementation | {{work_rel}}/FINDINGS.md; {{work_rel}}/DECISIONS.md | in-progress |
-| plan-step-implement | Make only task-scoped changes and record implementation notes | {{work_rel}}/IMPLEMENTATION.md; changed files | pending |
+| plan-step-scope | Confirm {{work_kind_lower}} scope, constraints, expected outputs, and affected files before implementation | {{work_rel}}/FINDINGS.md; {{work_rel}}/DECISIONS.md | in-progress |
+| plan-step-implement | Make only {{work_kind_lower}}-scoped changes and record implementation notes | {{work_rel}}/IMPLEMENTATION.md; changed files | pending |
 | plan-step-verify | Run verification, capture reports, and update handoff state | {{reports_rel}}/; {{work_rel}}/HANDOFF.md; {{tracker_rel}} | pending |
 | plan-step-emergency | Optional - only if a bypass is explicitly authorized | Waiver plus post-mortem note in DECISIONS.md and FINDINGS.md | n/a |
 
@@ -41,17 +41,17 @@ emergency_bypass: false
 - `{{plan_rel}}`
 - `{{work_rel}}/`
 - `{{reports_rel}}/`
-- Task {{task_id}} only
+- {{work_scope}}
 
 ## Goals
 {{goals_checklist}}
 
 ## Branch Policy
 - Working branch: `{{branch_current}}`
-- Persistent work should happen on a branch containing `task-{{task_id}}`.
+- Persistent work should happen on {{branch_requirement}}.
 
 ## Amendments & Versioning
-- {{date}} - Task {{task_id}} kickoff created by Aegis.
+- {{date}} - {{work_label}} kickoff created by Aegis.
 
 ## Continuation & Handoff
 - Next owner: project owner
@@ -60,11 +60,11 @@ emergency_bypass: false
   2. Read `{{current_work_rel}}`.
   3. Read `{{tracker_rel}}` and `{{work_rel}}/HANDOFF.md`.
   4. Run Aegis readiness/verify commands before mutation.
-- Outstanding risks/todos: keep Taskmaster and Serena optional unless explicitly enabled for this task.
+- Outstanding risks/todos: preserve {{work_label}} authority and keep optional integrations non-authoritative.
 
 ## Conflict & Scope Declaration
 - Related plans: none recorded at kickoff.
-- Gate cross-check: Aegis readiness must stay aligned with the task branch, current session, current plan, active work-tracking folder, and `{{current_work_rel}}`.
+- Gate cross-check: Aegis readiness must stay aligned with the {{work_kind_lower}} branch, current session, current plan, active work-tracking folder, and `{{current_work_rel}}`.
 
 ## Evidence Checklist
 - [x] Aegis current work state exists

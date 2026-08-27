@@ -48,14 +48,14 @@ The model is:
 1. Register the packaged Aegis MCP server with the native client.
 2. Start a fresh project in Claude, Codex, or another MCP client.
 3. Use the discovered `aegis.*` MCP tools to install the project-local runtime.
-4. Use `aegis.status`, `aegis.next`, `aegis.start`, `aegis.kickoff`, `aegis.log`, `aegis.verify`, `aegis.closeout_ready`, and `aegis.closeout` for Aegis workflow state.
+4. Use `aegis.status`, `aegis.next`, `aegis.bead_kickoff`, `aegis.start`, legacy `aegis.kickoff`, `aegis.log`, `aegis.verify`, `aegis.closeout_ready`, and `aegis.closeout` for Aegis workflow state.
 5. Use the agent's native tools for normal project implementation work such as reading files, editing source, running tests, and inspecting git status.
 
-The project-local runtime installed by Aegis includes `.aegis/`, `.claude/` hooks, `CLAUDE.md`, sessions, plans, work-tracking scaffolding, readiness gates, pending S:W:H:E tracking, and closeout gates. Taskmaster and Serena are optional integrations; Aegis must work without them.
+The project-local runtime installed by Aegis includes `.aegis/`, `.claude/` hooks, `CLAUDE.md`, sessions, plans, work-tracking scaffolding, readiness gates, pending S:W:H:E tracking, and closeout gates. Gas City beads are the preferred external work authority. Taskmaster and Serena are optional compatibility integrations; Aegis must work without them.
 
 MCP is the bootstrap and control-plane interface. It installs and operates the workflow, but it is not a replacement for the agent's normal editor, shell, test runner, or git inspection workflow. The installed runtime enforces behavior around all supported mutation surfaces after installation.
 
-Claude Code reads `.claude/settings.json` when a session starts. If `aegis.init` or `aegis.install` creates or changes Claude hooks, the MCP tool returns `ok=false`, `error.code=client_reload_required`, `error.status=blocked`, and `details.must_stop=true` even though the install itself was applied and preserved under `details.report`. Aegis writes `.aegis/state/client-reload-required.json` and blocks `aegis.start` / `aegis.kickoff` until a restarted Claude session runs the installed `PreToolUse` hook and clears that marker. Treat this as a hard stop: the current Claude session must not edit source, run project verification, mutate Taskmaster, or call start/kickoff. Restart Claude in the project. After restart, run `aegis.next` and continue with start/kickoff, scope logging, native edits, verification, closeout, doctor, and only then Taskmaster completion if Taskmaster is in use.
+Claude Code reads `.claude/settings.json` when a session starts. If `aegis.init` or `aegis.install` changes hooks, the MCP tool returns a `client_reload_required` hard stop while preserving the applied install report. Aegis blocks bead/local/legacy kickoff until the restarted client activates the hook. After restart, run `aegis.next`, follow the declared work authority, and continue through S:W:H:E logging, native edits, verification, closeout, doctor, and only then external work-item completion.
 
 ## Native Registration Commands
 
@@ -204,23 +204,31 @@ Source checkout mode is explicit. Public/fresh-project instructions should use p
 
 Native registration must discover:
 
-- tools: `aegis.inspect`, `aegis.status`, `aegis.next`, `aegis.plan_install`, `aegis.install`, `aegis.verify`, `aegis.closeout_ready`, `aegis.closeout`, `aegis.start`, `aegis.kickoff`, `aegis.log`, `aegis.list_profiles`, and `aegis.explain_profile`
+- tools: `aegis.inspect`, `aegis.status`, `aegis.next`, `aegis.plan_install`, `aegis.install`, `aegis.verify`, `aegis.closeout_ready`, `aegis.closeout`, `aegis.bead_kickoff`, `aegis.start`, legacy `aegis.kickoff`, `aegis.log`, `aegis.list_profiles`, and `aegis.explain_profile`
 - resources: Aegis contract, schema, current work, verification, closeout, and runtime metadata resources
 - prompts: advisory prompts for bootstrap, migration, verification, session prep, and handoff
 
-The MCP server is allowed to inspect and plan in read-only mode. Applying installation changes still requires explicit `aegis.install` with apply semantics. Starting standalone local work uses `aegis.start`; it allocates a local Aegis task id, creates `.aegis/state/current-work.json`, `sessions/current`, `plans/current`, and a full active work-tracking scaffold rendered from packaged `.aegis/templates/workflow/`. When `.taskmaster/tasks/tasks.json` has available numeric work, `aegis.next` should direct the agent to run `task-master next` and `task-master show <id>` or read-only Taskmaster MCP discovery (`help`, `get_tasks`, `next_task`, `get_task`), then call `aegis.kickoff apply=true` with that numeric id. In that state, `aegis.start` refuses to allocate a competing local Aegis task.
+The MCP server may inspect and plan read-only. Applying installation changes requires explicit
+apply semantics. In beads-first projects, `aegis.next` directs the agent to
+`aegis.bead_kickoff`; it refuses local task allocation and Taskmaster MCP is not registered.
+Standalone repositories may use `aegis.start`; explicitly historical numeric repositories may
+use legacy `aegis.kickoff`.
 
-For installed Claude projects, `aegis.start` and `aegis.kickoff` are readiness bootstrap operations only after the reload marker is cleared. The hooks allow those two operations before readiness is READY so agents can create the missing task branch and workflow scaffold. Read-only Taskmaster MCP discovery is also allowed before kickoff so agents can find the external numeric task. Other mutating MCP or CLI operations, such as `aegis.verify`, Taskmaster MCP mutations, unknown Taskmaster MCP tools, and source edits, remain blocked until readiness passes.
+For installed Claude projects, bead, local, and legacy kickoff are readiness bootstrap
+operations only after the reload marker is cleared. Other mutating MCP or CLI operations and
+source edits remain blocked until readiness passes.
 
 After a task-scoped mutation, installed Claude `PostToolUse` hooks create `.aegis/state/pending-tracking.json`; `aegis.log` with apply semantics can consume that event with `pending_event_id=current` and `plan_step=auto`, then records the required S:W:H:E entry in `sessions/current`, the active `TRACKER.md`, and event-aware canonical surfaces before the next mutation or session stop is allowed. Scope logs default to findings/decisions/handoff; implementation and verification logs default to implementation/changelog/handoff. Plan evidence is updated only when `plan_step` is supplied explicitly or `auto` can infer the step deterministically.
 
-After final Aegis closeout, the installed hooks keep normal mutations blocked but allow the matching Taskmaster completion bookkeeping path: `task-master set-status --id=<task-id> --status=done` or the Taskmaster MCP equivalent, followed by `task-master generate` when no targeted generated-file helper exists. This is intentionally narrow; source edits, Git mutations, non-bootstrap Aegis mutations, and mismatched Taskmaster ids remain blocked once current work is completed.
+After final Aegis closeout, the installed hooks keep normal mutations blocked. The external
+work authority is updated through its own reviewed surface; beads-first projects do not expose a
+Taskmaster completion path.
 
 Expected tool split:
 
-- Aegis MCP or the project-local CLI: inspect, status, next, plan_install/plan-install, install, start, kickoff for explicit external numeric task ids, log, verify, closeout_ready/closeout --dry-run, closeout, and future reconciliation.
-- Taskmaster CLI/MCP when present: read-only next/show discovery before Aegis kickoff, and set-status done only after Aegis closeout plus read-only doctor pass. For Taskmaster MCP, the pre-kickoff discovery allowlist is `help`, `get_tasks`, `next_task`, and `get_task`; mutation and unknown Taskmaster MCP tools remain blocked.
-- Taskmaster generated files: refresh after set-status done with the project helper when present; otherwise run broad `task-master generate` deliberately and report that broad refresh was used.
+- Aegis MCP or the project-local CLI: inspect, status, next, install, bead kickoff, standalone start, historical numeric kickoff, log, verify, closeout, vault projection, and future reconciliation.
+- Gas City bead surfaces: external work discovery, lifecycle, dependencies, and evidence; routing and rig lifecycle remain separate gates.
+- Historical Taskmaster files: read-only compatibility evidence unless a project explicitly declares the numeric compatibility mode.
 - Native agent tools: source reads and edits, project test commands, and git status/diff inspection.
 - Installed hooks: enforcement across supported mutation surfaces regardless of whether a mutation attempt comes from MCP, Bash, Edit, Write, or another supported tool.
 

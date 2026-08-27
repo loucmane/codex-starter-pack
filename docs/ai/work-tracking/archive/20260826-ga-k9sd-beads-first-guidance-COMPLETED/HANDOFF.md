@@ -21,3 +21,4 @@
 - **2026-08-26 17:14** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:windows-bootstrap:principal-sid|E:plans/2026-08-26-ga-k9sd-beads-first-guidance.md] R4 source candidate is implemented and locally green; exact-tree review remains required before commit or installation retry.
 - **2026-08-26 17:55** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:windows-bootstrap:powershell51|E:docs/operations/codex-wsl-reboot-readiness.md] R5 implementation is locally proven; next steps are full regression, signed commit, reinstall, and one scheduled-task smoke without Fable relay.
 - **2026-08-26 18:08** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:windows-bootstrap:shared-custody|E:plans/2026-08-26-ga-k9sd-beads-first-guidance.md] R6 storage-boundary fix is implemented; proceed directly through regression, signed commit, reinstall, and smoke without Fable relay.
+- Archived on 2026-08-27 13:01 CEST — Folder moved to archive and tracker marked COMPLETED.

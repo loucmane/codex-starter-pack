@@ -20,3 +20,9 @@
 - Focused authority/projection suite: 27 passed.
 - Ruff on all changed Python/test files: clean.
 - Exact `ga-zbmk` readback dogfood: 2,527 files, one projected bead, source digest `38c062dcacccd896d65344794033c4a33edbd3e14860a2a1f7c09f98ebb9cbb2`, closeout gate passed, repeat build reported `changed=false`, stale snapshot exited 1 with `vault source digest is stale`.
+
+
+
+## Progress Log
+
+- **2026-08-27 13:37** — [S:20260827|W:ga-zbmk|H:codex:aegis-v2-foundation|E:pytest:329-passed;docs/aegis/beads-first-authority-and-obsidian-gate.md] Implemented the Aegis 2.0 daily-workflow foundation with beads as the mutable authority.

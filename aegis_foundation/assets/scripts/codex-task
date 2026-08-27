@@ -48,6 +48,7 @@ from _aegis_installer import (
     inspect_project as aegis_inspect_project,
     install as aegis_install,
     kickoff as aegis_kickoff,
+    kickoff_bead as aegis_kickoff_bead,
     list_profiles as aegis_list_profiles,
     log_work as aegis_log_work,
     next_action as aegis_next_action,
@@ -947,7 +948,29 @@ def handle_aegis_certify_release(args: argparse.Namespace) -> None:
 
 def handle_aegis_kickoff(args: argparse.Namespace) -> None:
     try:
-        if args.local:
+        selected_identities = sum(
+            bool(value) for value in (args.task, args.bead, args.local)
+        )
+        if selected_identities > 1:
+            raise AegisError(
+                "aegis kickoff accepts exactly one of --bead, --task, or --local"
+            )
+        if args.bead:
+            missing = [name for name in ("slug", "title") if not getattr(args, name)]
+            if missing:
+                raise AegisError(
+                    f"aegis kickoff --bead requires: {', '.join('--' + name for name in missing)}"
+                )
+            payload = aegis_kickoff_bead(
+                args.target_dir,
+                bead_id=args.bead,
+                slug=args.slug,
+                title=args.title,
+                goals=list(args.goal or []),
+                create_branch=not args.no_create_branch,
+                source_root=REPO_ROOT,
+            )
+        elif args.local:
             if not args.title:
                 raise AegisError("aegis kickoff --local requires --title")
             payload = aegis_start_local_work(
@@ -19050,6 +19073,7 @@ def build_parser() -> argparse.ArgumentParser:
     aegis_kickoff_parser = aegis_sub.add_parser("kickoff", help="Create Aegis-native session, plan, and work-tracking state")
     aegis_kickoff_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
     aegis_kickoff_parser.add_argument("--task", help="Numeric task/work id")
+    aegis_kickoff_parser.add_argument("--bead", help="Gas City bead id, for example ga-zbmk")
     aegis_kickoff_parser.add_argument("--slug", help="Short lowercase work slug")
     aegis_kickoff_parser.add_argument("--title", help="Human-readable work title")
     aegis_kickoff_parser.add_argument("--local", action="store_true", help="Allocate a local Aegis task id from --title")

@@ -636,6 +636,27 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
             else:
                 checks.append(Check(BLOCKED, f"Aegis observation status is {status!r}, expected 'in-progress' or 'completed'"))
                 return None, checks
+        if aegis_work_mode(aegis_work) == "bead":
+            task = aegis_work_task(aegis_work)
+            bead_id = str(task.get("id") if task else "").strip()
+            status = str(task.get("status") if task else "").strip()
+            branch_bead_id = bead_id_from_branch(branch)
+            if not task or not bead_id or status != "in-progress":
+                checks.append(
+                    Check(BLOCKED, "bead current work is missing id or in-progress status")
+                )
+                return bead_id or None, checks
+            if branch_bead_id != bead_id:
+                checks.append(
+                    Check(
+                        BLOCKED,
+                        f"branch bead is {branch_bead_id!r}, expected current-work bead {bead_id}",
+                    )
+                )
+                return bead_id, checks
+            work_id, bead_checks = build_bead_source_checks(root, branch, bead_id)
+            bead_checks.insert(1, Check(READY, f"Aegis current work bead {bead_id} is in-progress"))
+            return work_id, bead_checks
 
     source_work = None
     if not aegis_work_path.is_file():

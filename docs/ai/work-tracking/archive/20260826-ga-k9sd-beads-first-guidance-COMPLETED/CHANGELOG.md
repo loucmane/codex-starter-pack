@@ -12,3 +12,4 @@
 - **2026-08-26 17:14** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:windows-bootstrap:principal-sid|E:tests/reboot_readiness/test_bootstrap_assets.py] Added fail-closed scheduled-task principal SID resolution and RED/GREEN contract coverage.
 - **2026-08-26 17:55** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:windows-bootstrap:powershell51|E:tests/reboot_readiness/test_bootstrap_assets.py] Made the Windows bootstrap PowerShell 5.1-compatible and added runtime-contract regression coverage.
 - **2026-08-26 18:08** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:windows-bootstrap:shared-custody|E:tests/reboot_readiness/test_bootstrap_assets.py] Moved Windows bootstrap installation and evidence out of LocalAppData virtualization with regression coverage.
+- 2026-08-27 13:01 CEST — Archived active work-tracking folder.

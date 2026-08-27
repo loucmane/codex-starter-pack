@@ -20,7 +20,7 @@ Before Claude performs any persistent mutation, readiness must be `READY`.
 bash .claude/scripts/readiness.sh
 ```
 
-`BLOCKED` means no file edits, Bash mutations, Taskmaster mutations, memory writes, Git writes, GitHub writes, or MCP mutations. Fix the workflow state first by using the kickoff/session/plan/work-tracking flow. Read-only inspection is allowed. For Taskmaster MCP, only discovery tools (`help`, `get_tasks`, `next_task`, `get_task`) count as read-only before kickoff; Taskmaster MCP mutations and unknown Taskmaster MCP tools remain blocked.
+`BLOCKED` means no file edits, Bash mutations, work-ledger mutations, memory writes, Git writes, GitHub writes, or MCP mutations. Fix the workflow state first by using the kickoff/session/plan/work-tracking flow. Read-only inspection is allowed. Taskmaster MCP is intentionally not registered in this beads-first repository; historical Taskmaster files may be inspected read-only only for legacy evidence.
 
 The PreToolUse dispatcher in `.claude/scripts/pretooluse-gate.sh` enforces this for hookable Claude file tools and tested Bash mutation patterns. After a successful mutation, `.claude/scripts/posttooluse-tracking.sh` records pending S:W:H:E tracking and `.claude/scripts/tracking-stop-gate.sh` blocks session stop until `aegis log` has updated the session, tracker, implementation log, changelog, handoff, and plan evidence.
 
@@ -64,7 +64,7 @@ The PreToolUse gate blocks direct file edits and tested Bash bypasses against th
 This workflow is not text-only. Treat the same state discipline as mandatory for:
 - Claude file tools;
 - Bash commands;
-- Taskmaster CLI and MCP;
+- Gas City bead CLI and Aegis MCP;
 - Serena and Claude memory stores;
 - Git and GitHub operations;
 - sub-agents;
@@ -85,11 +85,11 @@ Core runtime commands:
 - `/work-tracking-update` -> `python3 scripts/codex-task work-tracking update`
 - `/scanner-run` -> `python3 scripts/codex-task scanner run`
 
-Taskmaster commands under `.claude/commands/tm/` remain available for Taskmaster-specific flows.
+Historical Taskmaster command files under `.claude/commands/tm/` are archival compatibility references, not an active mutable workflow surface.
 
 ## Supporting References
 - Runtime contract: `.claude/engine/runtime-contract.md`
 - Readiness spec: `.claude/engine/claude-readiness.md`
 - Tool mapping: `.claude/engine/tool-mapping.md`
 - Agent catalog: `.claude/AGENTS.md`
-- Taskmaster integration guide: `@./.taskmaster/CLAUDE.md`
+- Historical Taskmaster integration reference (read-only): `@./.taskmaster/CLAUDE.md`

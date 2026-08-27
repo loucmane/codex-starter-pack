@@ -113,13 +113,21 @@ def test_aegis_mcp_contract_documents_wrapper_boundary_and_schema_alignment() ->
     assert "Prompts and memories are continuity aids, not evidence" in text
 
 
-def test_project_mcp_config_includes_aegis_without_removing_existing_servers() -> None:
+def test_project_mcp_config_uses_aegis_without_taskmaster_mutation_surface() -> None:
     payload = json.loads((REPO_ROOT / ".mcp.json").read_text(encoding="utf-8"))
     servers = payload["mcpServers"]
 
-    assert {"task-master-ai", "serena", "aegis"} <= set(servers)
+    assert {"serena", "aegis"} <= set(servers)
+    assert "task-master-ai" not in servers
     assert servers["aegis"] == {
         "type": "stdio",
         "command": "python3",
         "args": ["scripts/aegis-mcp-server"],
     }
+
+
+def test_codex_project_config_does_not_register_taskmaster_mcp() -> None:
+    text = (REPO_ROOT / ".codex" / "config.toml").read_text(encoding="utf-8")
+
+    assert "[mcp_servers.taskmaster-ai]" not in text
+    assert "task-master-ai" not in text

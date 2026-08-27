@@ -1,4 +1,4 @@
-# Task {{task_id}} {{title}} Tracker
+# {{work_label}} {{title}} Tracker
 
 **Started**: {{date}}
 **Status**: ACTIVE
@@ -24,7 +24,7 @@
 - [ ] plan-step-emergency (if applicable)
 
 ## Current State
-Task {{task_id}} has been kicked off through Aegis. The project is ready for task-scoped work once readiness reports READY.
+{{work_label}} has been kicked off through Aegis. The project is ready for {{work_kind_lower}}-scoped work once readiness reports READY.
 
 ## Next Steps
 1. Confirm scope and constraints in FINDINGS.md and DECISIONS.md.
@@ -33,6 +33,6 @@ Task {{task_id}} has been kicked off through Aegis. The project is ready for tas
 4. Update HANDOFF.md before ending the session.
 
 ## Dependencies & Notes
-- Taskmaster: optional unless `{{current_work_rel}}` marks it required.
+- Taskmaster: {{integration_summary}}
 - Serena: optional continuity only; never required for READY.
 - Direct workflow state writes should go through Aegis CLI or MCP tools.

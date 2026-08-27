@@ -1,4 +1,4 @@
-# Task {{task_id}} {{title}} - Changelog
+# {{work_label}} {{title}} - Changelog
 
 - {{timestamp_tracker}} - Initialized active work-tracking folder through Aegis kickoff.
 

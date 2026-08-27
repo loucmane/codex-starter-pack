@@ -1601,7 +1601,34 @@ def handle_certify_release(args: argparse.Namespace) -> int:
 
 def handle_kickoff(args: argparse.Namespace) -> int:
     with _resolve_source_root(args.source_root) as source_root:
-        if args.local:
+        selected_identities = sum(
+            bool(value) for value in (args.task, args.bead, args.local)
+        )
+        if selected_identities > 1:
+            print(
+                "aegis kickoff accepts exactly one of --bead, --task, or --local",
+                file=sys.stderr,
+            )
+            return 1
+        if args.bead:
+            missing = [name for name in ("slug", "title") if not getattr(args, name)]
+            if missing:
+                print(
+                    f"aegis kickoff --bead requires: {', '.join('--' + name for name in missing)}",
+                    file=sys.stderr,
+                )
+                return 1
+            payload = _aegis_installer.kickoff_bead(
+                args.target_dir,
+                bead_id=args.bead,
+                slug=args.slug,
+                title=args.title,
+                goals=list(args.goal or []),
+                create_branch=not args.no_create_branch,
+                source_root=source_root,
+                invoking_agent=_aegis_installer.invoking_agent_from_environment(),
+            )
+        elif args.local:
             if not args.title:
                 print("aegis kickoff --local requires --title", file=sys.stderr)
                 return 1
@@ -2805,6 +2832,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     kickoff_parser.add_argument("--target-dir", default=".", help="Target repository root.")
     kickoff_parser.add_argument("--task", help="Numeric task/work id.")
+    kickoff_parser.add_argument("--bead", help="Gas City bead id, for example ga-zbmk.")
     kickoff_parser.add_argument("--slug", help="Short lowercase work slug.")
     kickoff_parser.add_argument("--title", help="Human-readable work title.")
     kickoff_parser.add_argument(

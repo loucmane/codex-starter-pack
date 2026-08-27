@@ -1,8 +1,8 @@
 # Bead ga-k9sd Beads-first workflow authority and reboot hardening Tracker
 
 **Started**: 2026-08-26
-**Status**: ACTIVE
-**Last Updated**: 2026-08-26
+**Status**: COMPLETED
+**Last Updated**: 2026-08-27
 
 ## Goals
 - [ ] Make Gas City rig-scoped beads the authoritative work ledger
@@ -11,7 +11,7 @@
 
 ## Progress Log
 - **2026-08-26 15:52** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed current timestamp as `2026-08-26 15:52 CEST`
-- **2026-08-26 15:52** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260826-ga-k9sd-beads-first-guidance-ACTIVE/TRACKER.md] Scaffolded the `ga-k9sd` ACTIVE work-tracking folder through the bead-native kickoff flow
+- **2026-08-26 15:52** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:scripts/codex-task|E:docs/ai/work-tracking/archive/20260826-ga-k9sd-beads-first-guidance-COMPLETED/TRACKER.md] Scaffolded the `ga-k9sd` ACTIVE work-tracking folder through the bead-native kickoff flow
 - **2026-08-26 15:52** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:bd:show|E:bead:ga-k9sd] Bound this source-workflow record to primary bead `ga-k9sd` without Taskmaster mutation
 - **2026-08-26 15:52** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:sessions/current|E:sessions/current] Repointed current session, plan, and session state to `ga-k9sd`
 - **2026-08-26 15:55** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:serena/memory|E:.serena/memories/2026-08-26_ga-k9sd-beads-first-reboot-hardening.md] Captured the bead migration, reboot-hardening review, and remaining installation boundary for continuity
@@ -24,6 +24,8 @@
 - **2026-08-26 17:14** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:windows-bootstrap:principal-sid|E:scripts/windows/install-gas-city-wsl-bootstrap.ps1] Replaced raw Task Scheduler principal-name equality with fail-closed SID resolution while retaining current-user task registration and the Limited logon contract.
 - **2026-08-26 17:55** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:windows-bootstrap:powershell51|E:tests/reboot_readiness/test_bootstrap_assets.py] Added RED-first PowerShell 5.1 compatibility coverage and proved the repaired bootstrap end to end with one executable temporary doctor: bootstrap_status=pass, observer=host-wsl, zero failed checks.
 - **2026-08-26 18:08** — [S:20260826|W:ga-k9sd-beads-first-guidance|H:windows-bootstrap:shared-custody|E:tests/reboot_readiness/test_bootstrap_assets.py] Added RED-first storage-boundary coverage requiring non-virtualized USERPROFILE paths and rejecting LocalAppData custody.
+- **2026-08-27 13:01** — [S:20260827|W:ga-k9sd-beads-first-guidance|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260826-ga-k9sd-beads-first-guidance-COMPLETED/TRACKER.md] Archived the completed work-tracking bundle through the supported helper
+- **2026-08-27 13:01** — [S:20260827|W:ga-k9sd-beads-first-guidance|H:serena/memory:archive-reference|E:.serena/memories/2026-08-26_ga-k9sd-beads-first-reboot-hardening.md] Preserved the existing continuity memory while archiving the completed bundle
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope

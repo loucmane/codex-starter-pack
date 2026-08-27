@@ -18,6 +18,7 @@
 - **2026-08-27 12:41** — [S:20260827|W:ga-zbmk|H:aegis:work-authority-and-vault-gate|E:aegis_foundation/work_authority.py,aegis_foundation/obsidian_vault.py] Implemented explicit bead-snapshot authority, legacy Taskmaster fallback, authority-aware work projection, and readiness/closeout/publication gates without dual writes
 - **2026-08-27 12:41** — [S:20260827|W:ga-zbmk|H:pytest:claude-adapter|E:657-passed] Verified the complete Claude/Aegis adapter suite with 657 passing tests; the focused authority/projection suite passed 27 tests and Ruff reported no findings
 - **2026-08-27 12:41** — [S:20260827|W:ga-zbmk|H:aegis:vault-dogfood|E:/tmp/ga-zbmk-aegis-vault@38c062dcacccd896d65344794033c4a33edbd3e14860a2a1f7c09f98ebb9cbb2] Built a 2,527-file temporary projection from the exact bead readback, proved idempotence and a passing closeout gate, proved a stale snapshot blocks, and removed default assignee-email projection before publication
+- **2026-08-27 13:36** — [S:20260827|W:ga-zbmk|H:codex:aegis-v2-foundation|E:pytest:329-passed;docs/aegis/beads-first-authority-and-obsidian-gate.md] Completed bead-native kickoff, Taskmaster phase-out enforcement, MCP surface updates, documentation, and the Aegis/Obsidian regression suite.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope

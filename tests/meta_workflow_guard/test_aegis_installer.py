@@ -48,6 +48,7 @@ from scripts._aegis_installer import (
     install,
     inspect_project,
     kickoff,
+    kickoff_bead,
     log_work,
     next_action,
     plan_install,
@@ -620,6 +621,23 @@ def test_build_parser_accepts_aegis_commands() -> None:
     )
     assert kickoff_args.subcommand == "kickoff"
     assert kickoff_args.task == "1"
+
+    kickoff_bead_args = parser.parse_args(
+        [
+            "aegis",
+            "kickoff",
+            "--target-dir",
+            "/tmp/example",
+            "--bead",
+            "ga-zbmk",
+            "--slug",
+            "aegis-beads-obsidian",
+            "--title",
+            "Aegis Beads Obsidian",
+        ]
+    )
+    assert kickoff_bead_args.subcommand == "kickoff"
+    assert kickoff_bead_args.bead == "ga-zbmk"
 
     kickoff_local_args = parser.parse_args(
         [
@@ -3430,12 +3448,15 @@ def test_next_action_defers_task_selection_to_taskmaster_when_tasks_json_is_pres
         "task-master set-status --status=done",
     ]
     claude_entry = (target / "CLAUDE.md").read_text(encoding="utf-8")
-    assert "task-master next" in claude_entry
-    assert "task-master show <id>" in claude_entry
+    assert "Beads-first projects use the Gas City bead surface" in claude_entry
+    assert "Taskmaster is historical compatibility" in claude_entry
+    assert "task-master next" not in claude_entry
     assert "Taskmaster done only after Aegis closeout and doctor pass" not in claude_entry
     assert ".aegis/contract.md` is authoritative" in claude_entry
     strict_contract = (target / ".aegis" / "contract.md").read_text(encoding="utf-8")
-    assert "Taskmaster done only after Aegis closeout and doctor pass" in strict_contract
+    assert "aegis kickoff --bead <bead-id>" in strict_contract
+    assert "explicitly historical numeric-task compatibility flow" in strict_contract
+    assert "Taskmaster done only after Aegis closeout and doctor pass" not in strict_contract
 
     for report in (
         inspect_project(target, source_root=REPO_ROOT),
@@ -3449,10 +3470,10 @@ def test_next_action_defers_task_selection_to_taskmaster_when_tasks_json_is_pres
         assert guidance["details"]["taskmaster"]["aegis_task_selection"] == "suppressed"
         assert "task" not in guidance["details"]["taskmaster"]
     assert "task-master generate" not in claude_entry
-    assert "task-master generate" in strict_contract
+    assert "task-master generate" not in strict_contract
     claude_settings = json.loads((target / ".claude" / "settings.json").read_text(encoding="utf-8"))
     allowed = claude_settings["permissions"]["allow"]
-    assert "Bash(task-master *)" in allowed
+    assert "Bash(task-master *)" not in allowed
 
 
 @pytest.mark.parametrize(
@@ -4304,7 +4325,16 @@ def test_status_surfaces_fail_closed_delivery_policy_state(
     assert set(delivery_policy["routine_authority"]) == set(
         aegis_installer.AEGIS_ROUTINE_AUTHORITY_FIELDS
     )
-    assert all(delivery_policy["routine_authority"].values()) is (expected_mode == "evidence-gated")
+    routine_authority = delivery_policy["routine_authority"]
+    if expected_mode == "evidence-gated":
+        assert routine_authority["allow_taskmaster_transitions"] is False
+        assert all(
+            value
+            for key, value in routine_authority.items()
+            if key != "allow_taskmaster_transitions"
+        )
+    else:
+        assert not any(routine_authority.values())
     assert report["workflow_guidance"]["delivery_policy"] == delivery_policy
 
 
@@ -5411,6 +5441,77 @@ def test_log_work_plan_step_auto_rejects_ambiguous_inference(tmp_path: Path) -> 
             note="Attempted ambiguous auto plan step",
             plan_step="auto",
         )
+
+
+def test_bead_kickoff_creates_bead_native_ready_state(tmp_path: Path) -> None:
+    target = tmp_path / "bead-native-repo"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+    (target / "AGENTS.md").write_text(
+        "# Gas City Beads\n\nGas City beads are the authoritative work ledger for new work.\n",
+        encoding="utf-8",
+    )
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    simulate_claude_reload(target)
+
+    guidance = next_action(target, source_root=REPO_ROOT)
+    assert guidance["state"] == "beads_first_ready"
+    assert guidance["suggested_mcp_call"]["tool"] == "aegis.bead_kickoff"
+    assert guidance["details"]["taskmaster"]["mutation_allowed"] is False
+    with pytest.raises(AegisError, match="Gas City beads are the declared work authority"):
+        start_local_work(
+            target,
+            title="Do not create a parallel local task",
+            source_root=REPO_ROOT,
+        )
+
+    report = kickoff_bead(
+        target,
+        bead_id="ga-zbmk",
+        slug="aegis-beads-obsidian",
+        title="Aegis Beads Obsidian",
+        goals=["Make beads the mutable work authority"],
+        source_root=REPO_ROOT,
+    )
+
+    assert report["status"] == "started"
+    assert report["task"]["id"] == "ga-zbmk"
+    assert report["task"]["source"] == "gas-city-bead"
+    assert report["branch"]["current"] == "codex/ga-zbmk-aegis-beads-obsidian"
+    current_work = json.loads((target / AEGIS_CURRENT_WORK_REL).read_text(encoding="utf-8"))
+    assert current_work["mode"] == "bead"
+    assert current_work["authority"] == {
+        "kind": "gas-city-bead",
+        "id": "ga-zbmk",
+        "mutable": True,
+    }
+    assert current_work["integrations"]["taskmaster"]["mutation_allowed"] is False
+    assert current_work["paths"]["session"].endswith("-ga-zbmk-aegis-beads-obsidian.md")
+    assert current_work["paths"]["plan"].endswith("-ga-zbmk-aegis-beads-obsidian.md")
+    assert "-ga-zbmk-aegis-beads-obsidian-ACTIVE" in current_work["paths"]["work_tracking"]
+    session_text = (target / current_work["paths"]["session"]).read_text(encoding="utf-8")
+    plan_text = (target / current_work["paths"]["plan"]).read_text(encoding="utf-8")
+    assert "title: Bead ga-zbmk - Aegis Beads Obsidian" in session_text
+    assert "bead_ids: [ga-zbmk]" in plan_text
+    assert "Taskmaster is historical read-only compatibility" in plan_text
+
+    readiness = run_target_readiness(target)
+    assert readiness.returncode == 0, readiness.stdout + readiness.stderr
+    assert "READY | task=ga-zbmk" in readiness.stdout
 
 
 def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_path: Path) -> None:

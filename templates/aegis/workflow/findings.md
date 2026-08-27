@@ -1,7 +1,7 @@
-# Task {{task_id}} {{title}} - Findings
+# {{work_label}} {{title}} - Findings
 
 ## Purpose
-Record discoveries, gaps, risks, failed assumptions, and evidence-backed observations for Task {{task_id}}.
+Record discoveries, gaps, risks, failed assumptions, and evidence-backed observations for {{work_label}}.
 
 ## Findings
 - {{date}} - _Pending_ - add findings as they are discovered.
