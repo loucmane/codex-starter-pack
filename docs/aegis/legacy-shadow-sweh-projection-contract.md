@@ -13,7 +13,9 @@ surfaces during the transition, but change their role:
 
 - The passive ledger remains the source of machine evidence.
 - The capsule remains the primary current-state orientation surface.
-- Taskmaster, git, PR metadata, CI, and witness remain delivery/current-truth authorities.
+- Gas City beads are current work authority when explicitly bound; Taskmaster remains historical
+  compatibility authority where a repository has not migrated. Git, PR metadata, CI, and witness
+  remain delivery/current-truth authorities.
 - Legacy work-tracking files remain human-readable projections, historical records, and
   shadow hardening oracles.
 
@@ -27,7 +29,7 @@ workflow boundaries instead of requiring a manual `aegis log` after every mutati
 - Do not overwrite human-authored history in old workflow files.
 - Do not delete or archive Task 80 residue in HP-Fetcher as part of this task.
 - Do not make old current-work, plans, sessions, or active-folder metadata equal authority when
-  they disagree with Taskmaster, git, and capsule truth.
+  they disagree with the explicitly selected work authority, git, and capsule truth.
 
 ## Authority Model
 
@@ -35,15 +37,17 @@ workflow boundaries instead of requiring a manual `aegis log` after every mutati
 | --- | --- | --- |
 | What branch/HEAD are current? | Git | none |
 | What changed? | Git + passive ledger | tracker/implementation may explain why |
-| What task is done/pending? | Taskmaster | current-work is fallback and conflict evidence |
-| What work is active? | scope record + branch + Taskmaster + capsule | current-work and active folders are compatibility fallback |
+| What work is done/pending? | Explicit Gas City bead snapshot; legacy Taskmaster only when no bead snapshot applies | current-work is fallback and conflict evidence |
+| What work is active? | scope record + branch + selected work authority + capsule | current-work and active folders are compatibility fallback |
 | What tests are valid at HEAD? | verification ledger + CI + witness | closeout report is historical support |
 | What did we decide and why? | decisions/tracker/handoff + optional PR-3 narration | legacy remains valuable |
 | Can this merge? | witness + CI + protected branch policy | closeout is supporting evidence |
 | What happened historically? | ledger + legacy projections | legacy remains readable context |
 
-When Taskmaster, git, and capsule agree against a legacy current-work surface, current truth uses
-Taskmaster/git/capsule. The legacy mismatch is still recorded as a shadow finding.
+When the selected work authority, git, and capsule agree against a legacy current-work surface,
+current truth uses that authority/git/capsule. The legacy mismatch is still recorded as a shadow
+finding. Aegis never combines a supplied bead snapshot with Taskmaster into a synthetic second
+authority.
 
 ## Projection Model
 
@@ -86,7 +90,7 @@ Boundary triggers:
 
 - session start or resume
 - explicit scope/plan change
-- task status change
+- bead/work/task status change
 - verification command outcome
 - witness or pre-delivery check
 - PR created, updated, merged, or closed
@@ -141,8 +145,9 @@ Projected entries should remain recognizable to existing workflow readers:
 Rules:
 
 - `S` identifies the session or resume lineage when known.
-- `W` identifies the task, scope record, branch, or PR.
-- `H` identifies the logical handler (`edit`, `verify`, `witness`, `task-truth`,
+- `W` identifies the exact bead when one is bound; otherwise it identifies the legacy task,
+  scope record, branch, or PR.
+- `H` identifies the logical handler (`edit`, `verify`, `witness`, `work-truth`, `task-truth`,
   `delivery`, `risk`, `legacy-shadow`) rather than raw shell fragments.
 - `E` references ledger event IDs, witness IDs, commit hashes, or report paths.
 - Summaries are generated from normalized paths, outcomes, and existing narrative context.

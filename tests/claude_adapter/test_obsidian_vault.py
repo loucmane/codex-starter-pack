@@ -184,6 +184,30 @@ def _tree_digest(root: Path) -> str:
     return digest.hexdigest()
 
 
+def _bead_snapshot(path: Path) -> Path:
+    path.write_text(
+        json.dumps(
+            [
+                {
+                    "id": "ga-zbmk",
+                    "title": "Sensitive title off by default",
+                    "description": "Sensitive description off by default",
+                    "status": "in_progress",
+                    "priority": 2,
+                    "issue_type": "feature",
+                    "owner": "lookmanbenali@gmail.com",
+                    "labels": ["aegis", "obsidian"],
+                    "metadata": {"gc.branch": "codex/ga-zbmk-aegis-beads-obsidian"},
+                    "dependencies": [],
+                }
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return path
+
+
 def test_builds_deterministic_bounded_graph_and_preserves_legacy_context(tmp_path: Path) -> None:
     root = _repo(tmp_path)
     events = _events(root)
@@ -411,3 +435,135 @@ def test_cli_build_and_check_use_explicit_out_of_repo_destination(
     ]
     assert aegis_cli.main(inside_args) == 1
     assert "outside the source repository" in capsys.readouterr().err
+
+
+def test_bead_projection_and_closeout_gate_are_authority_aware(tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    source = _bead_snapshot(tmp_path / "beads.json")
+    events = [
+        {
+            **_events(root)[2],
+            "event_id": "bead-verification",
+            "branch": "codex/ga-zbmk-aegis-beads-obsidian",
+            "extra": {"gate": "tests", "passed": True},
+        }
+    ]
+    snapshot = obsidian_vault.collect_snapshot(root, events, bead_snapshot=source)
+    output = tmp_path / "aegis-subtree"
+
+    built = obsidian_vault.build_vault(snapshot, output, target_dir=root)
+    assert built["status"] == "built"
+    assert (output / "Beads" / "ga-zbmk.md").is_file()
+    assert (output / "Views" / "Work.base").is_file()
+    assert not (output / "Tasks" / "task-1.md").exists()
+    all_text = "\n".join(
+        path.read_text(encoding="utf-8") for path in output.rglob("*") if path.is_file()
+    )
+    assert "[[Beads/ga-zbmk|Bead ga-zbmk]]" in all_text
+    assert "Sensitive title off by default" not in all_text
+    assert "Sensitive description off by default" not in all_text
+    assert "lookmanbenali@gmail.com" not in all_text
+    assert "gc.branch" in all_text
+
+    gate = obsidian_vault.gate_vault(
+        output,
+        phase="closeout",
+        expected_source_digest=snapshot["source_digest"],
+        expected_work_authority="beads",
+    )
+    assert gate["ok"] is True
+    assert gate["status"] == "passed"
+    assert gate["gate"] == "obsidian-closeout"
+
+    wrong_authority = obsidian_vault.gate_vault(
+        output,
+        phase="closeout",
+        expected_source_digest=snapshot["source_digest"],
+        expected_work_authority="taskmaster",
+    )
+    assert wrong_authority["ok"] is False
+    assert wrong_authority["status"] == "blocked"
+    assert "vault work authority drift" in wrong_authority["problems"][0]
+
+    stale = obsidian_vault.gate_vault(
+        output,
+        phase="closeout",
+        expected_source_digest="0" * 64,
+        expected_work_authority="beads",
+    )
+    assert stale["ok"] is False
+    assert stale["status"] == "blocked"
+    assert "vault source digest is stale" in stale["problems"]
+
+
+def test_gate_blocks_missing_or_empty_declared_work_projection(tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    missing = obsidian_vault.gate_vault(
+        tmp_path / "missing-vault",
+        phase="readiness",
+        expected_source_digest="0" * 64,
+        expected_work_authority="beads",
+    )
+    assert missing["ok"] is False
+    assert missing["status"] == "blocked"
+    assert "vault directory is missing or is a symlink" in missing["problems"]
+
+    source = tmp_path / "empty-beads.json"
+    source.write_text("[]\n", encoding="utf-8")
+    snapshot = obsidian_vault.collect_snapshot(root, [], bead_snapshot=source)
+    output = tmp_path / "empty-vault"
+    obsidian_vault.build_vault(snapshot, output, target_dir=root)
+    empty = obsidian_vault.gate_vault(
+        output,
+        phase="closeout",
+        expected_source_digest=snapshot["source_digest"],
+        expected_work_authority="beads",
+    )
+    assert empty["ok"] is False
+    assert empty["status"] == "blocked"
+    assert "vault contains no projected work items" in empty["problems"]
+
+
+def test_cli_gate_uses_same_explicit_bead_snapshot_as_build(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _repo(tmp_path)
+    source = _bead_snapshot(tmp_path / "beads.json")
+    output = tmp_path / "cli-bead-vault"
+    common = [
+        "--source-root",
+        str(SOURCE_ROOT),
+        "vault",
+    ]
+    assert aegis_cli.main(
+        [
+            *common,
+            "build",
+            "--target-dir",
+            str(root),
+            "--output",
+            str(output),
+            "--beads-json",
+            str(source),
+        ]
+    ) == 0
+    built = json.loads(capsys.readouterr().out)
+    assert built["work_authority"] == "beads"
+
+    assert aegis_cli.main(
+        [
+            *common,
+            "gate",
+            "--phase",
+            "readiness",
+            "--target-dir",
+            str(root),
+            "--output",
+            str(output),
+            "--beads-json",
+            str(source),
+        ]
+    ) == 0
+    gated = json.loads(capsys.readouterr().out)
+    assert gated["ok"] is True
+    assert gated["gate"] == "obsidian-readiness"

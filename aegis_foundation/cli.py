@@ -1140,6 +1140,9 @@ def handle_ledger(args: argparse.Namespace) -> int:
 def _vault_inputs(
     source_root: Path,
     target_dir: str | Path,
+    *,
+    beads_json: str | Path | None = None,
+    include_bead_content: bool = False,
 ) -> tuple[Any, dict[str, Any], str]:
     """Read a stable vault snapshot without creating or changing ledger state."""
 
@@ -1167,6 +1170,8 @@ def _vault_inputs(
             target_dir,
             events,
             repository_identity=str(identity or "") or None,
+            bead_snapshot=beads_json,
+            include_bead_content=include_bead_content,
         )
     except obsidian_vault.VaultError as exc:
         raise _aegis_installer.AegisError(str(exc)) from exc
@@ -1192,7 +1197,12 @@ def handle_vault(args: argparse.Namespace) -> int:
         if args.vault_subcommand == "path":
             print(output.as_posix())
             return 0
-        ledger_lib, snapshot, ledger_status = _vault_inputs(source_root, args.target_dir)
+        ledger_lib, snapshot, ledger_status = _vault_inputs(
+            source_root,
+            args.target_dir,
+            beads_json=getattr(args, "beads_json", None),
+            include_bead_content=bool(getattr(args, "include_bead_content", False)),
+        )
         output = _vault_output_path(ledger_lib, args.target_dir, getattr(args, "output", None))
         if args.vault_subcommand == "build":
             try:
@@ -1207,8 +1217,9 @@ def handle_vault(args: argparse.Namespace) -> int:
                 {
                     **result,
                     "authority": "derived-read-only",
+                    "work_authority": snapshot["work_authority"]["authority"],
                     "ledger": ledger_status,
-                    "next_action": "open the generated directory in Obsidian or run aegis vault check",
+                    "next_action": "run aegis vault gate at the next readiness, closeout, or publication boundary",
                 }
             )
             return 0
@@ -1216,6 +1227,15 @@ def handle_vault(args: argparse.Namespace) -> int:
             result = obsidian_vault.check_vault(
                 output,
                 expected_source_digest=snapshot["source_digest"],
+            )
+            _dump_json({**result, "authority": "derived-read-only", "ledger": ledger_status})
+            return 0 if result["ok"] else 1
+        if args.vault_subcommand == "gate":
+            result = obsidian_vault.gate_vault(
+                output,
+                phase=args.phase,
+                expected_source_digest=snapshot["source_digest"],
+                expected_work_authority=snapshot["work_authority"]["authority"],
             )
             _dump_json({**result, "authority": "derived-read-only", "ledger": ledger_status})
             return 0 if result["ok"] else 1
@@ -2481,6 +2501,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--output",
         help="Optional explicit out-of-repository vault directory.",
     )
+    vault_build_parser.add_argument(
+        "--beads-json",
+        help="Explicit frozen Gas City bead JSON/JSONL snapshot; when supplied, beads replace legacy Taskmaster as work authority.",
+    )
+    vault_build_parser.add_argument(
+        "--include-bead-content",
+        action="store_true",
+        help="Opt in to projecting bead titles, descriptions, and labels; off by default for replicated-vault content safety.",
+    )
     vault_build_parser.set_defaults(func=handle_vault)
     vault_check_parser = vault_sub.add_parser(
         "check",
@@ -2491,7 +2520,41 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--output",
         help="Optional explicit out-of-repository vault directory.",
     )
+    vault_check_parser.add_argument(
+        "--beads-json",
+        help="The same explicit frozen bead snapshot used to build the vault.",
+    )
+    vault_check_parser.add_argument(
+        "--include-bead-content",
+        action="store_true",
+        help="Match the build-time bead content policy.",
+    )
     vault_check_parser.set_defaults(func=handle_vault)
+    vault_gate_parser = vault_sub.add_parser(
+        "gate",
+        help="Fail closed when the managed vault is missing, modified, stale, or bound to the wrong work authority.",
+    )
+    vault_gate_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    vault_gate_parser.add_argument(
+        "--output",
+        help="Optional explicit out-of-repository managed Aegis vault subtree.",
+    )
+    vault_gate_parser.add_argument(
+        "--beads-json",
+        help="The same explicit frozen bead snapshot used to build the vault.",
+    )
+    vault_gate_parser.add_argument(
+        "--include-bead-content",
+        action="store_true",
+        help="Match the build-time bead content policy.",
+    )
+    vault_gate_parser.add_argument(
+        "--phase",
+        choices=("readiness", "closeout", "publication"),
+        required=True,
+        help="Workflow boundary being evaluated; gates never run after each mutation.",
+    )
+    vault_gate_parser.set_defaults(func=handle_vault)
 
     next_parser = subparsers.add_parser(
         "next",

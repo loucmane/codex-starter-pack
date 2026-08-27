@@ -2,19 +2,25 @@
 
 ## Status
 
-Task 243 introduces a read-only, disposable Obsidian-compatible projection over Aegis evidence.
-The vault is a knowledge view, not a workflow database and not a replacement for Taskmaster,
-Git, the passive ledger, the computed capsule, the delivery witness, or preserved S:W:H:E
-narrative.
+Task 243 introduced a read-only, disposable Obsidian-compatible projection over Aegis evidence.
+Bead `ga-zbmk` makes the projection authority-aware: an explicitly supplied Gas City bead
+snapshot is current work authority, while Taskmaster remains a read-only compatibility input for
+historical repositories. The vault is a knowledge view, not a workflow database and not a
+replacement for beads, Git, the passive ledger, the computed capsule, the delivery witness, or
+preserved S:W:H:E narrative.
 
 The authority chain is:
 
 ```text
-Git + Taskmaster + passive ledger + capsule + witness + preserved legacy narrative
+Git + explicit Gas City bead snapshot + passive ledger + capsule + witness
+                 + preserved legacy narrative
                                       |
                                       v
                        deterministic Obsidian projection
 ```
+
+When no bead snapshot is supplied, the compatibility chain substitutes legacy Taskmaster for the
+bead snapshot. Aegis never merges both authorities or guesses which bead store applies.
 
 Nothing in the vault is read back into Aegis. Editing a generated note has no effect on task,
 delivery, policy, or repository state, and the next build refuses to overwrite that edit rather
@@ -29,12 +35,27 @@ aegis vault path --target-dir .
 # Build or refresh atomically.
 aegis vault build --target-dir .
 
+# Beads-first build from an explicit, frozen host snapshot.
+aegis vault build --target-dir . --beads-json /owner/evidence/beads.json
+
 # Verify ownership, exact inventory, hashes, and source freshness.
 aegis vault check --target-dir .
+
+# Explicit workflow boundaries; never run after every mutation.
+aegis vault gate --target-dir . --beads-json /owner/evidence/beads.json --phase readiness
+aegis vault gate --target-dir . --beads-json /owner/evidence/beads.json --phase closeout
+aegis vault gate --target-dir . --beads-json /owner/evidence/beads.json --phase publication
 
 # Use a deliberate out-of-repository destination.
 aegis vault build --target-dir . --output /safe/path/project-aegis-vault
 ```
+
+The bead snapshot may be a JSON array, a `beads`/`issues`/`records` envelope, or a Beads JSONL
+export. It is read only, size bounded, duplicate-key checked, identifier validated, and never
+discovered implicitly. Bead titles, labels, and descriptions are excluded by default; enable
+them only with the deliberate `--include-bead-content` content-policy switch and use the same
+switch for build, check, and gate. Assignee/owner identities are treated as human content and
+follow the same opt-in policy.
 
 The default is:
 
@@ -46,20 +67,25 @@ The generator rejects any output inside the source repository. The vault therefo
 the product worktree dirty, enter a pull request accidentally, or become a competing tracked
 state surface.
 
+For the real WSL Obsidian vault, use one Aegis-owned subtree such as
+`/home/loucmane/vaults/main/GasCity/<project>/Aegis`. The existing Gas City projector owns
+`GasCity/<project>/Tasks/`, agents own `GasCity/<project>/Docs/worklogs/`, and humans own the
+remaining vault. These ownership boundaries must never overlap.
+
 ## Graph Model
 
 Generated Markdown notes use deterministic YAML properties and path-qualified wikilinks. The
 first implementation emits:
 
 - one bounded orientation note;
-- task and subtask notes from Taskmaster;
+- bead notes from the explicit Gas City snapshot, or task/subtask notes from legacy Taskmaster;
 - session, branch, agent, and worktree nodes observed in high-signal ledger events;
-- witness, verification, delivery, task-truth, operator-authority, risk, and tool-failure
+- witness, verification, delivery, bead/work/task-truth, operator-authority, risk, and tool-failure
   evidence notes;
 - structural inventory notes for preserved session, plan, tracker, implementation, changelog,
   decision, finding, and handoff documents;
 - activity and evidence indexes;
-- `.base` views for tasks, evidence, and legacy documents.
+- `.base` views for all work, compatibility tasks, evidence, and legacy documents.
 
 Obsidian turns internal links into graph edges; Properties provide typed note metadata; Bases
 provide table views over those properties. The projection uses only those native formats, so it
@@ -79,7 +105,7 @@ The ledger can contain tens of thousands of low-level mutation and gate events. 
 row into a note would create an unusable graph and would cause every read-only hook invocation to
 make the vault stale. Therefore:
 
-- only high-signal lifecycle, scope, task, risk, verification, witness, delivery, authority, and
+- only high-signal lifecycle, scope, work-truth, risk, verification, witness, delivery, authority, and
   failure events affect the graph;
 - mutation and gate-decision rows remain queryable in the ledger but are not expanded into notes;
 - a deduplicated identity edge set (agent, parent, session, branch, and worktree) is derived from
@@ -87,7 +113,7 @@ make the vault stale. Therefore:
   visible;
 - event metadata is allowlisted and clipped;
 - raw command strings are never copied;
-- evidence, task, session, branch, agent, worktree, and legacy-document counts have hard limits
+- evidence, work-item, session, branch, agent, worktree, and legacy-document counts have hard limits
   (the legacy ceiling is 5,000 after source-repository dogfood measured 2,175 real documents);
 - a limit violation fails before replacing a current vault.
 
@@ -99,7 +125,7 @@ the view must never dump the raw flight recorder into an agent's context window.
 Legacy workflow files remain valuable because they contain decisions, plans, narrative,
 trade-offs, and failure context that cannot be reconstructed reliably from tool telemetry. The
 vault inventories their human-authored content outside Aegis generated-marker blocks and links it
-to matching task nodes. It records:
+to matching work nodes. It records:
 
 - repository-relative source path;
 - document kind;
@@ -109,7 +135,7 @@ to matching task nodes. It records:
 - checkbox and S:W:H:E counts;
 - generated-block count;
 - deterministic content digest;
-- related task IDs.
+- related task or bead IDs.
 
 It does **not** copy the full prose by default. The repository document remains the narrative
 authority. This makes unique legacy content measurable without turning the vault into an
@@ -143,7 +169,7 @@ The generator never:
 
 - writes the source repository;
 - appends ledger rows;
-- updates Taskmaster;
+- updates beads or Taskmaster;
 - compiles or rewrites the capsule;
 - invokes GitHub;
 - drains pending evidence;
@@ -177,16 +203,19 @@ Acceptance requires:
 - a failed staged build leaves the previous valid vault intact;
 - source files remain byte-identical;
 - `aegis vault check` detects stale or modified output without writing;
+- `aegis vault gate` blocks readiness, closeout, or publication when the projection is missing,
+  stale, modified, empty for a declared authority, or built from the wrong authority;
 - realistic Blog and HP-Fetcher event volumes remain within the documented bounds.
 
 ## Non-Goals
 
 This slice does not:
 
-- replace or migrate Taskmaster;
-- start the Taskmaster-to-Gas-Town migration;
+- migrate Taskmaster records into beads or mutate either authority;
+- discover a bead database, start Dolt, or shell out to `gc`/`bd`;
+- make the Obsidian graph authoritative or implement vault-to-beads writeback;
+- require a vault write after each source mutation;
 - replace the legacy S:W:H:E workflow;
-- implement vault-to-repository writeback;
 - install Obsidian or the Kepano Obsidian skills;
 - publish a multi-user knowledge service;
 - treat the graph as proof of policy compliance.

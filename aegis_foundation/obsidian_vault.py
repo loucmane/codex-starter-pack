@@ -21,6 +21,8 @@ import subprocess
 import tempfile
 from typing import Any, Iterable, Mapping, Sequence
 
+from aegis_foundation import work_authority
+
 SCHEMA_VERSION = "1"
 GENERATOR = "aegis-foundation:obsidian-vault"
 MANIFEST_NAME = ".aegis-vault.json"
@@ -35,10 +37,12 @@ HIGH_SIGNAL_EVENT_TYPES = frozenset(
         "scope",
         "session_begin",
         "session_end",
+        "bead_truth",
         "task_truth",
         "tool_failure",
         "verification",
         "witness",
+        "work_truth",
     }
 )
 EVIDENCE_EVENT_TYPES = frozenset(
@@ -46,10 +50,12 @@ EVIDENCE_EVENT_TYPES = frozenset(
         "delivery",
         "operator_authority",
         "risk",
+        "bead_truth",
         "task_truth",
         "tool_failure",
         "verification",
         "witness",
+        "work_truth",
     }
 )
 LEGACY_PREFIXES = (
@@ -66,6 +72,8 @@ SECRET_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
 )
 _TASK_IN_TEXT = re.compile(r"(?i)(?:task[-_ ]?)(\d+(?:\.\d+)?)")
 _TASK_BRANCH = re.compile(r"(?i)(?:^|/)feat/task-(\d+)(?:-|$)")
+_BEAD_IN_TEXT = re.compile(r"(?<![a-z0-9])([a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*)(?![a-z0-9-])")
+_BEAD_BRANCH = re.compile(r"(?i)^codex/([a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*)(?:-|$)")
 _MARKER_BEGIN = re.compile(r"<!--\s*AEGIS:BEGIN\b")
 _MARKER_END = re.compile(r"<!--\s*AEGIS:END\b")
 
@@ -174,66 +182,6 @@ def default_vault_path(ledger_store_dir: str | Path) -> Path:
     return Path(ledger_store_dir).expanduser().resolve() / DEFAULT_VAULT_DIRNAME
 
 
-def _normalize_task_id(value: Any, parent_id: str | None = None) -> str:
-    raw = str(value or "").strip()
-    if parent_id and raw and "." not in raw:
-        return f"{parent_id}.{raw}"
-    return raw
-
-
-def _task_records(root: Path, limits: VaultLimits) -> list[dict[str, Any]]:
-    path = root / ".taskmaster" / "tasks" / "tasks.json"
-    if not path.is_file():
-        return []
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise VaultError(f"invalid Taskmaster source {path.relative_to(root)}: {exc}") from exc
-    if isinstance(payload, Mapping) and isinstance(payload.get("master"), Mapping):
-        raw_tasks = payload["master"].get("tasks", [])
-    elif isinstance(payload, Mapping):
-        raw_tasks = payload.get("tasks", [])
-    else:
-        raw_tasks = []
-    records: list[dict[str, Any]] = []
-
-    def visit(task: Any, parent_id: str | None = None) -> None:
-        if not isinstance(task, Mapping):
-            return
-        task_id = _normalize_task_id(task.get("id"), parent_id)
-        if not task_id:
-            return
-        raw_dependencies = task.get("dependencies")
-        dependencies: list[Any] = raw_dependencies if isinstance(raw_dependencies, list) else []
-        records.append(
-            {
-                "id": task_id,
-                "parent_id": parent_id,
-                "title": _redact(task.get("title"), limit=240),
-                "status": _redact(task.get("status"), limit=40) or "unknown",
-                "priority": _redact(task.get("priority"), limit=40) or "unknown",
-                "dependencies": sorted(
-                    {
-                        _normalize_task_id(item, parent_id)
-                        for item in dependencies
-                        if str(item).strip()
-                    }
-                ),
-                "description": _redact(task.get("description"), limit=limits.max_body_chars),
-            }
-        )
-        for child in task.get("subtasks", []) if isinstance(task.get("subtasks"), list) else []:
-            visit(child, task_id)
-
-    for raw_task in raw_tasks if isinstance(raw_tasks, list) else []:
-        visit(raw_task)
-    if len(records) > limits.max_tasks:
-        raise VaultError(
-            f"Taskmaster projection exceeds task limit ({len(records)} > {limits.max_tasks})"
-        )
-    return sorted(records, key=lambda item: _natural_id_key(item["id"]))
-
-
 def _natural_id_key(value: str) -> tuple[Any, ...]:
     return tuple(int(part) if part.isdigit() else part for part in re.split(r"[.-]", value))
 
@@ -250,6 +198,7 @@ def _selected_capsule(root: Path) -> dict[str, Any]:
         return {"status": "invalid"}
     selected: dict[str, Any] = {"status": "available"}
     keys = (
+        "active_work",
         "active_task",
         "active_subtask",
         "next_action",
@@ -336,6 +285,10 @@ def _legacy_inventory(root: Path, limits: VaultLimits) -> list[dict[str, Any]]:
                     "sweh_entries": None,
                     "generated_blocks": None,
                     "task_ids": sorted(set(_TASK_IN_TEXT.findall(relative)), key=_natural_id_key),
+                    "work_ids": sorted(
+                        set(_TASK_IN_TEXT.findall(relative))
+                        | set(_BEAD_IN_TEXT.findall(relative))
+                    ),
                     "content_digest": None,
                 }
             )
@@ -361,6 +314,7 @@ def _legacy_inventory(root: Path, limits: VaultLimits) -> list[dict[str, Any]]:
                     headings.append(_redact(line.lstrip("# "), limit=180))
         normalized = "\n".join(" ".join(line.split()) for line in outside)
         task_ids = set(_TASK_IN_TEXT.findall(relative + "\n" + "\n".join(headings)))
+        bead_ids = set(_BEAD_IN_TEXT.findall(relative + "\n" + "\n".join(headings)))
         records.append(
             {
                 "path": relative,
@@ -373,6 +327,7 @@ def _legacy_inventory(root: Path, limits: VaultLimits) -> list[dict[str, Any]]:
                 "sweh_entries": sum(1 for line in outside if "[S:" in line and "|W:" in line),
                 "generated_blocks": generated_blocks,
                 "task_ids": sorted(task_ids, key=_natural_id_key),
+                "work_ids": sorted(task_ids | bead_ids),
                 "content_digest": _digest_bytes(normalized.encode("utf-8")),
             }
         )
@@ -391,7 +346,9 @@ def _safe_extra(event: Mapping[str, Any]) -> dict[str, Any]:
         "reason",
         "report_path",
         "status",
+        "bead_id",
         "task_id",
+        "work_authority",
         "work_id",
     )
     result: dict[str, Any] = {}
@@ -468,20 +425,31 @@ def _identity_records(
     return result
 
 
-def _task_from_event(event: Mapping[str, Any]) -> str:
+def _work_from_event(event: Mapping[str, Any]) -> str:
     raw_extra = event.get("extra")
     extra: Mapping[str, Any] = raw_extra if isinstance(raw_extra, Mapping) else {}
-    for value in (extra.get("task_id"), extra.get("task"), extra.get("work_id")):
+    for value in (
+        extra.get("bead_id"),
+        extra.get("work_id"),
+        extra.get("task_id"),
+        extra.get("task"),
+    ):
         if isinstance(value, Mapping):
             value = value.get("id")
         text = str(value or "").strip()
+        if work_authority.BEAD_ID_PATTERN.fullmatch(text):
+            return text
         if text.isdigit() or re.fullmatch(r"\d+(?:\.\d+)+", text):
             return text
         match = _TASK_IN_TEXT.search(text)
         if match:
             return match.group(1)
-    match = _TASK_BRANCH.search(str(event.get("branch") or ""))
-    return match.group(1) if match else ""
+    branch = str(event.get("branch") or "")
+    bead_match = _BEAD_BRANCH.search(branch)
+    if bead_match:
+        return bead_match.group(1)
+    task_match = _TASK_BRANCH.search(branch)
+    return task_match.group(1) if task_match else ""
 
 
 def collect_snapshot(
@@ -489,6 +457,8 @@ def collect_snapshot(
     events: Sequence[Mapping[str, Any]],
     *,
     repository_identity: str | None = None,
+    bead_snapshot: str | Path | None = None,
+    include_bead_content: bool = False,
     limits: VaultLimits | None = None,
 ) -> dict[str, Any]:
     """Collect a deterministic, redacted model without modifying the target."""
@@ -514,6 +484,15 @@ def collect_snapshot(
     )
     if not context_identity:
         context_identity = "sha256:" + _digest_bytes(common_dir.as_posix().encode("utf-8"))
+    try:
+        work = work_authority.collect_work_authority(
+            root,
+            bead_snapshot=bead_snapshot,
+            include_bead_content=include_bead_content,
+            max_items=active_limits.max_tasks,
+        )
+    except work_authority.WorkAuthorityError as exc:
+        raise VaultError(str(exc)) from exc
     snapshot = {
         "schema_version": SCHEMA_VERSION,
         "repository": {
@@ -522,7 +501,11 @@ def collect_snapshot(
             "head": _git(root, "rev-parse", "HEAD"),
             "branch": _git(root, "branch", "--show-current"),
         },
-        "tasks": _task_records(root, active_limits),
+        "work_authority": {
+            key: value for key, value in work.items() if key != "items"
+        },
+        "work_items": work["items"],
+        "tasks": [item for item in work["items"] if item["authority"] == "taskmaster"],
         "capsule": _selected_capsule(root),
         "legacy_documents": _legacy_inventory(root, active_limits),
         "events": high_signal,
@@ -539,7 +522,24 @@ def collect_snapshot(
 
 
 def _relation_maps(snapshot: Mapping[str, Any]) -> dict[str, dict[str, str]]:
-    tasks = {str(task["id"]): f"Tasks/task-{task['id']}.md" for task in snapshot["tasks"]}
+    work = {
+        str(item["id"]): (
+            f"Beads/{item['id']}.md"
+            if item.get("authority") == "beads"
+            else f"Tasks/task-{item['id']}.md"
+        )
+        for item in snapshot.get("work_items", snapshot.get("tasks", []))
+    }
+    tasks = {
+        str(item["id"]): work[str(item["id"])]
+        for item in snapshot.get("work_items", snapshot.get("tasks", []))
+        if item.get("authority") == "taskmaster"
+    }
+    beads = {
+        str(item["id"]): work[str(item["id"])]
+        for item in snapshot.get("work_items", [])
+        if item.get("authority") == "beads"
+    }
     identities = [item for item in snapshot.get("identities", []) if isinstance(item, Mapping)]
     sessions = sorted(
         {str(item.get("session_id") or "") for item in identities if item.get("session_id")}
@@ -560,7 +560,9 @@ def _relation_maps(snapshot: Mapping[str, Any]) -> dict[str, dict[str, str]]:
         {str(item.get("worktree") or "") for item in identities if item.get("worktree")}
     )
     return {
+        "work": work,
         "tasks": tasks,
+        "beads": beads,
         "sessions": {value: f"Sessions/{_slug(value)}.md" for value in sessions},
         "branches": {value: f"Branches/{_slug(value)}.md" for value in branches},
         "agents": {value: f"Agents/{_slug(value)}.md" for value in agents},
@@ -570,9 +572,16 @@ def _relation_maps(snapshot: Mapping[str, Any]) -> dict[str, dict[str, str]]:
 
 def _event_links(event: Mapping[str, Any], maps: Mapping[str, Mapping[str, str]]) -> list[str]:
     links: list[str] = []
-    task_id = _task_from_event(event)
-    if task_id in maps["tasks"]:
-        links.append(_link(maps["tasks"][task_id], f"Task {task_id}"))
+    work_id = _work_from_event(event)
+    if work_id not in maps["work"]:
+        branch = str(event.get("branch") or "")
+        for bead_id in sorted(maps["beads"], key=len, reverse=True):
+            if branch == f"codex/{bead_id}" or branch.startswith(f"codex/{bead_id}-"):
+                work_id = bead_id
+                break
+    if work_id in maps["work"]:
+        kind = "Bead" if work_id in maps["beads"] else "Task"
+        links.append(_link(maps["work"][work_id], f"{kind} {work_id}"))
     for field, key, label in (
         ("session_id", "sessions", "Session"),
         ("branch", "branches", "Branch"),
@@ -601,6 +610,24 @@ def _render_base(kind: str, title: str, columns: Sequence[str]) -> str:
     )
 
 
+def _render_work_base() -> str:
+    return (
+        "filters:\n"
+        "  or:\n"
+        "    - 'aegis_kind == \"bead\"'\n"
+        "    - 'aegis_kind == \"task\"'\n"
+        "views:\n"
+        "  - type: table\n"
+        "    name: \"Work\"\n"
+        "    order:\n"
+        "      - file.name\n"
+        "      - authority\n"
+        "      - status\n"
+        "      - priority\n"
+        "      - work_id\n"
+    )
+
+
 def render_vault(snapshot: Mapping[str, Any]) -> dict[str, bytes]:
     """Render every owned file as UTF-8 bytes, excluding the ownership manifest."""
 
@@ -617,18 +644,23 @@ def render_vault(snapshot: Mapping[str, Any]) -> dict[str, bytes]:
     repository = snapshot["repository"]
     event_summary = snapshot["event_summary"]
     legacy = snapshot["legacy_documents"]
+    authority = snapshot.get("work_authority", {})
+    work_items = snapshot.get("work_items", snapshot.get("tasks", []))
     home_body = [
         "This vault is a generated, read-only view of Aegis evidence. Edit the authoritative repository or ledger—not these notes.",
         "",
         "## Current repository truth",
         f"- Branch: `{_redact(repository['branch'], limit=160)}`",
         f"- HEAD: `{_redact(repository['head'], limit=80)}`",
+        f"- Work authority: `{_redact(authority.get('authority'), limit=40)}`",
+        f"- Work items: {len(work_items)}",
         f"- High-signal ledger events: {event_summary['high_signal_count']}",
         f"- Stable identity relationships: {len(snapshot.get('identities') or [])}",
         f"- Preserved legacy documents inventoried: {len(legacy)}",
         "- Low-level mutation and gate traffic is intentionally not expanded into notes.",
         "",
         "## Views",
+        "- " + _link("Views/Work.base", "Current work authority"),
         "- " + _link("Views/Tasks.base", "Tasks"),
         "- " + _link("Views/Evidence.base", "Evidence"),
         "- " + _link("Views/Legacy.base", "Legacy documents"),
@@ -659,8 +691,9 @@ def render_vault(snapshot: Mapping[str, Any]) -> dict[str, bytes]:
             },
             "About this generated vault",
             [
-                "- Authority remains in Git, Taskmaster, the passive Aegis ledger, and deterministic delivery evidence.",
-                "- Rebuild with `aegis vault build`; verify with `aegis vault check`.",
+                "- Authority remains in Git, Gas City beads when explicitly supplied, the passive Aegis ledger, and deterministic delivery evidence.",
+                "- Taskmaster is a read-only compatibility source when no bead snapshot is supplied.",
+                "- Rebuild with `aegis vault build`; verify with `aegis vault check`; gate readiness or closeout with `aegis vault gate`.",
                 "- The generator refuses directories containing files it does not own.",
                 "- Raw commands and low-level event payloads are not copied into the vault.",
                 "- `.obsidian/` configuration and third-party plugins are intentionally not generated.",
@@ -678,12 +711,13 @@ def render_vault(snapshot: Mapping[str, Any]) -> dict[str, bytes]:
         if key == "source_digest":
             continue
         orientation_body.append(f"- **{key}**: `{_redact(capsule[key], limit=500)}`")
-    active_task = capsule.get("active_task")
-    if isinstance(active_task, Mapping):
-        task_id = str(active_task.get("id") or "")
-        if task_id in maps["tasks"]:
+    active_work = capsule.get("active_work", capsule.get("active_task"))
+    if isinstance(active_work, Mapping):
+        work_id = str(active_work.get("id") or "")
+        if work_id in maps["work"]:
+            kind = "Bead" if work_id in maps["beads"] else "Task"
             orientation_body.append(
-                f"- Related: {_link(maps['tasks'][task_id], f'Task {task_id}')}"
+                f"- Related: {_link(maps['work'][work_id], f'{kind} {work_id}')}"
             )
     add(
         "Orientation.md",
@@ -700,26 +734,49 @@ def render_vault(snapshot: Mapping[str, Any]) -> dict[str, bytes]:
         ),
     )
 
-    legacy_by_task: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
+    legacy_by_work: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
     for document in legacy:
-        for task_id in document["task_ids"]:
-            legacy_by_task[task_id].append(document)
-    for task in snapshot["tasks"]:
-        task_id = str(task["id"])
+        for work_id in document.get("work_ids", document.get("task_ids", [])):
+            legacy_by_work[work_id].append(document)
+    for item in work_items:
+        work_id = str(item["id"])
+        item_authority = str(item.get("authority") or "unknown")
+        item_kind = "bead" if item_authority == "beads" else "task"
+        display_kind = item_kind.title()
         body = [
-            f"- Status: **{task['status']}**",
-            f"- Priority: `{task['priority']}`",
+            f"- Authority: **{item_authority}**",
+            f"- Status: **{item['status']}**",
+            f"- Priority: `{item['priority']}`",
+            f"- Type: `{item.get('issue_type') or 'unknown'}`",
         ]
-        if task["description"]:
-            body.extend(("", "## Description", task["description"]))
-        dependencies = [
-            _link(maps["tasks"][item], f"Task {item}")
-            for item in task["dependencies"]
-            if item in maps["tasks"]
-        ]
+        if item.get("assignee"):
+            body.append(f"- Assignee: `{item['assignee']}`")
+        if item.get("updated_at"):
+            body.append(f"- Updated: `{item['updated_at']}`")
+        if item.get("description"):
+            body.extend(("", "## Description", item["description"]))
+        dependencies = []
+        for dependency in item.get("dependencies", []):
+            dependency_id = str(dependency.get("id") or "")
+            relationship = str(dependency.get("type") or "related")
+            if dependency_id in maps["work"]:
+                dependencies.append(
+                    f"`{relationship}` → {_link(maps['work'][dependency_id], dependency_id)}"
+                )
+            elif dependency_id:
+                dependencies.append(f"`{relationship}` → `{dependency_id}` (external/unprojected)")
         if dependencies:
             body.extend(("", "## Dependencies", *(f"- {item}" for item in dependencies)))
-        related_legacy = legacy_by_task.get(task_id, [])
+        metadata = item.get("metadata") if isinstance(item.get("metadata"), Mapping) else {}
+        if metadata:
+            body.extend(
+                (
+                    "",
+                    "## Bounded metadata",
+                    *(f"- **{key}**: `{_redact(value, limit=500)}`" for key, value in sorted(metadata.items())),
+                )
+            )
+        related_legacy = legacy_by_work.get(work_id, [])
         if related_legacy:
             body.extend(
                 (
@@ -732,17 +789,24 @@ def render_vault(snapshot: Mapping[str, Any]) -> dict[str, bytes]:
                 )
             )
         add(
-            maps["tasks"][task_id],
+            maps["work"][work_id],
             _markdown(
                 {
-                    "aegis_kind": "task",
+                    "aegis_kind": item_kind,
                     "aegis_schema": SCHEMA_VERSION,
-                    "priority": task["priority"],
-                    "status": task["status"],
-                    "task_id": task_id,
-                    "tags": ["aegis-vault", "aegis/task"],
+                    "authority": item_authority,
+                    "priority": item["priority"],
+                    "status": item["status"],
+                    "work_id": work_id,
+                    "task_id": work_id if item_kind == "task" else None,
+                    "bead_id": work_id if item_kind == "bead" else None,
+                    "tags": ["aegis-vault", f"aegis/{item_kind}"],
                 },
-                f"Task {task_id}: {task['title']}",
+                (
+                    f"{display_kind} {work_id}: {item['title']}"
+                    if item.get("title")
+                    else f"{display_kind} {work_id}"
+                ),
                 body,
             ),
         )
@@ -892,13 +956,14 @@ def render_vault(snapshot: Mapping[str, Any]) -> dict[str, bytes]:
         ]
         if document["headings"]:
             body.extend(("", "## Headings", *(f"- {heading}" for heading in document["headings"])))
-        task_links = [
-            _link(maps["tasks"][task_id], f"Task {task_id}")
-            for task_id in document["task_ids"]
-            if task_id in maps["tasks"]
-        ]
-        if task_links:
-            body.extend(("", "## Related tasks", *(f"- {item}" for item in task_links)))
+        work_links = []
+        for work_id in document.get("work_ids", document.get("task_ids", [])):
+            if work_id not in maps["work"]:
+                continue
+            kind = "Bead" if work_id in maps["beads"] else "Task"
+            work_links.append(_link(maps["work"][work_id], f"{kind} {work_id}"))
+        if work_links:
+            body.extend(("", "## Related work", *(f"- {item}" for item in work_links)))
         add(
             note_path,
             _markdown(
@@ -942,6 +1007,10 @@ def render_vault(snapshot: Mapping[str, Any]) -> dict[str, bytes]:
         ),
     )
     add(
+        "Views/Work.base",
+        _render_work_base(),
+    )
+    add(
         "Views/Tasks.base",
         _render_base("task", "Tasks", ("file.name", "status", "priority", "task_id")),
     )
@@ -970,12 +1039,20 @@ def _manifest(snapshot: Mapping[str, Any], files: Mapping[str, bytes]) -> dict[s
         "source_branch": snapshot["repository"]["branch"],
         "source_head": snapshot["repository"]["head"],
         "source_digest": snapshot["source_digest"],
+        "work_authority": snapshot.get("work_authority", {}).get("authority", "none"),
+        "work_source_digest": snapshot.get("work_authority", {}).get("source_digest", ""),
         "latest_evidence_ts": snapshot["event_summary"]["latest_ts"],
         "counts": {
             "files": len(files),
             "high_signal_events": snapshot["event_summary"]["high_signal_count"],
             "identity_relationships": len(snapshot.get("identities") or []),
             "legacy_documents": len(snapshot["legacy_documents"]),
+            "work_items": len(snapshot.get("work_items", snapshot.get("tasks", []))),
+            "beads": sum(
+                1
+                for item in snapshot.get("work_items", [])
+                if item.get("authority") == "beads"
+            ),
             "tasks": len(snapshot["tasks"]),
         },
         "files": {path: _digest_bytes(content) for path, content in sorted(files.items())},
@@ -1062,8 +1139,51 @@ def check_vault(
         "fresh": fresh,
         "output": root.as_posix(),
         "source_digest": manifest.get("source_digest"),
+        "work_authority": manifest.get("work_authority", "none"),
+        "counts": manifest.get("counts", {}),
         "file_count": len(declared),
         "problems": problems,
+    }
+
+
+def gate_vault(
+    output_dir: str | Path,
+    *,
+    phase: str,
+    expected_source_digest: str,
+    expected_work_authority: str,
+) -> dict[str, Any]:
+    """Evaluate the explicit readiness/closeout/publication vault boundary."""
+
+    if phase not in {"readiness", "closeout", "publication"}:
+        raise VaultError(f"unsupported vault gate phase: {phase}")
+    checked = check_vault(
+        output_dir,
+        expected_source_digest=expected_source_digest,
+    )
+    problems = list(checked.get("problems") or [])
+    actual_authority = str(checked.get("work_authority") or "none")
+    if actual_authority != expected_work_authority:
+        problems.append(
+            "vault work authority drift: "
+            f"expected {expected_work_authority}, found {actual_authority}"
+        )
+    counts = checked.get("counts") if isinstance(checked.get("counts"), Mapping) else {}
+    if expected_work_authority != "none" and int(counts.get("work_items") or 0) < 1:
+        problems.append("vault contains no projected work items")
+    return {
+        **checked,
+        "status": "passed" if not problems else "blocked",
+        "ok": not problems,
+        "gate": f"obsidian-{phase}",
+        "phase": phase,
+        "expected_work_authority": expected_work_authority,
+        "problems": problems,
+        "next_action": (
+            "continue workflow"
+            if not problems
+            else "rebuild the managed Aegis vault from the exact current sources, then rerun this gate"
+        ),
     }
 
 
@@ -1177,6 +1297,7 @@ __all__ = [
     "check_vault",
     "collect_snapshot",
     "default_vault_path",
+    "gate_vault",
     "render_vault",
     "repository_root",
 ]

@@ -75,6 +75,8 @@ the rows:
 | `verification` | PR-1d (gate registry match) | a registered gate command run: `{package, gate, exit_class, commit}` in `extra` |
 | `delivery` | PR-1b | `git push` / `gh pr create` / merge command events; branch→PR mapping in `extra` |
 | `task_truth` | PR-1b | writes to `.taskmaster/tasks/tasks.json` or `task-master` commands; status flips in `extra` |
+| `bead_truth` | ga-zbmk | a Gas City bead lifecycle observation; exact `bead_id`/`work_id`, status, and bounded source evidence in `extra` |
+| `work_truth` | ga-zbmk | authority-neutral work lifecycle evidence used when a producer already resolved its explicit work authority |
 | `gate_decision` | PR-1c dual-write | one advisory gate decision (verdict, reason, mode, policy commit in `extra`) |
 | `checkpoint` | PR-3 Stop hook | deterministic per-turn checkpoint (turn index, mutation count, dirty files) |
 | `scope` | PR-1d | inferred/confirmed scope record for a branch (spec §2.1) |
@@ -87,7 +89,7 @@ the rows:
 
 `PostToolUseFailure`, an explicit error status, `success/ok=false`, or a recursively
 observed nonzero response exit code → `fail` · interruption flags/status →
-`interrupted` · successful mutation/delivery/task/verification evidence → `pass` ·
+`interrupted` · successful mutation/delivery/work/verification evidence → `pass` ·
 anything else → `unknown`. Codex emits `PostToolUse` after supported Bash calls even
 when Bash exits nonzero, so classification cannot assume the hook event name itself
 means success. Unknown provider response shapes remain `unknown`; they are not promoted
