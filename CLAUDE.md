@@ -17,7 +17,7 @@ It does not read or mutate the historical Taskmaster graph.
 Before Claude performs any persistent mutation, readiness must be `READY`.
 
 ```bash
-bash .claude/scripts/readiness.sh
+python3 -m aegis_foundation.cli gate readiness --target-dir .
 ```
 
 `BLOCKED` means no file edits, Bash mutations, work-ledger mutations, memory writes, Git writes, GitHub writes, or MCP mutations. Fix the workflow state first by using the kickoff/session/plan/work-tracking flow. Read-only inspection is allowed. Taskmaster MCP is intentionally not registered in this beads-first repository; historical Taskmaster files may be inspected read-only only for legacy evidence.
@@ -32,7 +32,7 @@ Claude mutations require all of these to align:
 - `plans/current` points to the active plan for that work;
 - exactly one ACTIVE work-tracking folder exists for that work;
 - `TRACKER.md` and the active plan agree on plan-step status;
-- `bash .claude/scripts/readiness.sh --quick` exits `0`.
+- `python3 -m aegis_foundation.cli gate readiness --quick --target-dir .` exits `0`.
 
 ## Operating Loop
 1. Run readiness and stop on `BLOCKED`.
@@ -76,7 +76,7 @@ Every enforcement claim must be backed by a passing test or labeled policy-only 
 Claude project commands live under `.claude/commands/`.
 
 Core runtime commands:
-- `/readiness` -> `bash .claude/scripts/readiness.sh`
+- `/readiness` -> canonical `aegis gate readiness` evaluation
 - `/kickoff` -> `python3 scripts/codex-task wizard kickoff`
 - `/guard` -> `python3 scripts/codex-guard validate --include-untracked`
 - `/plan-sync` -> `python3 scripts/codex-task plan sync`

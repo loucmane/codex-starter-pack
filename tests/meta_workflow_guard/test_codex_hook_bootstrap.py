@@ -162,6 +162,29 @@ def test_two_targets_run_hooks_without_their_recorded_source_root(tmp_path: Path
         assert result.returncode == 0, result.stderr
         assert "Aegis CLI is unavailable" not in result.stderr
         assert (target / installer.AEGIS_GATE_DECISIONS_REL).is_file()
+        assert (
+            target
+            / installer.AEGIS_LOCAL_GATE_RUNTIME_ROOT_REL
+            / "aegis_foundation/gate/hooks/entrypoint.py"
+        ).is_file()
+
+        readiness = subprocess.run(
+            [
+                (target / installer.AEGIS_LOCAL_BIN_REL).as_posix(),
+                "gate",
+                "readiness",
+                "--quick",
+                "--target-dir",
+                target.as_posix(),
+            ],
+            cwd=target,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert readiness.returncode == 2
+        assert readiness.stdout.startswith("BLOCKED |")
+        assert "Aegis CLI is unavailable" not in readiness.stderr
 
 
 def test_missing_target_runtime_fails_closed_once_and_passive_hooks_degrade_once(

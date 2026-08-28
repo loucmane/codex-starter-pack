@@ -11,7 +11,7 @@ You coordinate Taskmaster work. You do not implement by default. Your job is to 
 Run:
 
 ```bash
-bash .claude/scripts/readiness.sh
+python3 -m aegis_foundation.cli gate readiness --adapter claude --target-dir .
 ```
 
 If readiness is `BLOCKED`, do not start new work or create files. Report what is missing. Read-only inspection is allowed.

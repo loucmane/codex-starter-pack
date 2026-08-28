@@ -508,5 +508,95 @@
     "plan_hash": "72d8769d7bf9647f35e7b09ae5a9c2cd6e91a2339937256ec1305529adc3c004",
     "tracker_hash": "f4fdce696df0f348af67661cafa38f6c04a9194b1199e6507d5979beaa229d71",
     "synced_at": "2026-08-27T14:32:27.853148+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-zbmk-aegis-beads-obsidian.md",
+    "plan_hash": "3f1983a5cad6ce58150ac5265e80c919b64bbc88a0efa4bbf111b9819db10e78",
+    "tracker_hash": "e057954b4baeefb0ef5b08679da977e5f15f8b9e3dbd89080ae4c994d13272fd",
+    "synced_at": "2026-08-27T14:57:25.984681+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-y1ei-obsidian-observer-authority.md",
+    "plan_hash": "0fe46d7cf1dceba575be9b1227a71a2667f613bb933b8bc39e98572907398b4b",
+    "tracker_hash": "9b56f5d5bfff7dd5090d0ac284c5495ba16a543adca0c9981fad4b110467c2e4",
+    "synced_at": "2026-08-27T14:58:04.568402+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-y1ei-obsidian-observer-authority.md",
+    "plan_hash": "f168f893c283f5b01b0c4fe2140dcb500c006f3439fe29253f4dded453ed1ae3",
+    "tracker_hash": "eae733e48a977f51da432f72325a971e8f6943b936ffa6baf3ba13d7f8458f5c",
+    "synced_at": "2026-08-27T15:16:12.535003+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-y1ei-obsidian-observer-authority.md",
+    "plan_hash": "f168f893c283f5b01b0c4fe2140dcb500c006f3439fe29253f4dded453ed1ae3",
+    "tracker_hash": "ee80834c2a2d4f454445825b1c5284a6d553f094918e7ef845e7b0ec8d481c28",
+    "synced_at": "2026-08-27T15:20:37.951722+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-y1ei-obsidian-observer-authority.md",
+    "plan_hash": "ce4a73d2d13585b501262059cc9eaaaf2144b90623a0d1395f81659eaeffa85a",
+    "tracker_hash": "92b8707224afd1ca51540feaffa0579ca4d4d977e8367925d6e7707349f776bc",
+    "synced_at": "2026-08-27T15:23:14.245746+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-y1ei-obsidian-observer-authority.md",
+    "plan_hash": "f168f893c283f5b01b0c4fe2140dcb500c006f3439fe29253f4dded453ed1ae3",
+    "tracker_hash": "ee80834c2a2d4f454445825b1c5284a6d553f094918e7ef845e7b0ec8d481c28",
+    "synced_at": "2026-08-27T15:26:51.159589+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-y1ei-obsidian-observer-authority.md",
+    "plan_hash": "f168f893c283f5b01b0c4fe2140dcb500c006f3439fe29253f4dded453ed1ae3",
+    "tracker_hash": "95f0cd8a36543353b3056d8daf8af223212f5321fb96c6e9bcf5b418ccd344fc",
+    "synced_at": "2026-08-27T15:35:52.244004+02:00"
+  },
+  {
+    "plan": "plans/2026-08-27-ga-y1ei-obsidian-observer-authority.md",
+    "plan_hash": "ce4a73d2d13585b501262059cc9eaaaf2144b90623a0d1395f81659eaeffa85a",
+    "tracker_hash": "a66ef2624a17a0a40bb534a7f1b236bf5b9d6af98c4eaca08a6bf6e63a27e967",
+    "synced_at": "2026-08-28T09:45:36.940163+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-iqbd-modular-workflow-gate.md",
+    "plan_hash": "9d1ae5b3a0d39e34b876f477f7d27baa77f0389684bd898b1c09e0a0d43e6e9a",
+    "tracker_hash": "4eb037c99cfcf447b2c270b81b67516b06878bdecd3215aa78633f5f0f3636a1",
+    "synced_at": "2026-08-28T09:45:37.228667+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-iqbd-modular-workflow-gate.md",
+    "plan_hash": "9d1ae5b3a0d39e34b876f477f7d27baa77f0389684bd898b1c09e0a0d43e6e9a",
+    "tracker_hash": "4eb037c99cfcf447b2c270b81b67516b06878bdecd3215aa78633f5f0f3636a1",
+    "synced_at": "2026-08-28T09:45:37.782551+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-iqbd-modular-workflow-gate.md",
+    "plan_hash": "caaf3f689c6f6545afef0d8c1bfff6487278c1f656920d0b0b3a096335d32c05",
+    "tracker_hash": "5a0c0fcdb24538a3e7e174c73842c61e14c0fea4eee9157fa3697215662ad113",
+    "synced_at": "2026-08-28T10:14:56.648973+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-iqbd-modular-workflow-gate.md",
+    "plan_hash": "d49beb306f5eb6cd1e712047c9f31277820d50f2e5564fa0f34b053139fc74b4",
+    "tracker_hash": "a0cb3df4c7fdb5b8e7c517896c165466c2b8d2fa284343413f30f1dfe5774c7d",
+    "synced_at": "2026-08-28T10:29:57.264069+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-iqbd-modular-workflow-gate.md",
+    "plan_hash": "d49beb306f5eb6cd1e712047c9f31277820d50f2e5564fa0f34b053139fc74b4",
+    "tracker_hash": "a0cb3df4c7fdb5b8e7c517896c165466c2b8d2fa284343413f30f1dfe5774c7d",
+    "synced_at": "2026-08-28T10:31:37.371667+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-iqbd-modular-workflow-gate.md",
+    "plan_hash": "d49beb306f5eb6cd1e712047c9f31277820d50f2e5564fa0f34b053139fc74b4",
+    "tracker_hash": "bf829a8b74a1b2c9e94bb69cd96ee813b40ae1143a17ca24468ed2c96eeb2b46",
+    "synced_at": "2026-08-28T10:47:07.819265+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-iqbd-modular-workflow-gate.md",
+    "plan_hash": "d49beb306f5eb6cd1e712047c9f31277820d50f2e5564fa0f34b053139fc74b4",
+    "tracker_hash": "95fc2116bdf708bd9a7bd66fe90d51c59acb77a58c5949c9c4f21db780d25035",
+    "synced_at": "2026-08-28T10:54:30.101316+02:00"
   }
 ]

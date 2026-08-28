@@ -26,7 +26,7 @@ The full fail-closed contract is `docs/aegis/source-checkout-closeout-contract.m
 
 ## Gate Chain
 1. PreToolUse invokes `.claude/scripts/pretooluse-gate.sh` for mutation-capable file, Bash, and MCP tools.
-2. The gate invokes `.claude/scripts/readiness.sh --quick`.
+2. The gate invokes the canonical `aegis_foundation.gate.readiness` evaluator directly.
 3. `BLOCKED` readiness refuses hookable persistent mutation regardless of target.
 4. `READY` readiness dispatches target-specific checks:
    - path guard for Codex-owned or workflow-critical paths;
@@ -37,7 +37,7 @@ The full fail-closed contract is `docs/aegis/source-checkout-closeout-contract.m
 7. Every guard emits an actionable remediation message instead of a silent warning.
 
 ## Implemented Gate Components
-- `.claude/scripts/readiness.sh` verifies branch, work authority, session, plan, tracker, and plan/tracker alignment; bead-native source work is Taskmaster-free, while source-only completed numeric-task archives use the Task 244 derivation contract.
+- `aegis_foundation/gate/` verifies branch, work authority, session, plan, tracker, and plan/tracker alignment; bead-native source work is Taskmaster-free, while source-only completed numeric-task archives use the Task 244 derivation contract. `.claude/scripts/readiness.sh` is a compatibility launcher only.
 - `.claude/scripts/pretooluse-gate.sh` is the dispatcher registered for `Edit|Write|MultiEdit|NotebookEdit|Bash`.
 - `.claude/scripts/posttooluse-tracking.sh` records pending S:W:H:E tracking after successful persistent mutations.
 - `.claude/scripts/tracking-stop-gate.sh` blocks session stop until pending S:W:H:E tracking is logged.

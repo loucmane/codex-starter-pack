@@ -19,6 +19,7 @@ from scripts._source_workflow_state import (
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 READINESS_SOURCE = REPO_ROOT / ".claude" / "scripts" / "readiness.sh"
+GATE_PACKAGE_SOURCE = REPO_ROOT / "aegis_foundation" / "gate"
 HELPER_SOURCE = REPO_ROOT / "scripts" / "_source_workflow_state.py"
 POLICY_EVALUATOR_SOURCE = REPO_ROOT / "scripts" / "aegis-delivery-policy"
 
@@ -79,6 +80,10 @@ def _write_source_markers(root: Path) -> None:
     shutil.copy2(POLICY_EVALUATOR_SOURCE, root / "scripts" / "aegis-delivery-policy")
     (root / ".claude" / "scripts").mkdir(parents=True, exist_ok=True)
     shutil.copy2(READINESS_SOURCE, root / ".claude" / "scripts" / "readiness.sh")
+    gate_package = root / "aegis_foundation" / "gate"
+    gate_package.mkdir(parents=True, exist_ok=True)
+    for module in GATE_PACKAGE_SOURCE.glob("*.py"):
+        shutil.copy2(module, gate_package / module.name)
     packaged_readiness = (
         root / "aegis_foundation" / "assets" / ".claude" / "scripts" / "readiness.sh"
     )

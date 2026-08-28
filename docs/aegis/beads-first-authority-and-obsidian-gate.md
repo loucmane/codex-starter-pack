@@ -83,9 +83,39 @@ aegis vault gate \
   --output /home/loucmane/vaults/main/GasCity/<project>/Aegis
 ```
 
+Because the build swaps the managed subtree atomically, Obsidian's Windows-side watcher may
+retain its prior WSL index. After a successful filesystem gate, a host operator may run
+`obsidian vault=main reload` and repeat the managed-note read. Do not put this mutation in the
+read-only doctor, and do not reinterpret a stale index as evidence that the desktop app is
+closed.
+
 The gate blocks when ownership, inventory, hashes, source freshness, work authority, or required
 work-item presence disagrees. It does not close a bead, mutate Git, write a worklog, repair a
 vault, or run after each source edit.
+
+## Observer authority
+
+The filesystem projection and the Obsidian desktop process are different evidence surfaces.
+Vault build/check/gate results are authoritative for the managed subtree and remain valid when
+the GUI is closed. Live Obsidian CLI reachability is only a host-WSL smoke over those bytes.
+
+Every environment-sensitive observation records both its observer and its authority:
+
+| Observer | May prove | Must not infer from an empty or denied result |
+| --- | --- | --- |
+| `codex-sandbox` / worker namespace | its own files, Git state, bead/receipt surfaces granted to it | host process absence, cross-UID service state, systemd state, Windows interop, Obsidian IPC state |
+| `host-wsl` | systemd/cgroup/service state, host process trees, local service sockets, live Obsidian CLI | Windows facts not returned by the approved interop probe |
+| filesystem vault gate | managed output ownership, inventory, hashes, and source freshness | whether the Obsidian GUI is currently open |
+
+Observer-limited negatives are `UNKNOWN`, not `FAIL` and not proof of absence. A positive
+sandbox observation may be retained, but an authoritative negative must be re-run from the
+declared host observer.
+
+Existing projects adopt this without rewriting their history: bind current work to the native
+project bead, keep Git as source truth, install/register the project-local Aegis adapter, assign
+one owned `GasCity/<project>/Aegis/` subtree, and pass one filesystem gate plus one host-WSL
+live-app smoke. New projects receive those defaults during initialization. Taskmaster remains
+historical compatibility only; no bead/Taskmaster dual write is introduced.
 
 ## Reboot and upgrade behavior
 

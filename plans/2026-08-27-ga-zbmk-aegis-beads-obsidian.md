@@ -5,7 +5,7 @@ handler_target: aegis_foundation/obsidian_vault.py
 bead_ids: [ga-zbmk]
 branch_policy: codex/ga-zbmk-aegis-beads-obsidian
 evidence_summary:
-  - docs/ai/work-tracking/active/20260827-ga-zbmk-aegis-beads-obsidian-ACTIVE
+  - docs/ai/work-tracking/archive/20260827-ga-zbmk-aegis-beads-obsidian-COMPLETED
   - aegis_foundation/obsidian_vault.py
   - bead:ga-zbmk
   - scripts/codex-task
@@ -21,20 +21,20 @@ emergency_bypass: false
 - **Handler Target (H)**: aegis_foundation/obsidian_vault.py
 - **Bead IDs**: ga-zbmk
 - **Branch Policy**: codex/ga-zbmk-aegis-beads-obsidian
-- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260827-ga-zbmk-aegis-beads-obsidian-ACTIVE, aegis_foundation/obsidian_vault.py, bead:ga-zbmk, scripts/codex-task
+- **Evidence Summary (E)**: docs/ai/work-tracking/archive/20260827-ga-zbmk-aegis-beads-obsidian-COMPLETED, aegis_foundation/obsidian_vault.py, bead:ga-zbmk, scripts/codex-task
 - **Plan Version**: v1
 - **Emergency Bypass**: false
 
 ## Plan Table
 | Step ID | Description | Evidence | Status |
 |---|---|---|---|
-| plan-step-scope | Confirm scope and authority for Aegis beads-first authority and Obsidian closeout gate | docs/ai/work-tracking/active/20260827-ga-zbmk-aegis-beads-obsidian-ACTIVE/FINDINGS.md | completed |
-| plan-step-implement | Implement Aegis beads-first authority and Obsidian closeout gate through the reviewed helper surface | aegis_foundation/obsidian_vault.py; docs/ai/work-tracking/active/20260827-ga-zbmk-aegis-beads-obsidian-ACTIVE/IMPLEMENTATION.md | completed |
-| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/active/20260827-ga-zbmk-aegis-beads-obsidian-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260827-ga-zbmk-aegis-beads-obsidian-ACTIVE/TRACKER.md | completed |
+| plan-step-scope | Confirm scope and authority for Aegis beads-first authority and Obsidian closeout gate | docs/ai/work-tracking/archive/20260827-ga-zbmk-aegis-beads-obsidian-COMPLETED/FINDINGS.md | completed |
+| plan-step-implement | Implement Aegis beads-first authority and Obsidian closeout gate through the reviewed helper surface | aegis_foundation/obsidian_vault.py; docs/ai/work-tracking/archive/20260827-ga-zbmk-aegis-beads-obsidian-COMPLETED/IMPLEMENTATION.md | completed |
+| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/archive/20260827-ga-zbmk-aegis-beads-obsidian-COMPLETED/HANDOFF.md; docs/ai/work-tracking/archive/20260827-ga-zbmk-aegis-beads-obsidian-COMPLETED/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
-- `docs/ai/work-tracking/active/20260827-ga-zbmk-aegis-beads-obsidian-ACTIVE`
+- `docs/ai/work-tracking/archive/20260827-ga-zbmk-aegis-beads-obsidian-COMPLETED`
 - `.serena/memories/2026-08-27_ga-zbmk-aegis-beads-obsidian.md`
 - `aegis_foundation/work_authority.py`
 - `aegis_foundation/obsidian_vault.py`
@@ -65,7 +65,7 @@ emergency_bypass: false
 - Context reload steps:
   1. Read `sessions/current` and this plan.
   2. Read primary bead `ga-zbmk` through the rig-scoped bead surface.
-  3. Review `docs/ai/work-tracking/active/20260827-ga-zbmk-aegis-beads-obsidian-ACTIVE/TRACKER.md` before changing implementation.
+  3. Review `docs/ai/work-tracking/archive/20260827-ga-zbmk-aegis-beads-obsidian-COMPLETED/TRACKER.md` before changing implementation.
   4. Run `python3 scripts/codex-task plan sync` after tracker updates.
 - Outstanding risks/todos: preserve bead authority and avoid allocating shadow Taskmaster work.
 

@@ -2508,9 +2508,9 @@ def handle_work_tracking_audit(args: argparse.Namespace) -> None:
                         tracker_text = tracker_path.read_text(encoding='utf-8')
                     except FileNotFoundError:
                         tracker_text = ''
-                    if today not in tracker_text or 'serena/memory' not in tracker_text.lower():
+                    if today not in tracker_text:
                         warnings.append(
-                            f"Tracker for {folder.name} missing Serena memory entry for {today}; capture memory and log via presets."
+                            f"Tracker for {folder.name} missing a progress entry for {today}; capture current continuity evidence."
                         )
 
     current_symlink = SESSIONS_DIR / 'current'
@@ -15427,7 +15427,7 @@ CANARY_ROLLOUT_STAGES: Tuple[Dict[str, Any], ...] = (
             "Claude-owned changes stay out of Codex-owned paths unless explicitly authorized.",
         ],
         "health_checks": [
-            "bash .claude/scripts/readiness.sh --quick",
+            "python3 -m aegis_foundation.cli gate readiness --quick --target-dir .",
             "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/claude_adapter",
             "python3 scripts/codex-guard validate --include-untracked",
             "python3 scripts/codex-task work-tracking audit",

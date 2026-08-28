@@ -27,6 +27,7 @@ from aegis_foundation import (
     obsidian_vault,
     output_budget,
 )
+from aegis_foundation.gate import readiness as workflow_readiness
 from aegis_foundation.resources import packaged_asset_root
 from aegis_foundation.version import __version__
 from scripts import _aegis_installer
@@ -1704,6 +1705,21 @@ def handle_observe(args: argparse.Namespace) -> int:
     raise _aegis_installer.AegisError("unknown observe subcommand")
 
 
+def handle_gate(args: argparse.Namespace) -> int:
+    """Evaluate adapter-neutral workflow authorization boundaries."""
+
+    if args.gate_subcommand == "readiness":
+        argv = ["--root", args.target_dir, "--adapter", args.adapter]
+        if args.quick:
+            argv.append("--quick")
+        elif args.verbose:
+            argv.append("--verbose")
+        elif args.all_output:
+            argv.append("--all")
+        return workflow_readiness.main(argv)
+    raise _aegis_installer.AegisError("unknown gate subcommand")
+
+
 _REQUIRED_HOOK_PHASES = frozenset(
     {"pretooluse", "path", "bash", "configchange", "readiness"}
 )
@@ -2902,6 +2918,34 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Move known observation artifacts into the Aegis observation report before closing.",
     )
     observe_stop_parser.set_defaults(func=handle_observe)
+
+    gate_parser = subparsers.add_parser(
+        "gate",
+        help="Evaluate canonical workflow authorization boundaries without mutation.",
+    )
+    gate_sub = gate_parser.add_subparsers(dest="gate_subcommand", required=True)
+    gate_readiness = gate_sub.add_parser(
+        "readiness",
+        help="Evaluate strict current-work readiness through the shared gate engine.",
+    )
+    gate_readiness.add_argument(
+        "--target-dir",
+        "--root",
+        dest="target_dir",
+        default=".",
+        help="Compatibility alias for --target-dir.",
+    )
+    gate_readiness.add_argument(
+        "--adapter",
+        choices=("aegis", "claude", "codex"),
+        default="aegis",
+        help="Select only the human-readable heading; policy remains shared.",
+    )
+    gate_readiness.add_argument("--quick", action="store_true", help="Emit one status line.")
+    detail = gate_readiness.add_mutually_exclusive_group()
+    detail.add_argument("--verbose", action="store_true", help="Emit bounded verbose detail.")
+    detail.add_argument("--all", dest="all_output", action="store_true", help="Emit all checks.")
+    gate_readiness.set_defaults(func=handle_gate)
 
     hook_parser = subparsers.add_parser(
         "hook",

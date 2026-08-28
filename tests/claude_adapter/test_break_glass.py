@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
+from aegis_foundation.gate.hooks import decisions as gate_decisions
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GATE_LIB = REPO_ROOT / ".claude" / "scripts" / "gate_lib.py"
@@ -39,11 +40,15 @@ def make_blocked_repo(tmp_path: Path) -> Path:
     repo = tmp_path / "repo"
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=False)
-    subprocess.run(["git", "checkout", "-q", "-b", "main"], cwd=repo, check=False)  # no task id => BLOCKED
+    subprocess.run(
+        ["git", "checkout", "-q", "-b", "main"], cwd=repo, check=False
+    )  # no task id => BLOCKED
     return repo
 
 
-def run_pretooluse(repo: Path, payload: dict, env_extra: dict | None = None) -> subprocess.CompletedProcess[str]:
+def run_pretooluse(
+    repo: Path, payload: dict, env_extra: dict | None = None
+) -> subprocess.CompletedProcess[str]:
     env = dict(os.environ)
     env["CLAUDE_PROJECT_DIR"] = repo.as_posix()
     env.update(env_extra or {})
@@ -64,9 +69,16 @@ def mint_override(repo: Path, reason_class: str = "any", state_home: Path | None
         env["XDG_STATE_HOME"] = state_home.as_posix()
     result = subprocess.run(
         [
-            sys.executable, "-m", "aegis_foundation.cli", "override",
-            "--reason", "deadlock recovery", "--reason-class", reason_class,
-            "--target-dir", repo.as_posix(),
+            sys.executable,
+            "-m",
+            "aegis_foundation.cli",
+            "override",
+            "--reason",
+            "deadlock recovery",
+            "--reason-class",
+            reason_class,
+            "--target-dir",
+            repo.as_posix(),
         ],
         cwd=REPO_ROOT,
         capture_output=True,
@@ -86,7 +98,10 @@ def test_recovery_contract_covers_block_reasons() -> None:
         assert contract["audit"]
         assert contract["escalation"]
     assert gate_lib.recovery_contract("readiness_blocked")["override_eligible"] == "true"
-    assert gate_lib.recovery_contract("observation_mode_disallowed_mutation")["override_eligible"] == "false"
+    assert (
+        gate_lib.recovery_contract("observation_mode_disallowed_mutation")["override_eligible"]
+        == "false"
+    )
     assert gate_lib.recovery_contract("unknown_reason")["override_eligible"] == "false"
 
 
@@ -118,7 +133,11 @@ def test_override_records_audit_event(tmp_path: Path) -> None:
     repo = make_blocked_repo(tmp_path)
     state_home = tmp_path / "state"
     mint_override(repo, "readiness_blocked")
-    run_pretooluse(repo, {"tool_name": "Bash", "tool_input": {"command": "touch x"}}, {"XDG_STATE_HOME": state_home.as_posix()})
+    run_pretooluse(
+        repo,
+        {"tool_name": "Bash", "tool_input": {"command": "touch x"}},
+        {"XDG_STATE_HOME": state_home.as_posix()},
+    )
     ledger_lib_spec = importlib.util.spec_from_file_location(
         "ledger_for_breakglass", REPO_ROOT / ".claude" / "scripts" / "ledger_lib.py"
     )
@@ -154,7 +173,13 @@ def test_override_never_bypasses_observation_boundary(tmp_path: Path) -> None:
     )
     mint_override(repo, "any")
     # Source edit during observation is a tier-c boundary block — override must NOT clear it.
-    result = run_pretooluse(repo, {"tool_name": "Edit", "tool_input": {"file_path": "src/x.ts", "old_string": "a", "new_string": "b"}})
+    result = run_pretooluse(
+        repo,
+        {
+            "tool_name": "Edit",
+            "tool_input": {"file_path": "src/x.ts", "old_string": "a", "new_string": "b"},
+        },
+    )
     assert result.returncode == 2
     assert "observation mode only permits observation tooling" in result.stderr
     # The token is untouched (only eligible reasons consume it).
@@ -174,13 +199,41 @@ def test_override_rate_limited(tmp_path: Path) -> None:
     repo = make_blocked_repo(tmp_path)
     for _ in range(3):
         result = subprocess.run(
-            [sys.executable, "-m", "aegis_foundation.cli", "override", "--reason", "r", "--max-per-day", "3", "--target-dir", repo.as_posix()],
-            cwd=REPO_ROOT, capture_output=True, text=True, check=False,
+            [
+                sys.executable,
+                "-m",
+                "aegis_foundation.cli",
+                "override",
+                "--reason",
+                "r",
+                "--max-per-day",
+                "3",
+                "--target-dir",
+                repo.as_posix(),
+            ],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
         )
         assert result.returncode == 0
     over = subprocess.run(
-        [sys.executable, "-m", "aegis_foundation.cli", "override", "--reason", "r", "--max-per-day", "3", "--target-dir", repo.as_posix()],
-        cwd=REPO_ROOT, capture_output=True, text=True, check=False,
+        [
+            sys.executable,
+            "-m",
+            "aegis_foundation.cli",
+            "override",
+            "--reason",
+            "r",
+            "--max-per-day",
+            "3",
+            "--target-dir",
+            repo.as_posix(),
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     assert over.returncode == 1
     assert "rate limit" in over.stderr
@@ -190,7 +243,10 @@ def test_override_command_runs_while_blocked(tmp_path: Path) -> None:
     repo = make_blocked_repo(tmp_path)
     result = run_pretooluse(
         repo,
-        {"tool_name": "Bash", "tool_input": {"command": "python3 -m aegis_foundation.cli override --reason x"}},
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "python3 -m aegis_foundation.cli override --reason x"},
+        },
     )
     assert result.returncode == 0, "minting a token must itself be allowed while BLOCKED"
 
@@ -215,7 +271,7 @@ def test_override_expiry_uses_datetime_ordering_for_fractional_offset_timestamp(
         ),
         encoding="utf-8",
     )
-    monkeypatch.setattr(gate_lib, "datetime", FixedDateTime)
+    monkeypatch.setattr(gate_decisions, "datetime", FixedDateTime)
 
     token = gate_lib._consume_override_token(root, "readiness_blocked")
 
@@ -239,13 +295,23 @@ def test_override_rejects_malformed_or_timezone_naive_expiry(
 
 
 def test_gate_classifies_override_payload() -> None:
-    assert gate_lib.payload_is_aegis_override(
-        gate_lib.Payload("Bash", {"command": "python3 -m aegis_foundation.cli override --reason x"})
-    ) is True
-    assert gate_lib.payload_is_aegis_override(gate_lib.Payload("Bash", {"command": "git status"})) is False
+    assert (
+        gate_lib.payload_is_aegis_override(
+            gate_lib.Payload(
+                "Bash", {"command": "python3 -m aegis_foundation.cli override --reason x"}
+            )
+        )
+        is True
+    )
+    assert (
+        gate_lib.payload_is_aegis_override(gate_lib.Payload("Bash", {"command": "git status"}))
+        is False
+    )
 
 
 def test_assets_and_live_gate_lib_identical() -> None:
     live = (REPO_ROOT / ".claude" / "scripts" / "gate_lib.py").read_bytes()
-    asset = (REPO_ROOT / "aegis_foundation" / "assets" / ".claude" / "scripts" / "gate_lib.py").read_bytes()
+    asset = (
+        REPO_ROOT / "aegis_foundation" / "assets" / ".claude" / "scripts" / "gate_lib.py"
+    ).read_bytes()
     assert live == asset

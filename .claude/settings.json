@@ -3,6 +3,7 @@
   "permissions": {
     "allow": [
       "Bash(bash .claude/scripts/readiness.sh:*)",
+      "Bash(python3 -m aegis_foundation.cli gate readiness:*)",
       "Bash(bash .claude/scripts/pretooluse-gate.sh:*)",
       "Bash(bash .claude/scripts/posttooluse-tracking.sh:*)",
       "Bash(bash .claude/scripts/tracking-stop-gate.sh:*)",

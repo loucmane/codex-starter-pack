@@ -9,7 +9,8 @@ the layers that must survive a Windows restart:
 4. stale per-home supervisor units;
 5. the managed signing service and socket;
 6. Gas City controller and bead-store reachability; and
-7. the future Windows logon bootstrap task.
+7. live host-WSL Obsidian IPC and managed-note readability; and
+8. the Windows logon bootstrap task.
 
 The doctor never repairs, restarts, enables, disables, routes, resumes, signs, or deletes.
 
@@ -67,6 +68,53 @@ that a system service is absent.
 
 `--observer` changes only the evidence label. It grants no access and must never be used to
 turn an observer-limited `UNKNOWN` into a synthetic pass.
+
+The same rule applies to host applications. A sandbox result such as `The CLI is unable to
+find Obsidian` proves only that the sandbox could not reach Obsidian's host-side IPC. It does
+not prove that the application is closed. The doctor therefore records that result as
+`UNKNOWN(observer=codex-sandbox, authority=observer-limited)`. Only a real host-WSL run may
+report live Obsidian reachability or its absence.
+
+## Obsidian: projection authority versus live-app observation
+
+These are deliberately separate contracts:
+
+- `aegis vault build`, `aegis vault check`, and `aegis vault gate` operate on filesystem bytes.
+  They are the authoritative publication checks and do not require Obsidian to be open.
+- `obsidian vaults verbose` plus a managed-note read is an optional host-application smoke. It
+  proves only that the running Obsidian process can see the projected bytes.
+
+The Aegis publisher atomically replaces its managed subtree. Windows-side Obsidian file
+watching over WSL can keep the previous index after that directory swap even though the new
+filesystem bytes and all vault gates are correct. If a host-WSL note read fails after the
+filesystem check passes, run the supported `obsidian vault=main reload` command and repeat the
+read. This reload is a publish-time host action, not part of the read-only doctor, and the stale
+index is never evidence that Obsidian is closed.
+
+The default doctor smoke targets vault `main` and
+`GasCity/gas-city-operations/Aegis/Beads/ga-zbmk.md`. Other projects use the same doctor with
+their own stable managed-note path:
+
+```bash
+python3 scripts/codex-wsl-readiness \
+  --observer host-wsl \
+  --obsidian-vault main \
+  --obsidian-probe-path GasCity/<project>/Aegis/Beads/<stable-bead>.md
+```
+
+The project contract is uniform:
+
+| Project class | Work authority | Durable Aegis output | Host-only evidence |
+| --- | --- | --- | --- |
+| Gas City operations | primary Gas City bead | `GasCity/gas-city-operations/Aegis/` | supervisor, signer, cross-UID process truth, Obsidian IPC |
+| HPFetcher | HPFetcher rig bead | `GasCity/hpfetcher/Aegis/` | project services and Obsidian IPC |
+| Blog | Blog rig bead | `GasCity/blog/Aegis/` | project services and Obsidian IPC |
+| New project | project bead from initialization | `GasCity/<project>/Aegis/` | only the host checks declared by that project |
+
+Workers prove only repository, bead, receipt, and evidence facts visible inside their own
+namespace. Host-only checks stay in the operator/readiness layer. An empty cross-UID process
+scan, an unreachable local socket, or failed host-app IPC from a worker is always `UNKNOWN`,
+never absence evidence.
 
 ## Codex Desktop workaround lifecycle
 

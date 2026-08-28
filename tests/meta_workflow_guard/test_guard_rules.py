@@ -1215,7 +1215,7 @@ def test_validate_work_tracking_documents_flags_missing_changelog(monkeypatch) -
         shutil.rmtree(folder)
 
 
-def test_validate_work_tracking_documents_flags_missing_serena_memory(monkeypatch) -> None:
+def test_validate_work_tracking_documents_does_not_require_optional_serena_memory(monkeypatch) -> None:
     module = load_guard_module()
     monkeypatch.setattr(module, 'TODAY_ISO', '2030-01-01')
     monkeypatch.setattr(module, 'DATE_PREFIX_EXPECTED', '20300101')
@@ -1235,7 +1235,7 @@ def test_validate_work_tracking_documents_flags_missing_serena_memory(monkeypatc
             encoding='utf-8',
         )
         issues = module.validate_work_tracking_documents(folder)
-        assert any('Serena memory' in issue.message for issue in issues)
+        assert issues == []
     finally:
         import shutil
 

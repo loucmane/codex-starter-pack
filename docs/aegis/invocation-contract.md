@@ -107,7 +107,7 @@ Start tracked work from an authoritative Gas City bead:
 
 ```bash
 aegis kickoff --target-dir . --bead ga-example --slug first-task --title "First Task"
-bash .claude/scripts/readiness.sh --quick
+./.aegis/bin/aegis gate readiness --quick --target-dir .
 ```
 
 This creates `codex/ga-example-first-task`, records `mode=bead` and a mutable
@@ -118,7 +118,7 @@ For a standalone project with no external work ledger, start local work with:
 
 ```bash
 aegis start --target-dir . "First Task"
-bash .claude/scripts/readiness.sh --quick
+./.aegis/bin/aegis gate readiness --quick --target-dir .
 ```
 
 `aegis start` allocates the next local Aegis task id only when the project declares no

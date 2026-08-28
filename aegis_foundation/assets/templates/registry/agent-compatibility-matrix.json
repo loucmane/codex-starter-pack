@@ -171,7 +171,7 @@
         "compatibility_metrics": "native"
       },
       "required_gates": [
-        "bash .claude/scripts/readiness.sh --quick",
+        "python3 -m aegis_foundation.cli gate readiness --quick --target-dir .",
         ".claude/scripts/pretooluse-gate.sh",
         ".claude/scripts/posttooluse-tracking.sh",
         ".claude/scripts/tracking-stop-gate.sh",

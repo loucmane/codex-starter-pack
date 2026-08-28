@@ -2,8 +2,8 @@
 """Read-only reboot readiness diagnostics for Codex Desktop + WSL + Gas City.
 
 The probe deliberately separates file-observable facts from host-control-plane facts.
-When a Codex sandbox cannot reach systemd, Windows interop, or local service sockets,
-the affected check is UNKNOWN rather than a false failure.
+When a Codex sandbox cannot reach systemd, Windows interop, local service sockets, or
+host-WSL application IPC, the affected check is UNKNOWN rather than a false failure.
 """
 
 from __future__ import annotations
@@ -28,10 +28,13 @@ DEFAULT_SUPERVISOR_UNIT = "gascity-supervisor-home-42adab5d.service"
 DEFAULT_SIGNER_SERVICE = "gas-city-managed-git-signerd.service"
 DEFAULT_SIGNER_SOCKET = "gas-city-managed-git-signerd.socket"
 DEFAULT_WINDOWS_TASK = "GasCity-WSL-Bootstrap"
+DEFAULT_OBSIDIAN = Path("/home/loucmane/.local/bin/obsidian")
+DEFAULT_OBSIDIAN_VAULT = "main"
+DEFAULT_OBSIDIAN_PROBE_PATH = "GasCity/gas-city-operations/Aegis/Beads/ga-zbmk.md"
 MANAGED_PATH = "/home/loucmane/gascity/bin:/usr/local/bin:/usr/bin:/bin"
 KNOWN_AFFECTED_DESKTOP_VERSIONS = frozenset({"26.820.60940.0", "26.820.7780.0"})
 STATUS_ORDER = {"pass": 0, "unknown": 1, "warn": 2, "fail": 3}
-DOCTOR_VERSION = "2026.08.26.1"
+DOCTOR_VERSION = "2026.08.27.1"
 
 
 @dataclass(frozen=True)
@@ -94,6 +97,7 @@ class Report:
     generated_at: str
     overall: str
     observer: str
+    authority: str
     checks: tuple[Check, ...]
 
     def to_dict(self) -> dict[str, object]:
@@ -118,6 +122,9 @@ class ProbeConfig:
     signer_service: str = DEFAULT_SIGNER_SERVICE
     signer_socket: str = DEFAULT_SIGNER_SOCKET
     windows_task: str = DEFAULT_WINDOWS_TASK
+    obsidian_command: Path = DEFAULT_OBSIDIAN
+    obsidian_vault: str = DEFAULT_OBSIDIAN_VAULT
+    obsidian_probe_path: str = DEFAULT_OBSIDIAN_PROBE_PATH
     user: str | None = None
 
 
@@ -127,6 +134,10 @@ def _observer_kind(env: Mapping[str, str]) -> str:
     if Path("/.dockerenv").exists():
         return "container"
     return "host-wsl"
+
+
+def _observer_authority(observer: str) -> str:
+    return "host-control-plane" if observer == "host-wsl" else "observer-limited"
 
 
 def _control_plane_unobservable(result: CommandResult) -> bool:
@@ -379,6 +390,122 @@ def check_desktop(config: ProbeConfig, runner: Runner, observer: str) -> list[Ch
     return [config_check, mode_check, version_check, workaround_check]
 
 
+def _obsidian_vault_inventory(stdout: str) -> dict[str, str]:
+    inventory: dict[str, str] = {}
+    for line in stdout.splitlines():
+        if not line.strip():
+            continue
+        name, separator, path = line.partition("\t")
+        if not separator or not name.strip() or not path.strip():
+            continue
+        inventory[name.strip()] = path.strip()
+    return inventory
+
+
+def check_obsidian(config: ProbeConfig, runner: Runner, observer: str) -> Check:
+    """Probe live Obsidian IPC without confusing observer limits with app absence.
+
+    The deterministic filesystem projection remains the Aegis authority. This check only
+    proves that the host-side Obsidian process can currently enumerate the configured vault
+    and read one managed note through its CLI IPC surface.
+    """
+
+    host_authoritative = observer == "host-wsl"
+    authority = "host-wsl-live-ipc" if host_authoritative else "observer-limited"
+    vaults = runner.run([str(config.obsidian_command), "vaults", "verbose"])
+    common_details = {
+        "observer": observer,
+        "authority": authority,
+        "vault": config.obsidian_vault,
+        "probe_path": config.obsidian_probe_path,
+    }
+    if vaults.returncode != 0 or _control_plane_unobservable(vaults):
+        details = {
+            **common_details,
+            "returncode": vaults.returncode,
+            "error": (vaults.stderr or vaults.stdout).strip(),
+        }
+        if not host_authoritative or _control_plane_unobservable(vaults):
+            return Check(
+                "obsidian.host_ipc",
+                "unknown",
+                "This observer cannot establish live Obsidian host-IPC state",
+                details,
+                (
+                    "Repeat the read-only probe from host WSL; do not infer that Obsidian "
+                    "is closed from a sandbox result."
+                ),
+            )
+        return Check(
+            "obsidian.host_ipc",
+            "warn",
+            "Host WSL cannot currently reach the live Obsidian CLI",
+            details,
+            (
+                "The filesystem-native Aegis vault remains authoritative; open Obsidian "
+                "only when live GUI access is required."
+            ),
+        )
+
+    inventory = _obsidian_vault_inventory(vaults.stdout)
+    vault_path = inventory.get(config.obsidian_vault)
+    if vault_path is None:
+        details = {**common_details, "known_vaults": sorted(inventory)}
+        return Check(
+            "obsidian.host_ipc",
+            "warn" if host_authoritative else "unknown",
+            (
+                f"Obsidian does not expose configured vault {config.obsidian_vault!r}"
+                if host_authoritative
+                else "This observer cannot establish the configured Obsidian vault"
+            ),
+            details,
+            "Verify the vault from host WSL; never repair or recreate it from the doctor.",
+        )
+
+    read = runner.run(
+        [
+            str(config.obsidian_command),
+            f"vault={config.obsidian_vault}",
+            "read",
+            f"path={config.obsidian_probe_path}",
+        ]
+    )
+    if read.returncode != 0 or not read.stdout.strip():
+        details = {
+            **common_details,
+            "vault_path": vault_path,
+            "returncode": read.returncode,
+            "error": (read.stderr or read.stdout).strip(),
+        }
+        return Check(
+            "obsidian.host_ipc",
+            "warn" if host_authoritative else "unknown",
+            (
+                "Host WSL reached Obsidian but could not read the managed probe note"
+                if host_authoritative
+                else "This observer cannot establish managed-note readability in Obsidian"
+            ),
+            details,
+            (
+                "Run the filesystem vault check first. If it passes after an atomic WSL "
+                f"publication, run `obsidian vault={config.obsidian_vault} reload` from "
+                "host WSL, then repeat this optional live-app probe."
+            ),
+        )
+
+    return Check(
+        "obsidian.host_ipc",
+        "pass",
+        "Host-side Obsidian exposes the managed Aegis note",
+        {
+            **common_details,
+            "vault_path": vault_path,
+            "probe_bytes": len(read.stdout.encode("utf-8")),
+        },
+    )
+
+
 def check_windows_bootstrap(config: ProbeConfig, runner: Runner, observer: str) -> Check:
     script = (
         f"$t=Get-ScheduledTask -TaskName '{config.windows_task}' "
@@ -622,6 +749,7 @@ def build_report(
     checks.extend(check_wsl_systemd(probe))
     checks.append(check_linger(probe, command_runner, observer))
     checks.extend(check_desktop(probe, command_runner, observer))
+    checks.append(check_obsidian(probe, command_runner, observer))
     checks.append(check_windows_bootstrap(probe, command_runner, observer))
     checks.extend(check_supervisor_units(probe))
     checks.extend(
@@ -660,6 +788,7 @@ def build_report(
         generated_at=datetime.now(timezone.utc).isoformat(),
         overall=overall,
         observer=observer,
+        authority=_observer_authority(observer),
         checks=tuple(checks),
     )
 
@@ -669,6 +798,7 @@ def render_human(report: Report) -> str:
     lines = [
         f"Codex WSL reboot readiness: {report.overall.upper()}",
         f"Observer: {report.observer}",
+        f"Authority: {report.authority}",
         "",
     ]
     for check in report.checks:
@@ -695,6 +825,9 @@ def parser() -> argparse.ArgumentParser:
     cli.add_argument("--gc", type=Path, default=DEFAULT_GC)
     cli.add_argument("--windows-config", type=Path)
     cli.add_argument("--supervisor-unit", default=DEFAULT_SUPERVISOR_UNIT)
+    cli.add_argument("--obsidian-command", type=Path, default=DEFAULT_OBSIDIAN)
+    cli.add_argument("--obsidian-vault", default=DEFAULT_OBSIDIAN_VAULT)
+    cli.add_argument("--obsidian-probe-path", default=DEFAULT_OBSIDIAN_PROBE_PATH)
     cli.add_argument("--version", action="version", version=f"%(prog)s {DOCTOR_VERSION}")
     cli.add_argument(
         "--observer",
@@ -716,6 +849,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             gc=args.gc,
             windows_config=args.windows_config,
             supervisor_unit=args.supervisor_unit,
+            obsidian_command=args.obsidian_command,
+            obsidian_vault=args.obsidian_vault,
+            obsidian_probe_path=args.obsidian_probe_path,
         ),
         observer_override=None if args.observer == "auto" else args.observer,
     )

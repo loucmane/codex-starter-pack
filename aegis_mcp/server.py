@@ -201,7 +201,20 @@ RUNTIME_FINGERPRINT_FILES = (
     "scripts/_aegis_installer.py",
     ".claude/scripts/gate_lib.py",
     ".claude/scripts/ledger_lib.py",
+    "aegis_foundation/gate/readiness.py",
+    "aegis_foundation/gate/hooks/entrypoint.py",
 )
+
+
+def _runtime_fingerprint_path(source_root: Path, rel_path: str) -> Path:
+    direct = source_root / rel_path
+    if direct.is_file():
+        return direct
+    for parent in source_root.parents:
+        candidate = parent / rel_path
+        if candidate.is_file():
+            return candidate
+    return direct
 
 
 def runtime_fingerprint(source_root: Path) -> dict[str, Any]:
@@ -209,7 +222,7 @@ def runtime_fingerprint(source_root: Path) -> dict[str, Any]:
 
     hashes: dict[str, str | None] = {}
     for rel in RUNTIME_FINGERPRINT_FILES:
-        path = source_root / rel
+        path = _runtime_fingerprint_path(source_root, rel)
         try:
             hashes[rel] = sha256(path.read_bytes()).hexdigest()
         except OSError:

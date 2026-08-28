@@ -33,7 +33,7 @@ their manifest/current-work contract and never use this fallback.
 
 ## Consumers
 
-- `.claude/scripts/readiness.sh` reports terminal source-closeout readiness after validating
+- `aegis gate readiness` reports terminal source-closeout readiness after validating
   session, plan, and archived tracker parity.
 - `scripts/codex-guard` uses the same archived tracker when no ACTIVE or installed current-work
   path exists.

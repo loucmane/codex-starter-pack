@@ -28,7 +28,7 @@ Bead `ga-zbmk` was kicked off via `python3 scripts/codex-task wizard kickoff --b
 
 ### 📝 Progress Log
 - **[12:21]** — [S:20260827|W:ga-zbmk-aegis-beads-obsidian|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M:%S %Z %z"`] Confirmed current timestamp as `2026-08-27 12:21:47 CEST +0200`
-- **[12:21]** — [S:20260827|W:ga-zbmk-aegis-beads-obsidian|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260827-ga-zbmk-aegis-beads-obsidian-ACTIVE/TRACKER.md] Scaffolded the `ga-zbmk` ACTIVE work-tracking folder through the bead-native kickoff flow
+- **[12:21]** — [S:20260827|W:ga-zbmk-aegis-beads-obsidian|H:scripts/codex-task|E:docs/ai/work-tracking/archive/20260827-ga-zbmk-aegis-beads-obsidian-COMPLETED/TRACKER.md] Scaffolded the `ga-zbmk` ACTIVE work-tracking folder through the bead-native kickoff flow
 - **[12:21]** — [S:20260827|W:ga-zbmk-aegis-beads-obsidian|H:bd:show|E:bead:ga-zbmk] Bound the source-workflow record to primary bead `ga-zbmk`
 - **[12:21]** — [S:20260827|W:ga-zbmk-aegis-beads-obsidian|H:sessions/current|E:sessions/current] Repointed current session, plan, and session state to `ga-zbmk`
 - **[12:41]** — [S:20260827|W:ga-zbmk|H:aegis:work-authority-and-vault-gate|E:aegis_foundation/work_authority.py,aegis_foundation/obsidian_vault.py] Completed beads-first authority, deterministic Obsidian projection, boundary gates, compatibility docs, and privacy-safe defaults

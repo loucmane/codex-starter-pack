@@ -141,6 +141,7 @@ def test_jsonl_survives_when_ledger_unavailable(tmp_path: Path) -> None:
     env = dict(os.environ)
     env["XDG_STATE_HOME"] = (tmp_path / "state").as_posix()
     env["CLAUDE_PROJECT_DIR"] = repo.as_posix()
+    env["AEGIS_SOURCE_ROOT"] = REPO_ROOT.as_posix()
     result = subprocess.run(
         [sys.executable, (isolated / "gate_lib.py").as_posix(), "pretooluse"],
         cwd=repo,

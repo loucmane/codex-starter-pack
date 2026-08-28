@@ -2948,12 +2948,20 @@ def test_install_uses_runtime_dispatchers_and_update_without_reinstall(tmp_path:
     validate_schema("foundation-manifest.schema.json", manifest)
     assert manifest["runtime"]["source_root"] == REPO_ROOT.resolve().as_posix()
     assert manifest["runtime"]["pointer"] == AEGIS_RUNTIME_ENV_REL
-    assert {item["path"] for item in manifest["managed_files"]} >= {AEGIS_RUNTIME_ENV_REL}
+    local_readiness = (
+        f"{aegis_installer.AEGIS_LOCAL_GATE_RUNTIME_ROOT_REL}/"
+        "aegis_foundation/gate/readiness.py"
+    )
+    assert {item["path"] for item in manifest["managed_files"]} >= {
+        AEGIS_RUNTIME_ENV_REL,
+        local_readiness,
+    }
 
     bootstrap_before = {
         rel: (target / rel).read_text(encoding="utf-8")
         for rel in (
             ".aegis/bin/aegis",
+            local_readiness,
             ".claude/settings.json",
             ".claude/scripts/pretooluse-gate.sh",
             ".claude/scripts/readiness.sh",
@@ -3708,7 +3716,9 @@ def test_installed_pretooluse_blocks_unclassifiable_payload(tmp_path: Path) -> N
     assert (target / AEGIS_CLIENT_RELOAD_REL).is_file()
 
 
-def test_installed_pretooluse_short_circuits_read_only_before_readiness(tmp_path: Path) -> None:
+def test_installed_pretooluse_uses_canonical_readiness_without_legacy_script(
+    tmp_path: Path,
+) -> None:
     target = tmp_path / "read-only-without-readiness"
     target.mkdir()
     install(
@@ -3738,6 +3748,8 @@ def test_installed_pretooluse_short_circuits_read_only_before_readiness(tmp_path
     assert read_only.returncode == 0, read_only.stderr
     assert mutating.returncode == 2
     assert "readiness is BLOCKED" in mutating.stderr
+    assert "readiness.sh" not in mutating.stderr
+    assert "canonical hook runtime is unavailable" not in mutating.stderr
 
 
 def test_installed_pretooluse_blocks_direct_workflow_edits_but_allows_aegis_handlers(
@@ -7628,6 +7640,9 @@ def test_strict_verify_fails_when_workflow_template_is_missing(tmp_path: Path) -
 def _write_fake_wheel(path: Path, *, omit: str | None = None) -> None:
     members = [
         "aegis_foundation/cli.py",
+        "aegis_foundation/gate/readiness.py",
+        "aegis_foundation/gate/hooks/entrypoint.py",
+        "aegis_foundation/gate/hooks/pretool.py",
         "aegis_mcp/server.py",
         "aegis_foundation/assets/.claude/scripts/pretooluse-gate.sh",
         "aegis_foundation/assets/.claude/scripts/posttooluse-tracking.sh",
@@ -7650,6 +7665,9 @@ def _write_fake_wheel(path: Path, *, omit: str | None = None) -> None:
 def _write_fake_sdist(path: Path) -> None:
     members = [
         "aegis_foundation-0.1.0/aegis_foundation/cli.py",
+        "aegis_foundation-0.1.0/aegis_foundation/gate/readiness.py",
+        "aegis_foundation-0.1.0/aegis_foundation/gate/hooks/entrypoint.py",
+        "aegis_foundation-0.1.0/aegis_foundation/gate/hooks/pretool.py",
         "aegis_foundation-0.1.0/aegis_mcp/server.py",
         "aegis_foundation-0.1.0/aegis_foundation/assets/.claude/scripts/pretooluse-gate.sh",
         "aegis_foundation-0.1.0/aegis_foundation/assets/.claude/scripts/posttooluse-tracking.sh",

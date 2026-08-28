@@ -9,6 +9,7 @@ from hashlib import sha256
 from pathlib import Path
 
 import pytest
+from aegis_foundation.gate.hooks import pretool as gate_pretool
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -101,7 +102,9 @@ def make_repo(tmp_path: Path, *, ready: bool = True) -> Path:
     (repo / "sessions" / "current").symlink_to(session_rel)
     write(
         repo / "sessions" / "state.json",
-        json.dumps({"current": session_rel.name, "paused": [], "updated_at": "2026-07-13T21:00:00+02:00"}),
+        json.dumps(
+            {"current": session_rel.name, "paused": [], "updated_at": "2026-07-13T21:00:00+02:00"}
+        ),
     )
     plan_rel = Path("2026-07-13-task248-codex-hook-adapter.md")
     write(
@@ -120,7 +123,14 @@ task_ids: [248]
 """,
     )
     (repo / "plans" / "current").symlink_to(plan_rel)
-    active = repo / "docs" / "ai" / "work-tracking" / "active" / "20260713-task248-codex-hook-adapter-ACTIVE"
+    active = (
+        repo
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "active"
+        / "20260713-task248-codex-hook-adapter-ACTIVE"
+    )
     write(
         active / "TRACKER.md",
         """# Task 248 Codex Hook Adapter Tracker
@@ -228,7 +238,9 @@ def test_parse_canonical_apply_patch_operations(
         "*** Begin Patch\n*** Begin Patch\n*** Delete File: src/a.py\n*** End Patch",
     ],
 )
-def test_parse_rejects_malformed_ambiguous_or_unsupported_patches(tmp_path: Path, command: str) -> None:
+def test_parse_rejects_malformed_ambiguous_or_unsupported_patches(
+    tmp_path: Path, command: str
+) -> None:
     gate_lib = load_gate_lib_module()
     repo = make_repo(tmp_path)
 
@@ -308,7 +320,10 @@ def test_observation_mode_blocks_apply_patch_strictly_and_records_it_advisoriall
     [
         ("*** Add File: .codex/hooks.json\n+{}", "Protected path(s)"),
         ("*** Update File: plans/current\n@@\n-old\n+new", "Workflow-owned path(s)"),
-        ("*** Update File: src/name.py\n*** Move to: .claude/owned.py\n@@\n-old\n+new", "Protected path(s)"),
+        (
+            "*** Update File: src/name.py\n*** Move to: .claude/owned.py\n@@\n-old\n+new",
+            "Protected path(s)",
+        ),
     ],
 )
 def test_safe_first_path_never_hides_guarded_later_path(
@@ -318,11 +333,7 @@ def test_safe_first_path_never_hides_guarded_later_path(
 ) -> None:
     repo = make_repo(tmp_path)
     command = (
-        "*** Begin Patch\n"
-        "*** Add File: src/safe.py\n"
-        "+safe = True\n"
-        f"{later_header}\n"
-        "*** End Patch"
+        f"*** Begin Patch\n*** Add File: src/safe.py\n+safe = True\n{later_header}\n*** End Patch"
     )
 
     result = run_gate(PRETOOLUSE, repo, payload(command, repo=repo))
@@ -362,7 +373,11 @@ def test_degraded_apply_patch_fails_closed_in_strict_and_records_allow_in_adviso
     gate_lib = load_gate_lib_module()
     strict_repo = make_repo(tmp_path / "strict")
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(strict_repo))
-    monkeypatch.setattr(gate_lib, "pretooluse_gate", lambda _raw: (_ for _ in ()).throw(RuntimeError("boom")))
+    monkeypatch.setattr(
+        gate_pretool,
+        "pretooluse_gate",
+        lambda _raw: (_ for _ in ()).throw(RuntimeError("boom")),
+    )
     raw = payload(ADD_PATCH, repo=strict_repo)
 
     assert gate_lib.pretooluse_gate_with_degraded_fallback(raw) == 2
@@ -432,7 +447,9 @@ def test_posttooluse_records_malformed_patch_as_one_atomic_diagnostic_event(
     assert "Add File requires" in event["parse_error"]
 
 
-def test_distinct_patches_with_same_primary_path_remain_distinct_atomic_events(tmp_path: Path) -> None:
+def test_distinct_patches_with_same_primary_path_remain_distinct_atomic_events(
+    tmp_path: Path,
+) -> None:
     repo = make_repo(tmp_path)
     first = UPDATE_PATCH
     second = UPDATE_PATCH.replace("+new", "+newer")

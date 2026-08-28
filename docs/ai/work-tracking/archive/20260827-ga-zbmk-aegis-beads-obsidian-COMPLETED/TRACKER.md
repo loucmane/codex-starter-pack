@@ -1,7 +1,7 @@
 # Bead ga-zbmk Aegis beads-first authority and Obsidian closeout gate Tracker
 
 **Started**: 2026-08-27
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-08-27
 
 ## Goals
@@ -11,7 +11,7 @@
 
 ## Progress Log
 - **2026-08-27 12:21** — [S:20260827|W:ga-zbmk-aegis-beads-obsidian|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed current timestamp as `2026-08-27 12:21 CEST`
-- **2026-08-27 12:21** — [S:20260827|W:ga-zbmk-aegis-beads-obsidian|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260827-ga-zbmk-aegis-beads-obsidian-ACTIVE/TRACKER.md] Scaffolded the `ga-zbmk` ACTIVE work-tracking folder through the bead-native kickoff flow
+- **2026-08-27 12:21** — [S:20260827|W:ga-zbmk-aegis-beads-obsidian|H:scripts/codex-task|E:docs/ai/work-tracking/archive/20260827-ga-zbmk-aegis-beads-obsidian-COMPLETED/TRACKER.md] Scaffolded the `ga-zbmk` ACTIVE work-tracking folder through the bead-native kickoff flow
 - **2026-08-27 12:21** — [S:20260827|W:ga-zbmk-aegis-beads-obsidian|H:bd:show|E:bead:ga-zbmk] Bound this source-workflow record to primary bead `ga-zbmk` without Taskmaster mutation
 - **2026-08-27 12:21** — [S:20260827|W:ga-zbmk-aegis-beads-obsidian|H:sessions/current|E:sessions/current] Repointed current session, plan, and session state to `ga-zbmk`
 - **2026-08-27 12:24** — [S:20260827|W:ga-zbmk-aegis-beads-obsidian|H:serena/memory|E:.serena/memories/2026-08-27_ga-zbmk-aegis-beads-obsidian.md] Recorded the bead authority, compatibility boundary, Obsidian projection contract, and current Gate-B continuation state
@@ -21,6 +21,8 @@
 - **2026-08-27 13:36** — [S:20260827|W:ga-zbmk|H:codex:aegis-v2-foundation|E:pytest:329-passed;docs/aegis/beads-first-authority-and-obsidian-gate.md] Completed bead-native kickoff, Taskmaster phase-out enforcement, MCP surface updates, documentation, and the Aegis/Obsidian regression suite.
 - **2026-08-27 14:01** — [S:20260827|W:ga-zbmk|H:aegis:witness-ci-remediation|E:PR#290;pytest:28-passed;.aegis/reports/witness-report.json] Hosted CI exposed that the delivery witness still recognized only Taskmaster branch identities and omitted three repository workflow surfaces. Added bead-branch scope mapping, complete project scope roots, mirrored packaged bytes, and regression coverage; the exact local CI witness now passes with zero unaccounted paths.
 - **2026-08-27 14:29** — [S:20260827|W:ga-zbmk|H:aegis:hosted-ci-contract-remediation|E:PR#290;pytest:2212-passed-21-skipped] The second hosted run failed closed on four stale Taskmaster-era documentation assertions and transient Git maintenance-lock churn under concurrent reconcile tests. Updated the assertions to the beads-first contract, ignored only exact `.git/objects/maintenance.lock` discovery churn with regression coverage, and made the process-oracle fixtures self-contained when the Taskmaster CLI is available. The focused suite passed 239 tests with 8 deliberate skips, followed by the complete CI-equivalent suite with 2,212 passing tests and 21 deliberate skips.
+- **2026-08-27 14:57** — [S:20260827|W:ga-zbmk-aegis-beads-obsidian|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260827-ga-zbmk-aegis-beads-obsidian-COMPLETED/TRACKER.md] Archived the completed work-tracking bundle through the supported helper
+- **2026-08-27 14:57** — [S:20260827|W:ga-zbmk-aegis-beads-obsidian|H:serena/memory:archive-reference|E:.serena/memories/2026-08-27_ga-zbmk-aegis-beads-obsidian.md] Preserved the existing continuity memory while archiving the completed bundle
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
