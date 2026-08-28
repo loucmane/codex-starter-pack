@@ -58,9 +58,49 @@ task_ids: [{task_id}]
 """
 
 
+def _bead_plan_text(
+    bead_id: str,
+    *,
+    branch: str | None = None,
+    status: str = "completed",
+) -> str:
+    branch = branch or f"codex/{bead_id}-source-closeout"
+    return f"""---
+bead_ids: [{bead_id}]
+branch_policy: {branch}
+---
+
+# Plan - Bead {bead_id}
+
+| Step ID | Description | Evidence | Status |
+|---|---|---|---|
+| plan-step-scope | Scope | evidence | {status} |
+| plan-step-implement | Implement | evidence | {status} |
+| plan-step-verify | Verify | evidence | {status} |
+"""
+
+
 def _tracker_text(task_id: int, *, status: str = "COMPLETED", checked: bool = True) -> str:
     mark = "x" if checked else " "
     return f"""# Task {task_id} Fixture Tracker
+
+**Status**: {status}
+
+## Plan Compliance Checklist
+- [{mark}] plan-step-scope - Scope
+- [{mark}] plan-step-implement - Implement
+- [{mark}] plan-step-verify - Verify
+"""
+
+
+def _bead_tracker_text(
+    bead_id: str,
+    *,
+    status: str = "COMPLETED",
+    checked: bool = True,
+) -> str:
+    mark = "x" if checked else " "
+    return f"""# Bead {bead_id} Fixture Tracker
 
 **Status**: {status}
 
@@ -126,6 +166,40 @@ def _write_completed_state(root: Path, task_id: int = 99) -> Path:
     return tracker
 
 
+def _write_completed_bead_state(root: Path, bead_id: str = "ga-test1") -> Path:
+    active_root = root / "docs" / "ai" / "work-tracking" / "active"
+    active_root.mkdir(parents=True, exist_ok=True)
+    archive = (
+        root
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "archive"
+        / f"20300101-{bead_id}-source-closeout-COMPLETED"
+    )
+    tracker = _write(archive / "TRACKER.md", _bead_tracker_text(bead_id))
+
+    session = _write(
+        root / "sessions" / "2030" / "01" / f"2030-01-01-001-{bead_id}-source-closeout.md",
+        f"# Session for Bead {bead_id}\n",
+    )
+    session_link = root / "sessions" / "current"
+    session_link.symlink_to(session.relative_to(session_link.parent))
+    _write(
+        root / "sessions" / "state.json",
+        json.dumps({"current": session.name, "paused": [], "updated_at": "2030-01-01T00:00:00Z"})
+        + "\n",
+    )
+
+    plan = _write(
+        root / "plans" / f"2030-01-01-{bead_id}-source-closeout.md",
+        _bead_plan_text(bead_id),
+    )
+    plan_link = root / "plans" / "current"
+    plan_link.symlink_to(plan.name)
+    return tracker
+
+
 def _write_delivery_policy(root: Path, *, default_branch: str = "main") -> None:
     policy = json.loads((REPO_ROOT / "aegis.delivery-policy.json").read_text(encoding="utf-8"))
     policy["policy_id"] = "fixture-evidence-gated-v1"
@@ -149,6 +223,24 @@ def _init_source_repo(tmp_path: Path, task_id: int = 99) -> tuple[Path, Path]:
     tracker = _write_completed_state(root, task_id)
     subprocess.run(
         ["git", "init", "-b", f"feat/task-{task_id}-source-closeout"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return root, tracker
+
+
+def _init_bead_source_repo(
+    tmp_path: Path,
+    bead_id: str = "ga-test1",
+) -> tuple[Path, Path]:
+    root = tmp_path / "source"
+    root.mkdir()
+    _write_source_markers(root)
+    tracker = _write_completed_bead_state(root, bead_id)
+    subprocess.run(
+        ["git", "init", "-b", f"codex/{bead_id}-source-closeout"],
         cwd=root,
         check=True,
         capture_output=True,
@@ -216,6 +308,59 @@ def test_completed_source_work_requires_all_authorities(tmp_path: Path) -> None:
     assert state is not None
     assert state.task_id == "99"
     assert state.tracker_path == tracker.resolve()
+
+
+def test_completed_source_work_supports_bead_native_closeout(tmp_path: Path) -> None:
+    root, tracker = _init_bead_source_repo(tmp_path)
+
+    state = derive_completed_source_work(root, "codex/ga-test1-source-closeout")
+
+    assert state is not None
+    assert state.work_kind == "bead"
+    assert state.work_id == "ga-test1"
+    assert state.tracker_path == tracker.resolve()
+    assert not (root / ".taskmaster").exists()
+
+
+def test_completed_bead_source_work_derives_on_default_branch(tmp_path: Path) -> None:
+    root, tracker = _init_bead_source_repo(tmp_path)
+    _write_delivery_policy(root)
+
+    state = derive_completed_source_work(root, "main")
+
+    assert state is not None
+    assert state.work_kind == "bead"
+    assert state.work_id == "ga-test1"
+    assert state.branch == "main"
+    assert state.tracker_path == tracker.resolve()
+
+
+def test_completed_bead_source_work_rejects_identity_status_and_ambiguity(
+    tmp_path: Path,
+) -> None:
+    root, tracker = _init_bead_source_repo(tmp_path)
+    branch = "codex/ga-test1-source-closeout"
+
+    tracker.write_text(_bead_tracker_text("ga-other1"), encoding="utf-8")
+    with pytest.raises(SourceWorkflowStateError, match="does not reference Bead ga-test1"):
+        derive_completed_source_work(root, branch)
+
+    tracker.write_text(_bead_tracker_text("ga-test1", status="ACTIVE"), encoding="utf-8")
+    with pytest.raises(SourceWorkflowStateError, match="status is not COMPLETED"):
+        derive_completed_source_work(root, branch)
+
+    tracker.write_text(_bead_tracker_text("ga-test1"), encoding="utf-8")
+    second = (
+        root
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "archive"
+        / "20300102-ga-test1-second-COMPLETED"
+    )
+    _write(second / "TRACKER.md", _bead_tracker_text("ga-test1"))
+    with pytest.raises(SourceWorkflowStateError, match="exactly one completed archive for Bead"):
+        derive_completed_source_work(root, branch)
 
 
 def test_completed_source_work_derives_taskless_default_branch_from_current_pointers(
@@ -387,6 +532,21 @@ def test_clean_source_checkout_readiness_accepts_completed_archive(tmp_path: Pat
     assert status.stdout == ""
 
 
+def test_clean_source_checkout_readiness_accepts_completed_bead_archive(
+    tmp_path: Path,
+) -> None:
+    root, _tracker = _init_bead_source_repo(tmp_path)
+    _commit_fixture(root)
+
+    result = _run_readiness(root)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "STATE: READY" in result.stdout
+    assert "completed source Bead ga-test1" in result.stdout
+    assert "completed source tracker derived" in result.stdout
+    assert not (root / ".aegis" / "state" / "current-work.json").exists()
+
+
 def test_clean_source_checkout_readiness_accepts_completed_archive_on_default_branch(
     tmp_path: Path,
 ) -> None:
@@ -440,6 +600,20 @@ def test_guard_uses_same_completed_source_tracker(monkeypatch, tmp_path: Path) -
     monkeypatch.setattr(module, "WORK_TRACKING_ARCHIVE_BASE", archive_root)
     monkeypatch.setattr(module, "CURRENT_WORK_STATE_PATH", root / ".aegis/state/current-work.json")
     monkeypatch.setattr(module, "get_current_branch", lambda: "feat/task-99-source-closeout")
+
+    assert module.get_active_tracker_path() == tracker.resolve()
+
+
+def test_guard_uses_same_completed_bead_source_tracker(monkeypatch, tmp_path: Path) -> None:
+    root, tracker = _init_bead_source_repo(tmp_path)
+    module = _load_guard_module()
+    active_root = root / "docs" / "ai" / "work-tracking" / "active"
+    archive_root = root / "docs" / "ai" / "work-tracking" / "archive"
+    monkeypatch.setattr(module, "REPO_ROOT", root)
+    monkeypatch.setattr(module, "WORK_TRACKING_PREFIX", active_root)
+    monkeypatch.setattr(module, "WORK_TRACKING_ARCHIVE_BASE", archive_root)
+    monkeypatch.setattr(module, "CURRENT_WORK_STATE_PATH", root / ".aegis/state/current-work.json")
+    monkeypatch.setattr(module, "get_current_branch", lambda: "codex/ga-test1-source-closeout")
 
     assert module.get_active_tracker_path() == tracker.resolve()
 

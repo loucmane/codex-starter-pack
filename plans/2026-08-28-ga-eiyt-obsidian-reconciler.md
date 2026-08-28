@@ -5,7 +5,7 @@ handler_target: aegis_foundation/obsidian_reconciler.py
 bead_ids: [ga-eiyt]
 branch_policy: codex/ga-eiyt-obsidian-reconciler
 evidence_summary:
-  - docs/ai/work-tracking/active/20260828-ga-eiyt-obsidian-reconciler-ACTIVE
+  - docs/ai/work-tracking/archive/20260828-ga-eiyt-obsidian-reconciler-COMPLETED
   - aegis_foundation/obsidian_reconciler.py
   - bead:ga-eiyt
   - scripts/codex-task
@@ -21,20 +21,20 @@ emergency_bypass: false
 - **Handler Target (H)**: aegis_foundation/obsidian_reconciler.py
 - **Bead IDs**: ga-eiyt
 - **Branch Policy**: codex/ga-eiyt-obsidian-reconciler
-- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260828-ga-eiyt-obsidian-reconciler-ACTIVE, aegis_foundation/obsidian_reconciler.py, bead:ga-eiyt, scripts/codex-task
+- **Evidence Summary (E)**: docs/ai/work-tracking/archive/20260828-ga-eiyt-obsidian-reconciler-COMPLETED, aegis_foundation/obsidian_reconciler.py, bead:ga-eiyt, scripts/codex-task
 - **Plan Version**: v1
 - **Emergency Bypass**: false
 
 ## Plan Table
 | Step ID | Description | Evidence | Status |
 |---|---|---|---|
-| plan-step-scope | Confirm scope and authority for Keep Aegis Obsidian projections continuously fresh | docs/ai/work-tracking/active/20260828-ga-eiyt-obsidian-reconciler-ACTIVE/FINDINGS.md | completed |
-| plan-step-implement | Implement Keep Aegis Obsidian projections continuously fresh through the reviewed helper surface | aegis_foundation/obsidian_reconciler.py; docs/ai/work-tracking/active/20260828-ga-eiyt-obsidian-reconciler-ACTIVE/IMPLEMENTATION.md | completed |
-| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/active/20260828-ga-eiyt-obsidian-reconciler-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260828-ga-eiyt-obsidian-reconciler-ACTIVE/TRACKER.md | pending |
+| plan-step-scope | Confirm scope and authority for Keep Aegis Obsidian projections continuously fresh | docs/ai/work-tracking/archive/20260828-ga-eiyt-obsidian-reconciler-COMPLETED/FINDINGS.md | completed |
+| plan-step-implement | Implement Keep Aegis Obsidian projections continuously fresh through the reviewed helper surface | aegis_foundation/obsidian_reconciler.py; docs/ai/work-tracking/archive/20260828-ga-eiyt-obsidian-reconciler-COMPLETED/IMPLEMENTATION.md | completed |
+| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/archive/20260828-ga-eiyt-obsidian-reconciler-COMPLETED/HANDOFF.md; docs/ai/work-tracking/archive/20260828-ga-eiyt-obsidian-reconciler-COMPLETED/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
-- `docs/ai/work-tracking/active/20260828-ga-eiyt-obsidian-reconciler-ACTIVE`
+- `docs/ai/work-tracking/archive/20260828-ga-eiyt-obsidian-reconciler-COMPLETED`
 - `aegis_foundation/obsidian_reconciler.py`
 - `scripts/codex-task`
 - `scripts/codex-guard`
@@ -52,9 +52,9 @@ emergency_bypass: false
 - Context reload steps:
   1. Read `sessions/current` and this plan.
   2. Read primary bead `ga-eiyt` through the rig-scoped bead surface.
-  3. Review `docs/ai/work-tracking/active/20260828-ga-eiyt-obsidian-reconciler-ACTIVE/TRACKER.md` before changing implementation.
+  3. Review `docs/ai/work-tracking/archive/20260828-ga-eiyt-obsidian-reconciler-COMPLETED/TRACKER.md` before changing implementation.
   4. Run `python3 scripts/codex-task plan sync` after tracker updates.
-- Outstanding risks/todos: preserve bead authority and avoid allocating shadow Taskmaster work.
+- Outstanding risks/todos: none for `ga-eiyt`; CI modernization continues independently under `ga-6w1y` and `ga-xk0m`.
 
 ## Conflict & Scope Declaration
 - Related plans: none declared at kickoff.

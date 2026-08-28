@@ -21,13 +21,16 @@ title: Bead ga-eiyt - Keep Aegis Obsidian projections continuously fresh
 - [x] Start a fresh `ga-eiyt` session on its Codex branch.
 - [x] Scaffold `ga-eiyt` work tracking without Taskmaster mutation.
 - [x] Repoint `sessions/current` and `plans/current` to `ga-eiyt`.
-- [ ] Complete and verify Keep Aegis Obsidian projections continuously fresh.
+- [x] Complete and verify Keep Aegis Obsidian projections continuously fresh.
 
 ### Starting Context
 Bead `ga-eiyt` was kicked off via `python3 scripts/codex-task wizard kickoff --bead ga-eiyt`, which created the guarded source-workflow artifacts without allocating or mutating a Taskmaster task.
 
 ### 📝 Progress Log
 - **[20:59]** — [S:20260828|W:ga-eiyt-obsidian-reconciler|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M:%S %Z %z"`] Confirmed current timestamp as `2026-08-28 20:59:54 CEST +0200`
-- **[20:59]** — [S:20260828|W:ga-eiyt-obsidian-reconciler|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260828-ga-eiyt-obsidian-reconciler-ACTIVE/TRACKER.md] Scaffolded the `ga-eiyt` ACTIVE work-tracking folder through the bead-native kickoff flow
+- **[20:59]** — [S:20260828|W:ga-eiyt-obsidian-reconciler|H:scripts/codex-task|E:docs/ai/work-tracking/archive/20260828-ga-eiyt-obsidian-reconciler-COMPLETED/TRACKER.md] Scaffolded the `ga-eiyt` ACTIVE work-tracking folder through the bead-native kickoff flow
 - **[20:59]** — [S:20260828|W:ga-eiyt-obsidian-reconciler|H:bd:show|E:bead:ga-eiyt] Bound the source-workflow record to primary bead `ga-eiyt`
 - **[20:59]** — [S:20260828|W:ga-eiyt-obsidian-reconciler|H:sessions/current|E:sessions/current] Repointed current session, plan, and session state to `ga-eiyt`
+- **[22:10]** — [S:20260828|W:ga-eiyt|H:github:merge|E:PR#294:9ffe344c;PR#295:d81e279d;tree:af09e37d] Verified both published source changes and byte-identical reviewed merge trees.
+- **[22:10]** — [S:20260828|W:ga-eiyt|H:obsidian-reconciler:install|E:timer:enabled-active;publication:2731-files;source:fresh] Installed the deterministic user reconciler and persistent timer and completed the initial current publication.
+- **[22:10]** — [S:20260828|W:plan-step-verify|H:codex-wsl-readiness|E:version:2026.08.28.4;19-pass-0-fail] Completed host-WSL reboot, Obsidian IPC, reconciler freshness, Gas City suspension, supervisor, and signer acceptance.
