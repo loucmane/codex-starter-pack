@@ -14,6 +14,9 @@ the layers that must survive a Windows restart:
 9. the Windows logon bootstrap task.
 
 The doctor never repairs, restarts, enables, disables, routes, resumes, signs, or deletes.
+Gas City subprocesses run with a deterministic `GC_HOME` derived from the managed city
+layout (`<city-parent>/home`), matching the canonical supervisor unit instead of any legacy
+`~/.gc` state inherited from the operator shell.
 
 ## Run it
 
