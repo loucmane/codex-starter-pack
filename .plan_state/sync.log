@@ -586,5 +586,17 @@
     "plan_hash": "d49beb306f5eb6cd1e712047c9f31277820d50f2e5564fa0f34b053139fc74b4",
     "tracker_hash": "a0cb3df4c7fdb5b8e7c517896c165466c2b8d2fa284343413f30f1dfe5774c7d",
     "synced_at": "2026-08-28T10:31:37.371667+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-iqbd-modular-workflow-gate.md",
+    "plan_hash": "d49beb306f5eb6cd1e712047c9f31277820d50f2e5564fa0f34b053139fc74b4",
+    "tracker_hash": "bf829a8b74a1b2c9e94bb69cd96ee813b40ae1143a17ca24468ed2c96eeb2b46",
+    "synced_at": "2026-08-28T10:47:07.819265+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-iqbd-modular-workflow-gate.md",
+    "plan_hash": "d49beb306f5eb6cd1e712047c9f31277820d50f2e5564fa0f34b053139fc74b4",
+    "tracker_hash": "95fc2116bdf708bd9a7bd66fe90d51c59acb77a58c5949c9c4f21db780d25035",
+    "synced_at": "2026-08-28T10:54:30.101316+02:00"
   }
 ]

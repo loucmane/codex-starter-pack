@@ -36,3 +36,4 @@ Bead `ga-iqbd` was kicked off via `python3 scripts/codex-task wizard kickoff --b
 - **[10:11]** — [S:20260828|W:ga-iqbd-modular-workflow-gate|H:docs/aegis/modular-workflow-gate.md|E:docs/aegis/pr-4-replacement-parity-matrix.md] Documented module ownership, compatibility, upgrades, and explicit legacy implementation demotion
 - **[10:29]** — [S:20260828|W:ga-iqbd-modular-workflow-gate|H:pytest|E:154-installer+659-adapter+114-runtime-passed] Completed broad final regression coverage on the final modular implementation
 - **[10:29]** — [S:20260828|W:ga-iqbd-modular-workflow-gate|H:uv-build|E:/tmp/ga-iqbd-wheel-target/.aegis/runtime/python] Proved a clean wheel-installed target can run readiness and hooks with its source checkout deliberately unavailable
+- **[10:53]** — [S:20260828|W:ga-iqbd-modular-workflow-gate|H:pytest-xdist|E:2221-passed+21-skipped] Corrected stale managed-update golden plans exposed by hosted CI and passed the complete hosted pytest command locally
