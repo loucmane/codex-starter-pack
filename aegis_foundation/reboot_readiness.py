@@ -38,7 +38,7 @@ OPERATOR_GPG_READINESS_SCHEMA = "codex.gpg-readiness.v2"
 MANAGED_PATH = "/home/loucmane/gascity/bin:/usr/local/bin:/usr/bin:/bin"
 KNOWN_AFFECTED_DESKTOP_VERSIONS = frozenset({"26.820.60940.0", "26.820.7780.0"})
 STATUS_ORDER = {"pass": 0, "unknown": 1, "warn": 2, "fail": 3}
-DOCTOR_VERSION = "2026.08.28.2"
+DOCTOR_VERSION = "2026.08.28.3"
 
 
 @dataclass(frozen=True)
@@ -796,6 +796,11 @@ def check_supervisor_units(config: ProbeConfig) -> list[Check]:
 def check_gc_status(config: ProbeConfig, runner: Runner, observer: str) -> Check:
     env = dict(os.environ)
     env["PATH"] = MANAGED_PATH
+    # The managed supervisor is deliberately isolated from the legacy
+    # ~/.gc home. Bind every gc subprocess to the same home encoded in the
+    # canonical unit so stale operator-shell state cannot create a false
+    # readiness failure.
+    env["GC_HOME"] = str(config.city.parent / "home")
     result = runner.run(
         [str(config.gc), "--city", str(config.city), "status", "--json"],
         env=env,

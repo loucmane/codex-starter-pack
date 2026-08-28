@@ -3,6 +3,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+from aegis_foundation.reboot_readiness import DOCTOR_VERSION
+
 
 ROOT = Path(__file__).resolve().parents[2]
 BOOTSTRAP = ROOT / "scripts/windows/gas-city-wsl-bootstrap.ps1"
@@ -89,7 +91,7 @@ def test_stable_doctor_installer_applies_and_checks_in_temp(tmp_path: Path) -> N
     )
     assert applied.returncode == 0, applied.stderr
     assert destination.stat().st_mode & 0o777 == 0o755
-    assert "2026.08.28.2" in applied.stdout
+    assert f"codex-wsl-readiness {DOCTOR_VERSION}\n" == applied.stdout
 
     checked = subprocess.run(
         [str(DOCTOR_INSTALLER), "--check", "--dest", str(destination)],

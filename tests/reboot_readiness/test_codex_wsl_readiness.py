@@ -24,6 +24,7 @@ class FakeRunner:
     def __init__(self, responses: Mapping[tuple[str, ...], CommandResult]) -> None:
         self.responses = dict(responses)
         self.calls: list[tuple[str, ...]] = []
+        self.environments: list[dict[str, str] | None] = []
 
     def run(
         self,
@@ -34,6 +35,7 @@ class FakeRunner:
     ) -> CommandResult:
         key = tuple(argv)
         self.calls.append(key)
+        self.environments.append(dict(env) if env is not None else None)
         if key not in self.responses:
             raise AssertionError(f"unexpected command: {key!r}")
         return self.responses[key]
@@ -391,6 +393,18 @@ def test_stale_supervisor_units_are_reported_without_mutation(tmp_path: Path) ->
     assert stale.status == "warn"
     assert stale.details["stale_count"] == 3
     assert len(list(config.user_wants_dir.glob("*.service"))) == 4
+
+
+def test_gc_status_pins_the_managed_gc_home(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    runner = FakeRunner(healthy_responses(config))
+
+    check = check_gc_status(config, runner, "host-wsl")
+
+    assert check.status == "pass"
+    env = runner.environments[-1]
+    assert env is not None
+    assert env["GC_HOME"] == str(config.city.parent / "home")
 
 
 def test_windows_bootstrap_contract_drift_fails(tmp_path: Path) -> None:
