@@ -12,3 +12,4 @@
 ## Next Steps
 - Create the exact signed commit, publish it through hosted CI, and merge only if the verified head, base, signatures, checks, mergeability, and review-thread gates remain clean.
 - Record the merge evidence and close `ga-iqbd` PASS.
+- Archived on 2026-08-28 11:12 CEST — Folder moved to archive and tracker marked COMPLETED.

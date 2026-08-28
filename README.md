@@ -19,4 +19,5 @@ second mutable ledger. See `docs/aegis/invocation-contract.md` and
 
 For the read-only Codex Desktop + WSL + Gas City reboot doctor, stable user installation,
 Windows logon-bootstrap contract, and attended reboot drill, see
-`docs/operations/codex-wsl-reboot-readiness.md`.
+`docs/operations/codex-wsl-reboot-readiness.md`. The same runbook covers the exact-key personal
+GPG readiness helper used for one attended, agent-epoch-bound proof per WSL boot.

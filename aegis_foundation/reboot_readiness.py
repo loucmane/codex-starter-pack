@@ -31,10 +31,14 @@ DEFAULT_WINDOWS_TASK = "GasCity-WSL-Bootstrap"
 DEFAULT_OBSIDIAN = Path("/home/loucmane/.local/bin/obsidian")
 DEFAULT_OBSIDIAN_VAULT = "main"
 DEFAULT_OBSIDIAN_PROBE_PATH = "GasCity/gas-city-operations/Aegis/Beads/ga-zbmk.md"
+DEFAULT_GPG_READINESS = Path("/home/loucmane/.local/bin/codex-gpg-readiness")
+OPERATOR_SIGNING_FINGERPRINT = "FD5585922F5335BC378AD8D42ECF4432C7E7982D"
+OPERATOR_SIGNING_KEYGRIP = "640406DD1B34A5EA0BB7CB46F21071BB3DB370FA"
+OPERATOR_GPG_READINESS_SCHEMA = "codex.gpg-readiness.v2"
 MANAGED_PATH = "/home/loucmane/gascity/bin:/usr/local/bin:/usr/bin:/bin"
 KNOWN_AFFECTED_DESKTOP_VERSIONS = frozenset({"26.820.60940.0", "26.820.7780.0"})
 STATUS_ORDER = {"pass": 0, "unknown": 1, "warn": 2, "fail": 3}
-DOCTOR_VERSION = "2026.08.27.1"
+DOCTOR_VERSION = "2026.08.28.2"
 
 
 @dataclass(frozen=True)
@@ -125,6 +129,7 @@ class ProbeConfig:
     obsidian_command: Path = DEFAULT_OBSIDIAN
     obsidian_vault: str = DEFAULT_OBSIDIAN_VAULT
     obsidian_probe_path: str = DEFAULT_OBSIDIAN_PROBE_PATH
+    gpg_readiness_command: Path = DEFAULT_GPG_READINESS
     user: str | None = None
 
 
@@ -228,6 +233,116 @@ def check_wsl_systemd(config: ProbeConfig) -> list[Check]:
             )
         )
     return checks
+
+
+def check_gpg_signing_cache(config: ProbeConfig, runner: Runner, observer: str) -> Check:
+    result = runner.run([str(config.gpg_readiness_command), "check", "--json"])
+    if result.returncode == 127:
+        return Check(
+            "credentials.gpg_operator_key",
+            "warn",
+            "The exact-key GPG readiness helper is not installed",
+            {
+                "path": str(config.gpg_readiness_command),
+                "observer": observer,
+                "error": result.stderr.strip(),
+            },
+            "Install the reviewed helper; never replace this check with an any-key probe.",
+        )
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        return Check(
+            "credentials.gpg_operator_key",
+            "fail",
+            "The GPG readiness helper returned malformed evidence",
+            {
+                "path": str(config.gpg_readiness_command),
+                "returncode": result.returncode,
+                "error": str(exc),
+                "stderr": result.stderr.strip(),
+            },
+        )
+    if not isinstance(payload, dict):
+        return Check(
+            "credentials.gpg_operator_key",
+            "fail",
+            "The GPG readiness helper returned the wrong evidence shape",
+            {"path": str(config.gpg_readiness_command)},
+        )
+
+    fingerprint = payload.get("fingerprint")
+    keygrip = payload.get("keygrip")
+    schema = payload.get("schema")
+    details = {"observer": observer, **payload}
+    if schema != OPERATOR_GPG_READINESS_SCHEMA:
+        return Check(
+            "credentials.gpg_operator_key",
+            "fail",
+            "The GPG readiness helper returned the wrong evidence schema",
+            details,
+            "Restore the reviewed exact-key helper before signing.",
+        )
+    identity_matches = (
+        fingerprint == OPERATOR_SIGNING_FINGERPRINT
+        and keygrip == OPERATOR_SIGNING_KEYGRIP
+    )
+    if not identity_matches:
+        return Check(
+            "credentials.gpg_operator_key",
+            "fail",
+            "GPG readiness evidence is bound to the wrong signing identity",
+            details,
+            "Restore the reviewed FD55 fingerprint/keygrip binding before signing.",
+        )
+
+    cached = payload.get("cached") is True
+    agent_running = payload.get("agent_running") is True
+    proof = payload.get("proof")
+    proof_is_valid = (cached and proof == "agent-cache") or (
+        not cached and proof == "agent-epoch-signature"
+    )
+    ready = (
+        result.returncode == 0
+        and payload.get("status") == "ready"
+        and agent_running
+        and proof_is_valid
+    )
+    if ready:
+        return Check(
+            "credentials.gpg_operator_key",
+            "pass",
+            "The exact FD55 operator signing key is ready in this agent epoch",
+            details,
+        )
+    cold = (
+        result.returncode == 11
+        and payload.get("status") == "cold"
+        and agent_running
+        and not cached
+        and proof == "none"
+    )
+    unavailable = (
+        result.returncode == 10
+        and payload.get("status") == "agent-unavailable"
+        and payload.get("agent_running") is False
+        and not cached
+        and proof == "none"
+    )
+    if cold or unavailable:
+        return Check(
+            "credentials.gpg_operator_key",
+            "warn",
+            "The exact FD55 operator signing key needs its one-time WSL-boot unlock",
+            details,
+            "Open one interactive WSL terminal and run unlock-all; never store the passphrase.",
+        )
+    return Check(
+        "credentials.gpg_operator_key",
+        "fail",
+        "The exact FD55 GPG readiness check failed unexpectedly",
+        {**details, "returncode": result.returncode, "stderr": result.stderr.strip()},
+    )
 
 
 def check_linger(config: ProbeConfig, runner: Runner, observer: str) -> Check:
@@ -747,6 +862,7 @@ def build_report(
         raise ValueError(f"unsupported observer context: {observer}")
     checks: list[Check] = []
     checks.extend(check_wsl_systemd(probe))
+    checks.append(check_gpg_signing_cache(probe, command_runner, observer))
     checks.append(check_linger(probe, command_runner, observer))
     checks.extend(check_desktop(probe, command_runner, observer))
     checks.append(check_obsidian(probe, command_runner, observer))

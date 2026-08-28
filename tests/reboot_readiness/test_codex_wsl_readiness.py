@@ -10,6 +10,7 @@ from aegis_foundation.reboot_readiness import (
     build_report,
     check_desktop,
     check_gc_status,
+    check_gpg_signing_cache,
     check_obsidian,
     check_supervisor_units,
     check_windows_bootstrap,
@@ -133,6 +134,10 @@ def obsidian_read_command(config: ProbeConfig) -> tuple[str, ...]:
     )
 
 
+def gpg_readiness_command(config: ProbeConfig) -> tuple[str, ...]:
+    return (str(config.gpg_readiness_command), "check", "--json")
+
+
 def healthy_task() -> str:
     return json.dumps(
         {
@@ -165,6 +170,20 @@ def healthy_responses(config: ProbeConfig) -> dict[tuple[str, ...], CommandResul
         obsidian_read_command(config): CommandResult(
             0,
             "---\nbead_id: ga-zbmk\nstatus: closed\n---\n",
+        ),
+        gpg_readiness_command(config): CommandResult(
+            0,
+            json.dumps(
+                {
+                    "schema": "codex.gpg-readiness.v2",
+                    "status": "ready",
+                    "fingerprint": "FD5585922F5335BC378AD8D42ECF4432C7E7982D",
+                    "keygrip": "640406DD1B34A5EA0BB7CB46F21071BB3DB370FA",
+                    "agent_running": True,
+                    "cached": True,
+                    "proof": "agent-cache",
+                }
+            ),
         ),
         (
             "/managed/gc",
@@ -243,6 +262,124 @@ def test_wsl_systemd_false_is_a_real_failure(tmp_path: Path) -> None:
     assert checks[0].key == "wsl.systemd_config"
     assert checks[0].status == "fail"
     assert checks[1].status == "pass"
+
+
+def test_exact_gpg_key_cache_is_ready(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    runner = FakeRunner(healthy_responses(config))
+
+    check = check_gpg_signing_cache(config, runner, "host-wsl")
+
+    assert check.status == "pass"
+    assert check.details["cached"] is True
+    assert check.details["fingerprint"] == "FD5585922F5335BC378AD8D42ECF4432C7E7982D"
+
+
+def test_exact_gpg_agent_epoch_signature_is_ready(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    responses = healthy_responses(config)
+    responses[gpg_readiness_command(config)] = CommandResult(
+        0,
+        json.dumps(
+            {
+                "schema": "codex.gpg-readiness.v2",
+                "status": "ready",
+                "fingerprint": "FD5585922F5335BC378AD8D42ECF4432C7E7982D",
+                "keygrip": "640406DD1B34A5EA0BB7CB46F21071BB3DB370FA",
+                "agent_running": True,
+                "cached": False,
+                "proof": "agent-epoch-signature",
+            }
+        ),
+    )
+
+    check = check_gpg_signing_cache(config, FakeRunner(responses), "host-wsl")
+
+    assert check.status == "pass"
+    assert check.details["cached"] is False
+    assert check.details["proof"] == "agent-epoch-signature"
+
+
+def test_cold_exact_gpg_key_is_startup_warning(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    runner = FakeRunner(
+        {
+            gpg_readiness_command(config): CommandResult(
+                11,
+                json.dumps(
+                    {
+                        "schema": "codex.gpg-readiness.v2",
+                        "status": "cold",
+                        "fingerprint": "FD5585922F5335BC378AD8D42ECF4432C7E7982D",
+                        "keygrip": "640406DD1B34A5EA0BB7CB46F21071BB3DB370FA",
+                        "agent_running": True,
+                        "cached": False,
+                        "proof": "none",
+                    }
+                ),
+            )
+        }
+    )
+
+    check = check_gpg_signing_cache(config, runner, "host-wsl")
+
+    assert check.status == "warn"
+    assert "unlock-all" in (check.remediation or "")
+    assert check.details["cached"] is False
+
+
+def test_wrong_gpg_fingerprint_never_satisfies_readiness(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    runner = FakeRunner(
+        {
+            gpg_readiness_command(config): CommandResult(
+                0,
+                json.dumps(
+                    {
+                        "schema": "codex.gpg-readiness.v2",
+                        "status": "ready",
+                        "fingerprint": "5BF9B6AC72EAE8319B07388152A63D29CFC7113F",
+                        "keygrip": "AC8252EE2B169807CEEF076AB747CE8F9B18C81D",
+                        "agent_running": True,
+                        "cached": True,
+                        "proof": "agent-cache",
+                    }
+                ),
+            )
+        }
+    )
+
+    check = check_gpg_signing_cache(config, runner, "host-wsl")
+
+    assert check.status == "fail"
+    assert "identity" in check.summary.lower()
+
+
+def test_contradictory_gpg_readiness_evidence_fails_closed(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    runner = FakeRunner(
+        {
+            gpg_readiness_command(config): CommandResult(
+                0,
+                json.dumps(
+                    {
+                        "schema": "codex.gpg-readiness.v2",
+                        "status": "ready",
+                        "fingerprint": "FD5585922F5335BC378AD8D42ECF4432C7E7982D",
+                        "keygrip": "640406DD1B34A5EA0BB7CB46F21071BB3DB370FA",
+                        "agent_running": False,
+                        "cached": True,
+                        "proof": "agent-cache",
+                    }
+                ),
+            )
+        }
+    )
+
+    check = check_gpg_signing_cache(config, runner, "host-wsl")
+
+    assert check.status == "fail"
+    assert "unexpectedly" in check.summary.lower()
 
 
 def test_stale_supervisor_units_are_reported_without_mutation(tmp_path: Path) -> None:
