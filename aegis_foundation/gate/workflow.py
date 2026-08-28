@@ -136,13 +136,23 @@ def load_source_workflow_state(root: Path):
 
 def build_completed_source_checks(
     root: Path,
-    task_id: str,
+    work_id: str,
     source_work: object,
     checks: list[Check],
 ) -> tuple[str | None, list[Check]]:
     tracker_path = Path(getattr(source_work, "tracker_path"))
     archive_folder = Path(getattr(source_work, "archive_folder"))
-    checks.append(Check(READY, f"Taskmaster Task {task_id} is done for derived source closeout"))
+    work_kind = str(getattr(source_work, "work_kind", "task"))
+    is_bead = work_kind == "bead"
+    label = f"Bead {work_id}" if is_bead else f"Task {work_id}"
+    if is_bead:
+        checks.append(
+            Check(READY, f"completed source Bead {work_id} evidence is internally consistent")
+        )
+    else:
+        checks.append(
+            Check(READY, f"Taskmaster Task {work_id} is done for derived source closeout")
+        )
     checks.append(
         Check(
             READY,
@@ -158,12 +168,13 @@ def build_completed_source_checks(
         checks.append(Check(BLOCKED, f"sessions/current points to missing file: {session_target}"))
     else:
         session_text = read_text(session_path)
-        if not text_references_task(session_text, task_id):
+        references = text_references_work if is_bead else text_references_task
+        if not references(session_text, work_id):
             checks.append(
-                Check(BLOCKED, f"current session does not reference completed Task {task_id}")
+                Check(BLOCKED, f"current session does not reference completed {label}")
             )
         else:
-            checks.append(Check(READY, f"current session references completed Task {task_id}"))
+            checks.append(Check(READY, f"current session references completed {label}"))
 
         state_path = root / "sessions" / "state.json"
         if not state_path.is_file():
@@ -196,15 +207,16 @@ def build_completed_source_checks(
         checks.append(Check(BLOCKED, f"plans/current points to missing file: {plan_target}"))
     else:
         plan_text = read_text(plan_path)
-        if not text_references_task(plan_text, task_id):
+        references = text_references_work if is_bead else text_references_task
+        if not references(plan_text, work_id):
             checks.append(
-                Check(BLOCKED, f"current plan does not reference completed Task {task_id}")
+                Check(BLOCKED, f"current plan does not reference completed {label}")
             )
         else:
-            checks.append(Check(READY, f"current plan references completed Task {task_id}"))
+            checks.append(Check(READY, f"current plan references completed {label}"))
 
     tracker_text = read_text(tracker_path)
-    checks.append(Check(READY, f"completed tracker references Task {task_id}"))
+    checks.append(Check(READY, f"completed tracker references {label}"))
     if plan_text is not None:
         alignment_issues = check_plan_tracker_alignment(plan_text, tracker_text)
         plan_statuses = parse_plan_statuses(plan_text)
@@ -224,7 +236,7 @@ def build_completed_source_checks(
         else:
             checks.append(Check(READY, "completed plan and tracker steps align"))
 
-    return task_id, checks
+    return work_id, checks
 
 
 def build_observation_checks(
@@ -528,19 +540,24 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
             checks.append(Check(BLOCKED, f"source closeout derivation failed: {exc}"))
             return task_id_from_branch(branch), checks
         if source_work is not None:
-            task_id = str(source_work.task_id)
-            branch_task_id = task_id_from_branch(branch)
-            checks.append(
-                Check(
-                    READY,
-                    (
-                        f"branch '{branch}' maps to Task {task_id}"
-                        if branch_task_id
-                        else f"default branch '{branch}' derives completed source Task {task_id}"
-                    ),
+            work_id = str(getattr(source_work, "work_id", source_work.task_id))
+            work_kind = str(getattr(source_work, "work_kind", "task"))
+            if work_kind == "bead":
+                branch_bead_id = bead_id_from_branch(branch)
+                message = (
+                    f"branch '{branch}' maps to completed source Bead {work_id}"
+                    if branch_bead_id
+                    else f"default branch '{branch}' derives completed source Bead {work_id}"
                 )
-            )
-            return build_completed_source_checks(root, task_id, source_work, checks)
+            else:
+                branch_task_id = task_id_from_branch(branch)
+                message = (
+                    f"branch '{branch}' maps to Task {work_id}"
+                    if branch_task_id
+                    else f"default branch '{branch}' derives completed source Task {work_id}"
+                )
+            checks.append(Check(READY, message))
+            return build_completed_source_checks(root, work_id, source_work, checks)
         source_bead_id = bead_id_from_branch(branch)
         if source_module is not None and source_bead_id is not None:
             return build_bead_source_checks(root, branch, source_bead_id)

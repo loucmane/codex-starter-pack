@@ -652,5 +652,35 @@
     "plan_hash": "555a9ff59c9fb53cc519c35f25eafefe8bc34fa106a1e3a2d6c29e4d7fd70e47",
     "tracker_hash": "2582428a0a18f302fb233aa691e65bdb6052d9a5fbbd7d6b0ba331470f5902ba",
     "synced_at": "2026-08-28T21:32:43.035596+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-eiyt-obsidian-reconciler.md",
+    "plan_hash": "c34bb66e3aa2ac71356b71dd9e5df0330bdabd1d0e6e287c3dbefd61b18c04e5",
+    "tracker_hash": "73129933eb2e79073a245d793c23cd35cc67f4576a925591910f7ed0e5831850",
+    "synced_at": "2026-08-28T22:11:39.194415+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-eiyt-obsidian-reconciler.md",
+    "plan_hash": "c34bb66e3aa2ac71356b71dd9e5df0330bdabd1d0e6e287c3dbefd61b18c04e5",
+    "tracker_hash": "f20574a2eb08f66a2dd78a02e39afc0aad2a11eb8fe5c40524315451c3624013",
+    "synced_at": "2026-08-28T22:13:55.851736+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-eiyt-obsidian-reconciler.md",
+    "plan_hash": "a14da2f64bb0c49f5cd881fb57b6deae8cda5d4e2c45c2dbda57d21e35bef18c",
+    "tracker_hash": "956aa8251b857caeae80d5a227b583b1f4275f72f0869fb14ca7aa7f8ee18e4d",
+    "synced_at": "2026-08-28T22:14:08.525530+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-eiyt-obsidian-reconciler.md",
+    "plan_hash": "a14da2f64bb0c49f5cd881fb57b6deae8cda5d4e2c45c2dbda57d21e35bef18c",
+    "tracker_hash": "956aa8251b857caeae80d5a227b583b1f4275f72f0869fb14ca7aa7f8ee18e4d",
+    "synced_at": "2026-08-28T22:19:31.471295+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-eiyt-obsidian-reconciler.md",
+    "plan_hash": "a14da2f64bb0c49f5cd881fb57b6deae8cda5d4e2c45c2dbda57d21e35bef18c",
+    "tracker_hash": "fc8e333e712f1cb362800f4ee658dafc056988530c1f31d045e58184ed04b5b2",
+    "synced_at": "2026-08-28T22:21:00.219351+02:00"
   }
 ]
