@@ -127,6 +127,8 @@ These are deliberately separate contracts:
   They are the authoritative publication checks and do not require Obsidian to be open.
 - `obsidian vaults verbose` plus a managed-note read is an optional host-application smoke. It
   proves only that the running Obsidian process can see the projected bytes.
+- `aegis-obsidian-reconcile check` is the host-side automatic-freshness proof. It re-exports the
+  registered bead sources and recomputes the vault digest without mutating the vault.
 
 The Aegis publisher atomically replaces its managed subtree. Windows-side Obsidian file
 watching over WSL can keep the previous index after that directory swap even though the new
@@ -154,6 +156,11 @@ The project contract is uniform:
 | HPFetcher | HPFetcher rig bead | `GasCity/hpfetcher/Aegis/` | project services and Obsidian IPC |
 | Blog | Blog rig bead | `GasCity/blog/Aegis/` | project services and Obsidian IPC |
 | New project | project bead from initialization | `GasCity/<project>/Aegis/` | only the host checks declared by that project |
+
+All projects are entries in one strict registry and share one reboot-persistent user timer. A new
+project does not clone a daemon. Its adoption gate adds one enabled registry entry, regenerates the
+same user unit so its output parent is explicitly write-allowed, proves one initial atomic
+publication, then requires the timer and source-current doctor check to remain healthy.
 
 Workers prove only repository, bead, receipt, and evidence facts visible inside their own
 namespace. Host-only checks stay in the operator/readiness layer. An empty cross-UID process

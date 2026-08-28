@@ -48,6 +48,10 @@ aegis vault gate --target-dir . --beads-json /owner/evidence/beads.json --phase 
 
 # Use a deliberate out-of-repository destination.
 aegis vault build --target-dir . --output /safe/path/project-aegis-vault
+
+# Host-maintained freshness from an explicit project registry.
+aegis-obsidian-reconcile run --registry ~/.config/aegis/obsidian-projects.json
+aegis-obsidian-reconcile check --registry ~/.config/aegis/obsidian-projects.json
 ```
 
 The bead snapshot may be a JSON array, a `beads`/`issues`/`records` envelope, or a Beads JSONL
@@ -71,6 +75,32 @@ For the real WSL Obsidian vault, use one Aegis-owned subtree such as
 `/home/loucmane/vaults/main/GasCity/<project>/Aegis`. The existing Gas City projector owns
 `GasCity/<project>/Tasks/`, agents own `GasCity/<project>/Docs/worklogs/`, and humans own the
 remaining vault. These ownership boundaries must never overlap.
+
+## Continuous reconciliation
+
+The generated vault stays disposable, but it is no longer dependent on an operator remembering a
+manual refresh. One user-scoped systemd timer runs every minute and after boot. A strict registry
+declares each enabled project with:
+
+- a stable project id;
+- an absolute Git target directory;
+- a disjoint absolute output subtree;
+- an exact absolute-argv read-only bead export;
+- an explicit human-content policy;
+- freshness, debounce, and export-timeout bounds.
+
+The reconciler never starts a rig or database, discovers a store, or edits a repository. It reads
+whatever the declared host command can currently prove. It uses a non-blocking lock, retains the
+last valid output on failure, records last-success and last-error state with mode `0600`, and runs
+all three vault gates after every changed publication. Because publication is an atomic directory
+exchange, the hardened service grants write access to each registered output's existing parent,
+not the source repository or the rest of the home directory. The `check` surface re-exports
+sources and recomputes the digest, so its health signal is source freshness rather than “the timer
+ran.”
+
+The timer is intentionally not a per-edit hook. A one-minute coalescing window avoids turning a
+large atomic vault into a write-amplifying workflow database while giving the readiness doctor a
+short, enforceable freshness SLA.
 
 ## Graph Model
 
@@ -205,6 +235,10 @@ Acceptance requires:
 - `aegis vault check` detects stale or modified output without writing;
 - `aegis vault gate` blocks readiness, closeout, or publication when the projection is missing,
   stale, modified, empty for a declared authority, or built from the wrong authority;
+- automatic reconciliation preserves the last valid tree on source/export/publication failure,
+  becomes a byte no-op when current, and reports a stale source digest even inside the SLA window;
+- the user timer is enabled, reboot-persistent, and writes only its private state plus registered
+  Aegis output subtrees;
 - realistic Blog and HP-Fetcher event volumes remain within the documented bounds.
 
 ## Non-Goals
@@ -212,7 +246,8 @@ Acceptance requires:
 This slice does not:
 
 - migrate Taskmaster records into beads or mutate either authority;
-- discover a bead database, start Dolt, or shell out to `gc`/`bd`;
+- discover a bead database or start Dolt (the optional host reconciler executes only registry-pinned
+  absolute argv and never invents a command);
 - make the Obsidian graph authoritative or implement vault-to-beads writeback;
 - require a vault write after each source mutation;
 - replace the legacy S:W:H:E workflow;

@@ -72,8 +72,12 @@ SECRET_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
 )
 _TASK_IN_TEXT = re.compile(r"(?i)(?:task[-_ ]?)(\d+(?:\.\d+)?)")
 _TASK_BRANCH = re.compile(r"(?i)(?:^|/)feat/task-(\d+)(?:-|$)")
-_BEAD_IN_TEXT = re.compile(r"(?<![a-z0-9])([a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*)(?![a-z0-9-])")
-_BEAD_BRANCH = re.compile(r"(?i)^codex/([a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*)(?:-|$)")
+_BEAD_IN_TEXT = re.compile(
+    r"(?<![a-z0-9])([a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*(?:\.[1-9][0-9]*)*)(?![a-z0-9.-])"
+)
+_BEAD_BRANCH = re.compile(
+    r"(?i)^codex/([a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*(?:\.[1-9][0-9]*)*)(?:-|$)"
+)
 _MARKER_BEGIN = re.compile(r"<!--\s*AEGIS:BEGIN\b")
 _MARKER_END = re.compile(r"<!--\s*AEGIS:END\b")
 
@@ -286,8 +290,7 @@ def _legacy_inventory(root: Path, limits: VaultLimits) -> list[dict[str, Any]]:
                     "generated_blocks": None,
                     "task_ids": sorted(set(_TASK_IN_TEXT.findall(relative)), key=_natural_id_key),
                     "work_ids": sorted(
-                        set(_TASK_IN_TEXT.findall(relative))
-                        | set(_BEAD_IN_TEXT.findall(relative))
+                        set(_TASK_IN_TEXT.findall(relative)) | set(_BEAD_IN_TEXT.findall(relative))
                     ),
                     "content_digest": None,
                 }
@@ -501,9 +504,7 @@ def collect_snapshot(
             "head": _git(root, "rev-parse", "HEAD"),
             "branch": _git(root, "branch", "--show-current"),
         },
-        "work_authority": {
-            key: value for key, value in work.items() if key != "items"
-        },
+        "work_authority": {key: value for key, value in work.items() if key != "items"},
         "work_items": work["items"],
         "tasks": [item for item in work["items"] if item["authority"] == "taskmaster"],
         "capsule": _selected_capsule(root),
@@ -618,7 +619,7 @@ def _render_work_base() -> str:
         "    - 'aegis_kind == \"task\"'\n"
         "views:\n"
         "  - type: table\n"
-        "    name: \"Work\"\n"
+        '    name: "Work"\n'
         "    order:\n"
         "      - file.name\n"
         "      - authority\n"
@@ -773,7 +774,10 @@ def render_vault(snapshot: Mapping[str, Any]) -> dict[str, bytes]:
                 (
                     "",
                     "## Bounded metadata",
-                    *(f"- **{key}**: `{_redact(value, limit=500)}`" for key, value in sorted(metadata.items())),
+                    *(
+                        f"- **{key}**: `{_redact(value, limit=500)}`"
+                        for key, value in sorted(metadata.items())
+                    ),
                 )
             )
         related_legacy = legacy_by_work.get(work_id, [])
@@ -1049,9 +1053,7 @@ def _manifest(snapshot: Mapping[str, Any], files: Mapping[str, bytes]) -> dict[s
             "legacy_documents": len(snapshot["legacy_documents"]),
             "work_items": len(snapshot.get("work_items", snapshot.get("tasks", []))),
             "beads": sum(
-                1
-                for item in snapshot.get("work_items", [])
-                if item.get("authority") == "beads"
+                1 for item in snapshot.get("work_items", []) if item.get("authority") == "beads"
             ),
             "tasks": len(snapshot["tasks"]),
         },

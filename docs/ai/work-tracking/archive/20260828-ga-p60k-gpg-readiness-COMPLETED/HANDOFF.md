@@ -20,3 +20,4 @@
 - Create the exact signed commit, run hosted CI, and merge through the bounded branch lineage.
 - Reinstall and verify the user-level helper and doctor from merged bytes.
 - Close `ga-p60k` only after merge and merged-byte readback. Gas City lifecycle stays unchanged.
+- Archived on 2026-08-28 21:00 CEST — Folder moved to archive and tracker marked COMPLETED.

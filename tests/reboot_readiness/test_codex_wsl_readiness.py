@@ -12,6 +12,7 @@ from aegis_foundation.reboot_readiness import (
     check_gc_status,
     check_gpg_signing_cache,
     check_obsidian,
+    check_obsidian_reconciler,
     check_supervisor_units,
     check_windows_bootstrap,
     check_wsl_systemd,
@@ -140,13 +141,80 @@ def gpg_readiness_command(config: ProbeConfig) -> tuple[str, ...]:
     return (str(config.gpg_readiness_command), "check", "--json")
 
 
+def test_obsidian_reconciler_health_uses_source_current_result(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    config = ProbeConfig(
+        **{
+            **config.__dict__,
+            "obsidian_reconciler_command": Path("/managed/aegis-obsidian-reconcile"),
+            "obsidian_reconciler_registry": tmp_path / "registry.json",
+            "obsidian_reconciler_state": tmp_path / "state",
+        }
+    )
+    command = (
+        "/managed/aegis-obsidian-reconcile",
+        "check",
+        "--registry",
+        str(tmp_path / "registry.json"),
+        "--state-dir",
+        str(tmp_path / "state"),
+    )
+    healthy = check_obsidian_reconciler(
+        config,
+        FakeRunner(
+            {
+                command: CommandResult(
+                    0,
+                    json.dumps(
+                        {
+                            "ok": True,
+                            "projects": [
+                                {"id": "gas-city", "fresh": True, "age_seconds": 12, "problems": []}
+                            ],
+                        }
+                    ),
+                )
+            }
+        ),
+        "host-wsl",
+    )
+    assert healthy.status == "pass"
+
+    stale = check_obsidian_reconciler(
+        config,
+        FakeRunner(
+            {
+                command: CommandResult(
+                    1,
+                    json.dumps(
+                        {
+                            "ok": False,
+                            "projects": [
+                                {
+                                    "id": "gas-city",
+                                    "fresh": False,
+                                    "age_seconds": 220,
+                                    "problems": ["vault source digest is stale"],
+                                }
+                            ],
+                        }
+                    ),
+                )
+            }
+        ),
+        "host-wsl",
+    )
+    assert stale.status == "fail"
+    assert stale.details["projects"][0]["fresh"] is False
+
+
 def healthy_task() -> str:
     return json.dumps(
         {
             "State": "Ready",
             "Execute": r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
             "Arguments": (
-                '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File '
+                "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "
                 '"C:\\Users\\tester\\AppData\\Local\\GasCity\\bootstrap\\'
                 'gas-city-wsl-bootstrap.ps1"'
             ),
@@ -160,9 +228,7 @@ def healthy_task() -> str:
 
 def healthy_responses(config: ProbeConfig) -> dict[tuple[str, ...], CommandResult]:
     responses: dict[tuple[str, ...], CommandResult] = {
-        ("loginctl", "show-user", "tester", "-p", "Linger", "--value"): CommandResult(
-            0, "yes\n"
-        ),
+        ("loginctl", "show-user", "tester", "-p", "Linger", "--value"): CommandResult(0, "yes\n"),
         powershell_version_command(): CommandResult(0, "26.820.7780.0\n"),
         powershell_task_command(): CommandResult(0, healthy_task()),
         obsidian_vaults_command(config): CommandResult(
@@ -411,9 +477,7 @@ def test_windows_bootstrap_contract_drift_fails(tmp_path: Path) -> None:
     config = make_config(tmp_path)
     task = json.loads(healthy_task())
     task["RunLevel"] = "Highest"
-    runner = FakeRunner(
-        {powershell_task_command(): CommandResult(0, json.dumps(task))}
-    )
+    runner = FakeRunner({powershell_task_command(): CommandResult(0, json.dumps(task))})
 
     check = check_windows_bootstrap(config, runner, "host-wsl")
 
@@ -588,9 +652,9 @@ def test_full_report_allows_explicit_host_observer_for_approved_host_run(
 def test_full_report_fails_when_supervisor_is_inactive(tmp_path: Path) -> None:
     config = make_config(tmp_path)
     responses = healthy_responses(config)
-    responses[
-        ("systemctl", "--user", "is-active", config.supervisor_unit)
-    ] = CommandResult(3, "inactive\n")
+    responses[("systemctl", "--user", "is-active", config.supervisor_unit)] = CommandResult(
+        3, "inactive\n"
+    )
     runner = FakeRunner(responses)
 
     report = build_report(config, runner=runner, env={})

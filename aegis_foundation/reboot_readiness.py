@@ -21,7 +21,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Mapping, Protocol, Sequence
 
-
 DEFAULT_CITY = Path("/home/loucmane/gascity/city")
 DEFAULT_GC = Path("/home/loucmane/gascity/bin/gc")
 DEFAULT_SUPERVISOR_UNIT = "gascity-supervisor-home-42adab5d.service"
@@ -31,6 +30,9 @@ DEFAULT_WINDOWS_TASK = "GasCity-WSL-Bootstrap"
 DEFAULT_OBSIDIAN = Path("/home/loucmane/.local/bin/obsidian")
 DEFAULT_OBSIDIAN_VAULT = "main"
 DEFAULT_OBSIDIAN_PROBE_PATH = "GasCity/gas-city-operations/Aegis/Beads/ga-zbmk.md"
+DEFAULT_OBSIDIAN_RECONCILER = Path("/home/loucmane/.local/bin/aegis-obsidian-reconcile")
+DEFAULT_OBSIDIAN_RECONCILER_REGISTRY = Path("/home/loucmane/.config/aegis/obsidian-projects.json")
+DEFAULT_OBSIDIAN_RECONCILER_STATE = Path("/home/loucmane/.local/state/aegis/obsidian-reconciler")
 DEFAULT_GPG_READINESS = Path("/home/loucmane/.local/bin/codex-gpg-readiness")
 OPERATOR_SIGNING_FINGERPRINT = "FD5585922F5335BC378AD8D42ECF4432C7E7982D"
 OPERATOR_SIGNING_KEYGRIP = "640406DD1B34A5EA0BB7CB46F21071BB3DB370FA"
@@ -38,7 +40,7 @@ OPERATOR_GPG_READINESS_SCHEMA = "codex.gpg-readiness.v2"
 MANAGED_PATH = "/home/loucmane/gascity/bin:/usr/local/bin:/usr/bin:/bin"
 KNOWN_AFFECTED_DESKTOP_VERSIONS = frozenset({"26.820.60940.0", "26.820.7780.0"})
 STATUS_ORDER = {"pass": 0, "unknown": 1, "warn": 2, "fail": 3}
-DOCTOR_VERSION = "2026.08.28.3"
+DOCTOR_VERSION = "2026.08.28.4"
 
 
 @dataclass(frozen=True)
@@ -107,8 +109,7 @@ class Report:
     def to_dict(self) -> dict[str, object]:
         payload = asdict(self)
         payload["summary"] = {
-            status: sum(check.status == status for check in self.checks)
-            for status in STATUS_ORDER
+            status: sum(check.status == status for check in self.checks) for status in STATUS_ORDER
         }
         return payload
 
@@ -129,6 +130,9 @@ class ProbeConfig:
     obsidian_command: Path = DEFAULT_OBSIDIAN
     obsidian_vault: str = DEFAULT_OBSIDIAN_VAULT
     obsidian_probe_path: str = DEFAULT_OBSIDIAN_PROBE_PATH
+    obsidian_reconciler_command: Path | None = None
+    obsidian_reconciler_registry: Path | None = None
+    obsidian_reconciler_state: Path | None = None
     gpg_readiness_command: Path = DEFAULT_GPG_READINESS
     user: str | None = None
 
@@ -284,8 +288,7 @@ def check_gpg_signing_cache(config: ProbeConfig, runner: Runner, observer: str) 
             "Restore the reviewed exact-key helper before signing.",
         )
     identity_matches = (
-        fingerprint == OPERATOR_SIGNING_FINGERPRINT
-        and keygrip == OPERATOR_SIGNING_KEYGRIP
+        fingerprint == OPERATOR_SIGNING_FINGERPRINT and keygrip == OPERATOR_SIGNING_KEYGRIP
     )
     if not identity_matches:
         return Check(
@@ -456,9 +459,7 @@ def check_desktop(config: ProbeConfig, runner: Runner, observer: str) -> list[Ch
 
     desktop = payload.get("desktop") if isinstance(payload, dict) else None
     wsl_mode = (
-        desktop.get("runCodexInWindowsSubsystemForLinux")
-        if isinstance(desktop, dict)
-        else None
+        desktop.get("runCodexInWindowsSubsystemForLinux") if isinstance(desktop, dict) else None
     )
     mode_check = Check(
         "desktop.wsl_mode",
@@ -498,9 +499,11 @@ def check_desktop(config: ProbeConfig, runner: Runner, observer: str) -> list[Ch
             "enabled": codex_app.get("enabled") if isinstance(codex_app, dict) else None,
             "desktop_version": version,
         },
-        None
-        if workaround
-        else "Restore command=/bin/false and enabled=false, then fully restart Codex Desktop.",
+        (
+            None
+            if workaround
+            else "Restore command=/bin/false and enabled=false, then fully restart Codex Desktop."
+        ),
     )
     return [config_check, mode_check, version_check, workaround_check]
 
@@ -621,6 +624,89 @@ def check_obsidian(config: ProbeConfig, runner: Runner, observer: str) -> Check:
     )
 
 
+def check_obsidian_reconciler(config: ProbeConfig, runner: Runner, observer: str) -> Check:
+    """Prove the automatic projection is source-current from the observer's vantage."""
+
+    command = config.obsidian_reconciler_command
+    registry = config.obsidian_reconciler_registry
+    state = config.obsidian_reconciler_state
+    if command is None or registry is None or state is None:
+        raise ValueError("automatic Obsidian reconciler paths are not configured")
+    result = runner.run(
+        [
+            str(command),
+            "check",
+            "--registry",
+            str(registry),
+            "--state-dir",
+            str(state),
+        ],
+        timeout=120,
+    )
+    details: dict[str, object] = {
+        "observer": observer,
+        "command": str(command),
+        "registry": str(registry),
+        "state": str(state),
+        "returncode": result.returncode,
+    }
+    if _control_plane_unobservable(result):
+        details["error"] = (result.stderr or result.stdout).strip()
+        return Check(
+            "obsidian.reconciler",
+            "unknown",
+            "This observer cannot establish automatic Obsidian freshness",
+            details,
+            "Repeat the read-only reconciler check from host WSL; do not infer stale state from a sandbox socket denial.",
+        )
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        details["error"] = str(exc)
+        details["stdout"] = result.stdout[:500]
+        return Check(
+            "obsidian.reconciler",
+            "fail",
+            "Automatic Obsidian reconciler returned malformed health evidence",
+            details,
+            "Inspect the user timer and its last failure; the doctor performs no repair.",
+        )
+    if not isinstance(payload, dict):
+        payload = {}
+    projects = payload.get("projects") if isinstance(payload.get("projects"), list) else []
+    details.update(
+        {
+            "ok": payload.get("ok"),
+            "projects": [
+                {
+                    "id": item.get("id"),
+                    "fresh": item.get("fresh"),
+                    "age_seconds": item.get("age_seconds"),
+                    "problems": item.get("problems"),
+                }
+                for item in projects
+                if isinstance(item, dict)
+            ],
+        }
+    )
+    ok = result.returncode == 0 and payload.get("ok") is True and bool(projects)
+    return Check(
+        "obsidian.reconciler",
+        "pass" if ok else "fail",
+        (
+            "Automatic Aegis Obsidian projections match current sources"
+            if ok
+            else "Automatic Aegis Obsidian projection is stale or unhealthy"
+        ),
+        details,
+        (
+            None
+            if ok
+            else "Inspect aegis-obsidian-reconcile.timer and run the read-only reconciler check; never hand-edit the managed subtree."
+        ),
+    )
+
+
 def check_windows_bootstrap(config: ProbeConfig, runner: Runner, observer: str) -> Check:
     script = (
         f"$t=Get-ScheduledTask -TaskName '{config.windows_task}' "
@@ -691,13 +777,17 @@ def check_windows_bootstrap(config: ProbeConfig, runner: Runner, observer: str) 
     return Check(
         "windows.bootstrap_task",
         "pass" if valid else "fail",
-        "Windows logon bootstrap task is installed with the reviewed contract"
-        if valid
-        else "Windows bootstrap task exists but its contract has drifted",
+        (
+            "Windows logon bootstrap task is installed with the reviewed contract"
+            if valid
+            else "Windows bootstrap task exists but its contract has drifted"
+        ),
         {"task": config.windows_task, **task},
-        None
-        if valid
-        else "Restore the reviewed limited logon task; do not repair it from the doctor.",
+        (
+            None
+            if valid
+            else "Restore the reviewed limited logon task; do not repair it from the doctor."
+        ),
     )
 
 
@@ -762,9 +852,11 @@ def check_supervisor_units(config: ProbeConfig) -> list[Check]:
             Check(
                 "gascity.supervisor_unit_file",
                 "pass" if has_expected_home else "fail",
-                "Canonical supervisor unit targets the managed Gas City home"
-                if has_expected_home
-                else "Canonical supervisor unit targets an unexpected GC_HOME",
+                (
+                    "Canonical supervisor unit targets the managed Gas City home"
+                    if has_expected_home
+                    else "Canonical supervisor unit targets an unexpected GC_HOME"
+                ),
                 {"path": str(canonical), "expected_gc_home": expected_home},
             )
         )
@@ -776,18 +868,22 @@ def check_supervisor_units(config: ProbeConfig) -> list[Check]:
         Check(
             "gascity.stale_supervisor_units",
             "pass" if not stale else "warn",
-            "Only the canonical per-home supervisor unit is enabled"
-            if not stale
-            else f"{len(stale)} stale per-home supervisor units remain enabled",
+            (
+                "Only the canonical per-home supervisor unit is enabled"
+                if not stale
+                else f"{len(stale)} stale per-home supervisor units remain enabled"
+            ),
             {
                 "enabled_count": len(names),
                 "canonical": config.supervisor_unit,
                 "stale_count": len(stale),
                 "stale_units": stale,
             },
-            None
-            if not stale
-            else "Use the separately reviewed stale-unit cleanup; the doctor never disables units.",
+            (
+                None
+                if not stale
+                else "Use the separately reviewed stale-unit cleanup; the doctor never disables units."
+            ),
         )
     )
     return checks
@@ -834,9 +930,11 @@ def check_gc_status(config: ProbeConfig, runner: Runner, observer: str) -> Check
     return Check(
         "gascity.status",
         "pass" if ok else "fail",
-        "Gas City controller and bead-store context are usable"
-        if ok
-        else "Gas City controller or bead-store context is not usable",
+        (
+            "Gas City controller and bead-store context are usable"
+            if ok
+            else "Gas City controller or bead-store context is not usable"
+        ),
         {
             "controller_running": running,
             "native_store_eligible": store_eligible,
@@ -846,9 +944,11 @@ def check_gc_status(config: ProbeConfig, runner: Runner, observer: str) -> Check
                 if isinstance(rig, dict)
             ],
         },
-        None
-        if ok
-        else "Inspect the supervisor and store; the doctor performs no restart or repair.",
+        (
+            None
+            if ok
+            else "Inspect the supervisor and store; the doctor performs no restart or repair."
+        ),
     )
 
 
@@ -871,6 +971,12 @@ def build_report(
     checks.append(check_linger(probe, command_runner, observer))
     checks.extend(check_desktop(probe, command_runner, observer))
     checks.append(check_obsidian(probe, command_runner, observer))
+    if (
+        probe.obsidian_reconciler_command is not None
+        and probe.obsidian_reconciler_registry is not None
+        and probe.obsidian_reconciler_state is not None
+    ):
+        checks.append(check_obsidian_reconciler(probe, command_runner, observer))
     checks.append(check_windows_bootstrap(probe, command_runner, observer))
     checks.extend(check_supervisor_units(probe))
     checks.extend(
@@ -973,6 +1079,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             obsidian_command=args.obsidian_command,
             obsidian_vault=args.obsidian_vault,
             obsidian_probe_path=args.obsidian_probe_path,
+            obsidian_reconciler_command=DEFAULT_OBSIDIAN_RECONCILER,
+            obsidian_reconciler_registry=DEFAULT_OBSIDIAN_RECONCILER_REGISTRY,
+            obsidian_reconciler_state=DEFAULT_OBSIDIAN_RECONCILER_STATE,
         ),
         observer_override=None if args.observer == "auto" else args.observer,
     )

@@ -14,10 +14,9 @@ from pathlib import Path
 import re
 from typing import Any, Mapping
 
-
 SCHEMA_VERSION = "1"
 MAX_SNAPSHOT_BYTES = 8 * 1024 * 1024
-BEAD_ID_PATTERN = re.compile(r"^[a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*$")
+BEAD_ID_PATTERN = re.compile(r"^[a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*(?:\.[1-9][0-9]*)*$")
 SENSITIVE_KEY_PATTERN = re.compile(
     r"(?i)(?:authorization|credential|password|passwd|secret|token|api[_-]?key)"
 )
@@ -59,7 +58,9 @@ def _taskmaster_items(root: Path, *, max_items: int) -> tuple[list[dict[str, Any
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise WorkAuthorityError(f"invalid Taskmaster source {path.relative_to(root)}: {exc}") from exc
+        raise WorkAuthorityError(
+            f"invalid Taskmaster source {path.relative_to(root)}: {exc}"
+        ) from exc
     if isinstance(payload, Mapping) and isinstance(payload.get("master"), Mapping):
         raw_tasks = payload["master"].get("tasks", [])
     elif isinstance(payload, Mapping):
@@ -77,11 +78,7 @@ def _taskmaster_items(root: Path, *, max_items: int) -> tuple[list[dict[str, Any
         raw_dependencies = task.get("dependencies")
         dependencies = raw_dependencies if isinstance(raw_dependencies, list) else []
         normalized_dependencies = sorted(
-            {
-                _normalize_task_id(item, parent_id)
-                for item in dependencies
-                if str(item).strip()
-            },
+            {_normalize_task_id(item, parent_id) for item in dependencies if str(item).strip()},
             key=_natural_id_key,
         )
         records.append(
@@ -97,8 +94,7 @@ def _taskmaster_items(root: Path, *, max_items: int) -> tuple[list[dict[str, Any
                 "assignee": "",
                 "updated_at": "",
                 "dependencies": [
-                    {"id": dependency, "type": "blocks"}
-                    for dependency in normalized_dependencies
+                    {"id": dependency, "type": "blocks"} for dependency in normalized_dependencies
                 ],
                 "description": _text(task.get("description"), limit=2_000),
                 "labels": [],
@@ -177,7 +173,9 @@ def _bead_payload(path: Path) -> list[Mapping[str, Any]]:
                 # A one-record JSONL export is also a valid single JSON object.
                 payload = [payload]
         if not isinstance(payload, list):
-            raise WorkAuthorityError("bead snapshot must be an array or contain beads/issues/records")
+            raise WorkAuthorityError(
+                "bead snapshot must be an array or contain beads/issues/records"
+            )
         records = payload
     else:
         records = [
@@ -226,9 +224,7 @@ def _dependencies(value: Any, *, bead_id: str) -> list[dict[str, str]]:
         if not BEAD_ID_PATTERN.fullmatch(target):
             raise WorkAuthorityError(f"bead {bead_id} has unsafe dependency id {target!r}")
         if not re.fullmatch(r"[a-z][a-z0-9-]*", relationship):
-            raise WorkAuthorityError(
-                f"bead {bead_id} has unsafe dependency type {relationship!r}"
-            )
+            raise WorkAuthorityError(f"bead {bead_id} has unsafe dependency type {relationship!r}")
         result.add((relationship, target))
     return [{"id": target, "type": relationship} for relationship, target in sorted(result)]
 
@@ -262,7 +258,9 @@ def _bead_items(
         if labels is None:
             normalized_labels: list[str] = []
         elif isinstance(labels, list) and all(isinstance(label, str) for label in labels):
-            normalized_labels = sorted({_text(label, limit=100) for label in labels if label.strip()})
+            normalized_labels = sorted(
+                {_text(label, limit=100) for label in labels if label.strip()}
+            )
         else:
             raise WorkAuthorityError(f"bead {bead_id} labels must be an array of strings")
         title = _text(raw.get("title"), limit=240) if include_content else ""
@@ -272,8 +270,7 @@ def _bead_items(
                 "id": bead_id,
                 "authority": "beads",
                 "kind": "bead",
-                "issue_type": _text(raw.get("issue_type", raw.get("type")), limit=40)
-                or "task",
+                "issue_type": _text(raw.get("issue_type", raw.get("type")), limit=40) or "task",
                 "parent_id": parent_id,
                 "title": title,
                 "status": _text(raw.get("status"), limit=40) or "unknown",
