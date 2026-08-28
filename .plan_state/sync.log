@@ -712,5 +712,11 @@
     "plan_hash": "40b4a2215f678e18a76a70a6700c3ca11e6c01c252299067148d0a85867f1abe",
     "tracker_hash": "72041431f820349c27db8d3a3a92535b64feee917a349d2ab640711081917bdf",
     "synced_at": "2026-08-28T23:35:40.447581+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-6w1y-ci-aegis-delivery.md",
+    "plan_hash": "7a22be76c0287683dfc1372b21c5d58573724c953e4c64869440d0bfb914d1e5",
+    "tracker_hash": "72041431f820349c27db8d3a3a92535b64feee917a349d2ab640711081917bdf",
+    "synced_at": "2026-08-28T23:43:37.553441+02:00"
   }
 ]

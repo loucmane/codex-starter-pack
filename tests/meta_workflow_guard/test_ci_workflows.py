@@ -258,6 +258,14 @@ def test_workflows_are_least_privilege_bounded_and_cancel_stale_pr_runs() -> Non
     assert codex[True]["push"] == {"branches": ["main"]}
 
 
+def test_guard_workflows_publish_unique_required_check_contexts() -> None:
+    codex = _load_workflow_path(CODEX_GUARD_WORKFLOW)
+    meta = _load_workflow_path(META_GUARD_WORKFLOW)
+
+    assert codex["jobs"]["guard"]["name"] == "codex-guard"
+    assert meta["jobs"]["guard"]["name"] == "meta-workflow-guard"
+
+
 def test_dependabot_and_dependency_review_cover_actions_and_uv() -> None:
     dependabot = yaml.safe_load(DEPENDABOT_CONFIG.read_text(encoding="utf-8"))
     updates = dependabot["updates"]

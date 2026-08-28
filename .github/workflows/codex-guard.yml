@@ -16,6 +16,7 @@ concurrency:
 
 jobs:
   guard:
+    name: codex-guard
     runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
