@@ -43,6 +43,11 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
+      - name: Install shell integration test dependency
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends zsh
+
       - name: Set up Node for Taskmaster CLI
         uses: actions/setup-node@v6
         with:
