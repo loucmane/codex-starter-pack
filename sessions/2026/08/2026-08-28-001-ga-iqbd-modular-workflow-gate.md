@@ -28,7 +28,7 @@ Bead `ga-iqbd` was kicked off via `python3 scripts/codex-task wizard kickoff --b
 
 ### 📝 Progress Log
 - **[09:45]** — [S:20260828|W:ga-iqbd-modular-workflow-gate|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M:%S %Z %z"`] Confirmed current timestamp as `2026-08-28 09:45:37 CEST +0200`
-- **[09:45]** — [S:20260828|W:ga-iqbd-modular-workflow-gate|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260828-ga-iqbd-modular-workflow-gate-ACTIVE/TRACKER.md] Scaffolded the `ga-iqbd` ACTIVE work-tracking folder through the bead-native kickoff flow
+- **[09:45]** — [S:20260828|W:ga-iqbd-modular-workflow-gate|H:scripts/codex-task|E:docs/ai/work-tracking/archive/20260828-ga-iqbd-modular-workflow-gate-COMPLETED/TRACKER.md] Scaffolded the `ga-iqbd` ACTIVE work-tracking folder through the bead-native kickoff flow
 - **[09:45]** — [S:20260828|W:ga-iqbd-modular-workflow-gate|H:bd:show|E:bead:ga-iqbd] Bound the source-workflow record to primary bead `ga-iqbd`
 - **[09:45]** — [S:20260828|W:ga-iqbd-modular-workflow-gate|H:sessions/current|E:sessions/current] Repointed current session, plan, and session state to `ga-iqbd`
 - **[10:11]** — [S:20260828|W:ga-iqbd-modular-workflow-gate|H:aegis_foundation/gate|E:tests/claude_adapter] Extracted canonical modular readiness and hook-policy packages and retained only thin fail-closed Claude launchers

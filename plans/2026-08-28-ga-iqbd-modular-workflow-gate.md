@@ -5,7 +5,7 @@ handler_target: aegis_foundation/gate
 bead_ids: [ga-iqbd]
 branch_policy: codex/ga-iqbd-modular-workflow-gate
 evidence_summary:
-  - docs/ai/work-tracking/active/20260828-ga-iqbd-modular-workflow-gate-ACTIVE
+  - docs/ai/work-tracking/archive/20260828-ga-iqbd-modular-workflow-gate-COMPLETED
   - aegis_foundation/gate/readiness.py
   - aegis_foundation/gate/hooks/entrypoint.py
   - bead:ga-iqbd
@@ -22,20 +22,20 @@ emergency_bypass: false
 - **Handler Target (H)**: aegis_foundation/gate
 - **Bead IDs**: ga-iqbd
 - **Branch Policy**: codex/ga-iqbd-modular-workflow-gate
-- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260828-ga-iqbd-modular-workflow-gate-ACTIVE, aegis_foundation/gate/readiness.py, aegis_foundation/gate/hooks/entrypoint.py, bead:ga-iqbd
+- **Evidence Summary (E)**: docs/ai/work-tracking/archive/20260828-ga-iqbd-modular-workflow-gate-COMPLETED, aegis_foundation/gate/readiness.py, aegis_foundation/gate/hooks/entrypoint.py, bead:ga-iqbd
 - **Plan Version**: v1
 - **Emergency Bypass**: false
 
 ## Plan Table
 | Step ID | Description | Evidence | Status |
 |---|---|---|---|
-| plan-step-scope | Confirm scope and authority for Modularize Aegis workflow gate and retire Claude readiness monolith | docs/ai/work-tracking/active/20260828-ga-iqbd-modular-workflow-gate-ACTIVE/FINDINGS.md | completed |
-| plan-step-implement | Implement Modularize Aegis workflow gate and retire Claude readiness monolith through the reviewed helper surface | aegis_foundation/gate/readiness.py; aegis_foundation/gate/hooks/entrypoint.py; docs/ai/work-tracking/active/20260828-ga-iqbd-modular-workflow-gate-ACTIVE/IMPLEMENTATION.md | completed |
-| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/active/20260828-ga-iqbd-modular-workflow-gate-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260828-ga-iqbd-modular-workflow-gate-ACTIVE/TRACKER.md | completed |
+| plan-step-scope | Confirm scope and authority for Modularize Aegis workflow gate and retire Claude readiness monolith | docs/ai/work-tracking/archive/20260828-ga-iqbd-modular-workflow-gate-COMPLETED/FINDINGS.md | completed |
+| plan-step-implement | Implement Modularize Aegis workflow gate and retire Claude readiness monolith through the reviewed helper surface | aegis_foundation/gate/readiness.py; aegis_foundation/gate/hooks/entrypoint.py; docs/ai/work-tracking/archive/20260828-ga-iqbd-modular-workflow-gate-COMPLETED/IMPLEMENTATION.md | completed |
+| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/archive/20260828-ga-iqbd-modular-workflow-gate-COMPLETED/HANDOFF.md; docs/ai/work-tracking/archive/20260828-ga-iqbd-modular-workflow-gate-COMPLETED/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
-- `docs/ai/work-tracking/active/20260828-ga-iqbd-modular-workflow-gate-ACTIVE`
+- `docs/ai/work-tracking/archive/20260828-ga-iqbd-modular-workflow-gate-COMPLETED`
 - `aegis_foundation/gate/**`
 - `.claude/scripts/gate_lib.py`
 - `.claude/scripts/readiness.sh`
@@ -56,7 +56,7 @@ emergency_bypass: false
 - Context reload steps:
   1. Read `sessions/current` and this plan.
   2. Read primary bead `ga-iqbd` through the rig-scoped bead surface.
-  3. Review `docs/ai/work-tracking/active/20260828-ga-iqbd-modular-workflow-gate-ACTIVE/TRACKER.md` before changing implementation.
+  3. Review `docs/ai/work-tracking/archive/20260828-ga-iqbd-modular-workflow-gate-COMPLETED/TRACKER.md` before changing implementation.
   4. Run `python3 scripts/codex-task plan sync` after tracker updates.
 - Outstanding risks/todos: preserve bead authority and avoid allocating shadow Taskmaster work.
 

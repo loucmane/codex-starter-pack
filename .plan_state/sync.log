@@ -598,5 +598,41 @@
     "plan_hash": "d49beb306f5eb6cd1e712047c9f31277820d50f2e5564fa0f34b053139fc74b4",
     "tracker_hash": "95fc2116bdf708bd9a7bd66fe90d51c59acb77a58c5949c9c4f21db780d25035",
     "synced_at": "2026-08-28T10:54:30.101316+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-iqbd-modular-workflow-gate.md",
+    "plan_hash": "b434019d95170a460c182305c93049786f43b00f61e1b94940cfa04c49471984",
+    "tracker_hash": "9e4f1113e35588bb8355baac19ad5d3eb2660a7eee24df5a4df46d3dc4f08b0c",
+    "synced_at": "2026-08-28T11:12:44.595427+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-p60k-gpg-readiness.md",
+    "plan_hash": "4b500b9969b685dc69f4e8d2e276d335e10bfd2cee42db85b512940536d4ebf8",
+    "tracker_hash": "315e698b0ff9ed8606da6e74626abe1b34b9353d7727119997dd2c9bc5a7cfe1",
+    "synced_at": "2026-08-28T11:12:44.977578+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-p60k-gpg-readiness.md",
+    "plan_hash": "23264acf8ae955e21f7375c4dd03dd216c4b8c2826183a6b42cf69e4e206d10b",
+    "tracker_hash": "5eb6d7c8c771449c5a11d9563157bff9a440e3252d35935f10ff53d934a1dccf",
+    "synced_at": "2026-08-28T11:27:30.963154+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-p60k-gpg-readiness.md",
+    "plan_hash": "23264acf8ae955e21f7375c4dd03dd216c4b8c2826183a6b42cf69e4e206d10b",
+    "tracker_hash": "3a1c096e308f12788e81250d396f9b113505164c041fa29396e54826b22feb2d",
+    "synced_at": "2026-08-28T11:29:01.855037+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-p60k-gpg-readiness.md",
+    "plan_hash": "52a751f4ae6a8815078b6daf2a109ca4c449195bf12706213a0c70a6694a7ebd",
+    "tracker_hash": "baad27e718379da504caecadb98ab082043849711c3cb8ab16b59db004eadea1",
+    "synced_at": "2026-08-28T11:54:30.770604+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-p60k-gpg-readiness.md",
+    "plan_hash": "52a751f4ae6a8815078b6daf2a109ca4c449195bf12706213a0c70a6694a7ebd",
+    "tracker_hash": "17bcb0ebed423648247ef71694fc6ee37d1a032f558bdb91d4cad1a941a28efe",
+    "synced_at": "2026-08-28T12:16:56.997662+02:00"
   }
 ]

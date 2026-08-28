@@ -8,9 +8,10 @@ the layers that must survive a Windows restart:
 3. the canonical Gas City user supervisor;
 4. stale per-home supervisor units;
 5. the managed signing service and socket;
-6. Gas City controller and bead-store reachability; and
-7. live host-WSL Obsidian IPC and managed-note readability; and
-8. the Windows logon bootstrap task.
+6. Gas City controller and bead-store reachability;
+7. the exact personal operator-signing subkey cache state;
+8. live host-WSL Obsidian IPC and managed-note readability; and
+9. the Windows logon bootstrap task.
 
 The doctor never repairs, restarts, enables, disables, routes, resumes, signs, or deletes.
 
@@ -43,11 +44,51 @@ doctor bytes into the stable user-tool path first:
 ```bash
 scripts/install-codex-wsl-readiness --apply
 scripts/install-codex-wsl-readiness --check
+scripts/install-codex-gpg-readiness --apply
+scripts/install-codex-gpg-readiness --check
 ```
 
 The default destination is `~/.local/bin/codex-wsl-readiness`. The installer performs an
 atomic byte-for-byte replacement, sets mode `0755`, and checks the installed version. It does
 not enable or restart any service.
+
+## Personal GPG readiness
+
+The operator key and the Gas City managed signer are intentionally separate. Automated
+workers use the dedicated managed signer and its v2 receipts. Human-authored operator commits
+use subkey `FD5585922F5335BC378AD8D42ECF4432C7E7982D!` through the personal GPG agent.
+
+`scripts/codex-gpg-readiness` fixes the ambiguity created by an any-key cache probe. It
+queries only keygrip `640406DD1B34A5EA0BB7CB46F21071BB3DB370FA`; a cached retired,
+revoked, unrelated, or primary key can never satisfy readiness. Its `check` operation uses
+`gpg-connect-agent --no-autostart`, so the reboot doctor remains read-only.
+
+Its attended `unlock` operation starts the existing agent and signs `/dev/null` with the exact
+`FD55…!` subkey, leaving no signature artifact. It explicitly selects normal agent pinentry
+mode. If GnuPG requests the passphrase, pinentry owns that prompt and the helper never sees or
+stores the secret. Some GnuPG configurations can complete the exact signing proof while
+`KEYINFO` still reports no ordinary passphrase-cache entry. In that case the helper records a
+mode-`0600`, non-secret readiness proof under `$XDG_RUNTIME_DIR`, bound to the exact
+fingerprint, keygrip, WSL boot ID, GPG-agent PID, and a 30-day expiry. A new agent, reboot,
+expired proof, ownership/mode drift, or identity mismatch fails closed and requires a fresh
+exact-key proof.
+
+Install the helper and managed shell integration, then source the snippet once from `.zshrc`:
+
+```zsh
+source "$HOME/.config/codex/gpg-readiness.zsh"
+```
+
+The existing `unlock-all` function may continue coordinating SSH and GPG. The managed snippet
+replaces only `gpg_cache_ready` and `gpg-unlock` with exact-key implementations. On the first
+interactive terminal after a WSL restart, `unlock-all` performs one exact-key proof and prompts
+only if GnuPG requires it. Later shells remain silent while either the exact agent cache or the
+agent-epoch proof remains valid.
+
+The encrypted passphrase is never stored. A WSL or Windows restart destroys the runtime proof
+and in-memory GPG state, so one attended exact-key proof per WSL boot is the security boundary,
+not a failure. The reboot doctor reports a cold state as `WARN` with the single remediation
+`unlock-all`; it never launches the agent, signs, or attempts to obtain a secret.
 
 Exit status:
 

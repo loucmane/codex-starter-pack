@@ -89,7 +89,7 @@ def test_stable_doctor_installer_applies_and_checks_in_temp(tmp_path: Path) -> N
     )
     assert applied.returncode == 0, applied.stderr
     assert destination.stat().st_mode & 0o777 == 0o755
-    assert "2026.08.27.1" in applied.stdout
+    assert "2026.08.28.2" in applied.stdout
 
     checked = subprocess.run(
         [str(DOCTOR_INSTALLER), "--check", "--dest", str(destination)],
