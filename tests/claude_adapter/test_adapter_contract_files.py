@@ -32,7 +32,7 @@ def test_claude_entrypoint_defines_gated_runtime() -> None:
     text = read("CLAUDE.md")
 
     assert "gated participant" in text
-    assert "bash .claude/scripts/readiness.sh" in text
+    assert "aegis_foundation.cli gate readiness" in text
     assert "PreToolUse dispatcher" in text
     assert "Multimodal Scope" in text
     assert "CODEX.md" in text
@@ -66,7 +66,7 @@ def test_runtime_contract_is_current_after_task_103_archive() -> None:
 
 def test_runtime_commands_exist_and_wrap_expected_helpers() -> None:
     expected = {
-        "readiness.md": "bash .claude/scripts/readiness.sh",
+        "readiness.md": "aegis gate readiness",
         "kickoff.md": "python3 scripts/codex-task wizard kickoff",
         "guard.md": "python3 scripts/codex-guard validate",
         "plan-sync.md": "python3 scripts/codex-task plan sync",
@@ -88,7 +88,7 @@ def test_agents_require_readiness_and_audit_trail() -> None:
         ".claude/agents/task-checker.md",
     ]:
         text = read(path)
-        assert "bash .claude/scripts/readiness.sh" in text
+        assert "aegis_foundation.cli gate readiness" in text
         assert "BLOCKED" in text
         assert "CODEX.md" in text
 

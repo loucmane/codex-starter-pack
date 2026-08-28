@@ -11,7 +11,7 @@ You verify completed work. You are read-only unless the parent/user explicitly a
 Run:
 
 ```bash
-bash .claude/scripts/readiness.sh
+python3 -m aegis_foundation.cli gate readiness --adapter claude --target-dir .
 ```
 
 If readiness is `BLOCKED`, report it as a verification finding.

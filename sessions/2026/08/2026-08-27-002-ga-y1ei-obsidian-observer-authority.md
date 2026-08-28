@@ -28,6 +28,6 @@ Bead `ga-y1ei` was kicked off via `python3 scripts/codex-task wizard kickoff --b
 
 ### 📝 Progress Log
 - **[14:58]** — [S:20260827|W:ga-y1ei-obsidian-observer-authority|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M:%S %Z %z"`] Confirmed current timestamp as `2026-08-27 14:58:04 CEST +0200`
-- **[14:58]** — [S:20260827|W:ga-y1ei-obsidian-observer-authority|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260827-ga-y1ei-obsidian-observer-authority-ACTIVE/TRACKER.md] Scaffolded the `ga-y1ei` ACTIVE work-tracking folder through the bead-native kickoff flow
+- **[14:58]** — [S:20260827|W:ga-y1ei-obsidian-observer-authority|H:scripts/codex-task|E:docs/ai/work-tracking/archive/20260827-ga-y1ei-obsidian-observer-authority-COMPLETED/TRACKER.md] Scaffolded the `ga-y1ei` ACTIVE work-tracking folder through the bead-native kickoff flow
 - **[14:58]** — [S:20260827|W:ga-y1ei-obsidian-observer-authority|H:bd:show|E:bead:ga-y1ei] Bound the source-workflow record to primary bead `ga-y1ei`
 - **[14:58]** — [S:20260827|W:ga-y1ei-obsidian-observer-authority|H:sessions/current|E:sessions/current] Repointed current session, plan, and session state to `ga-y1ei`

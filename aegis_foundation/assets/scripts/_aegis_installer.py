@@ -47,6 +47,7 @@ AEGIS_REPORTS_REL = ".aegis/reports"
 AEGIS_STATE_REL = ".aegis/state"
 AEGIS_LOCAL_BIN_REL = ".aegis/bin/aegis"
 AEGIS_RUNTIME_ENV_REL = ".aegis/runtime.env"
+AEGIS_LOCAL_GATE_RUNTIME_ROOT_REL = ".aegis/runtime/python"
 AEGIS_BRIEF_REL = ".aegis/brief.json"
 AEGIS_CURRENT_WORK_REL = ".aegis/state/current-work.json"
 AEGIS_CLIENT_RELOAD_REL = ".aegis/state/client-reload-required.json"
@@ -678,6 +679,7 @@ def _render_claude_settings() -> bytes:
         "permissions": {
             "allow": [
                 "Bash(bash .claude/scripts/readiness.sh:*)",
+                "Bash(./.aegis/bin/aegis gate readiness:*)",
                 "Bash(bash .claude/scripts/pretooluse-gate.sh:*)",
                 "Bash(bash .claude/scripts/posttooluse-tracking.sh:*)",
                 "Bash(bash .claude/scripts/tracking-stop-gate.sh:*)",
@@ -1087,6 +1089,7 @@ def _render_local_cli_shim(source_root: Path) -> bytes:
             'AEGIS_TARGET_ROOT="$(cd "$AEGIS_DIR/.." && pwd -P)"',
             "export AEGIS_TARGET_ROOT",
             'AEGIS_RUNTIME_ENV="$AEGIS_DIR/runtime.env"',
+            'AEGIS_LOCAL_RUNTIME="$AEGIS_DIR/runtime/python"',
             "",
             "aegis_degraded_hook() {",
             '  local phase="$1"',
@@ -1131,6 +1134,9 @@ def _render_local_cli_shim(source_root: Path) -> bytes:
             "      exit 2",
             "      ;;",
             "  esac",
+            '  if [ -d "$AEGIS_LOCAL_RUNTIME/aegis_foundation/gate" ]; then',
+            '    export PYTHONPATH="$AEGIS_LOCAL_RUNTIME${PYTHONPATH:+:$PYTHONPATH}"',
+            "  fi",
             '  if [ "$AEGIS_HOOK_PHASE" != "readiness" ]; then',
             '    AEGIS_HOOK_RUNTIME="$AEGIS_TARGET_ROOT/.claude/scripts/gate_lib.py"',
             '    if [ -f "$AEGIS_HOOK_RUNTIME" ]; then',
@@ -1141,6 +1147,17 @@ def _render_local_cli_shim(source_root: Path) -> bytes:
             '    aegis_degraded_hook "$AEGIS_HOOK_PHASE"',
             "    exit $?",
             "  fi",
+            '  if [ -d "$AEGIS_LOCAL_RUNTIME/aegis_foundation/gate" ]; then',
+            "    aegis_clear_hook_marker",
+            "    shift 2",
+            '    exec python3 -B -m aegis_foundation.gate.readiness "$@"',
+            "  fi",
+            "fi",
+            "",
+            'if [ "${1:-}" = "gate" ] && [ "${2:-}" = "readiness" ] && [ -d "$AEGIS_LOCAL_RUNTIME/aegis_foundation/gate" ]; then',
+            '  export PYTHONPATH="$AEGIS_LOCAL_RUNTIME${PYTHONPATH:+:$PYTHONPATH}"',
+            "  shift 2",
+            '  exec python3 -B -m aegis_foundation.gate.readiness "$@"',
             "fi",
             "",
             f'AEGIS_SOURCE_FALLBACK="{source}"',
@@ -1319,6 +1336,53 @@ def _base_assets(
     )
 
 
+def _gate_runtime_source_root(source_root: Path) -> Path | None:
+    candidates = [source_root]
+    if source_root.name == "assets" and source_root.parent.name == "aegis_foundation":
+        candidates.append(source_root.parent.parent)
+    return next(
+        (
+            candidate
+            for candidate in dict.fromkeys(candidates)
+            if (candidate / "aegis_foundation" / "gate").is_dir()
+        ),
+        None,
+    )
+
+
+def _local_gate_runtime_assets(source_root: Path) -> list[Asset]:
+    """Install a self-contained gate runtime for hooks and readiness.
+
+    The full CLI may continue following ``runtime.env`` to a reviewed source
+    checkout. Hook authorization cannot depend on that checkout being mounted or
+    importable, so the narrowly scoped gate package is copied into each target.
+    """
+
+    runtime_source_root = _gate_runtime_source_root(source_root)
+    if runtime_source_root is None:
+        raise AegisError("canonical Aegis gate runtime is missing from the source package")
+
+    source_paths = [
+        "aegis_foundation/__init__.py",
+        "aegis_foundation/version.py",
+        *(
+            path.relative_to(runtime_source_root).as_posix()
+            for path in sorted(
+                (runtime_source_root / "aegis_foundation" / "gate").rglob("*.py")
+            )
+        ),
+    ]
+    return [
+        _asset_from_source_as(
+            runtime_source_root,
+            source_path,
+            f"{AEGIS_LOCAL_GATE_RUNTIME_ROOT_REL}/{source_path}",
+            kind="runtime",
+        )
+        for source_path in source_paths
+    ]
+
+
 def _adapter_assets(
     source_root: Path, primary_agent: str, enabled_agents: Sequence[str]
 ) -> list[Asset]:
@@ -1334,13 +1398,14 @@ def _adapter_assets(
 def _managed_assets(
     source_root: Path, primary_agent: str, enabled_agents: Sequence[str]
 ) -> list[Asset]:
-    return _managed_update.build_managed_assets(
+    assets = _managed_update.build_managed_assets(
         source_root,
         primary_agent,
         enabled_agents,
         policy=_managed_asset_build_policy(),
         renderers=_managed_asset_renderers(),
     )
+    return [*_local_gate_runtime_assets(source_root), *assets]
 
 
 def _claude_runtime_block(aegis_entrypoint: bytes) -> str:
@@ -1940,6 +2005,7 @@ def _runtime_payload(source_root: Path, *, updated_at: str) -> dict[str, Any]:
         "updated_at": updated_at,
         "update_command": "aegis runtime update",
         "reinstall_required_for": [
+            ".aegis/runtime/python gate snapshot changes",
             ".aegis/bin/aegis shim changes",
             ".claude/settings.json hook registration changes",
             ".claude/scripts/* dispatcher bootstrap changes",
@@ -1948,9 +2014,19 @@ def _runtime_payload(source_root: Path, *, updated_at: str) -> dict[str, Any]:
 
 
 def _looks_like_aegis_source_root(path: Path) -> bool:
+    gate_source_root = _gate_runtime_source_root(path)
     return (
         (path / "schemas" / "aegis" / "foundation-manifest.schema.json").is_file()
         and (path / "scripts" / "_aegis_installer.py").is_file()
+        and gate_source_root is not None
+        and (gate_source_root / "aegis_foundation" / "gate" / "readiness.py").is_file()
+        and (
+            gate_source_root
+            / "aegis_foundation"
+            / "gate"
+            / "hooks"
+            / "entrypoint.py"
+        ).is_file()
         and (path / ".claude" / "scripts" / "gate_lib.py").is_file()
         and (path / ".claude" / "scripts" / "readiness.sh").is_file()
     )
@@ -2196,6 +2272,7 @@ def runtime_status(target_dir: str | Path, *, source_root: str | Path) -> dict[s
             runtime.get("reinstall_required_for")
             if isinstance(runtime, Mapping)
             else [
+                ".aegis/runtime/python gate snapshot changes",
                 ".aegis/bin/aegis shim changes",
                 ".claude/settings.json hook registration changes",
                 ".claude/scripts/* dispatcher bootstrap changes",
@@ -2222,6 +2299,8 @@ def runtime_update(
             "required_paths": [
                 "schemas/aegis/foundation-manifest.schema.json",
                 "scripts/_aegis_installer.py",
+                "aegis_foundation/gate/readiness.py",
+                "aegis_foundation/gate/hooks/entrypoint.py",
                 ".claude/scripts/gate_lib.py",
                 ".claude/scripts/readiness.sh",
             ],
@@ -2692,6 +2771,9 @@ def _managed_plan_policy() -> _managed_update.PlanPolicy:
 
 
 def _source_path_for_managed_asset(path: str) -> str | None:
+    runtime_prefix = f"{AEGIS_LOCAL_GATE_RUNTIME_ROOT_REL}/"
+    if path.startswith(runtime_prefix):
+        return path.removeprefix(runtime_prefix)
     return _managed_update.source_path_for_managed_asset(
         path,
         policy=_managed_plan_policy(),
@@ -5387,6 +5469,8 @@ def _write_asset(target_root: Path, asset: Asset) -> None:
 def _install_asset_priority(asset: Asset) -> int:
     """Order dependencies before entrypoints and activation configuration."""
 
+    if asset.path.startswith(f"{AEGIS_LOCAL_GATE_RUNTIME_ROOT_REL}/"):
+        return -10
     if asset.path == ".claude/scripts/gate_lib.py":
         return 0
     if asset.path in CLAUDE_SUPPORT_FILES or asset.path == AEGIS_RUNTIME_ENV_REL:
@@ -9480,7 +9564,7 @@ def _next_action_after_log(
     return _workflow_next_action(
         "continue_workflow",
         "Progress was logged. Check readiness and pending tracking before the next mutation.",
-        suggested_cli="bash .claude/scripts/readiness.sh --quick --root .",
+        suggested_cli="./.aegis/bin/aegis gate readiness --quick --target-dir .",
     )
 
 
@@ -12917,23 +13001,20 @@ def _closeout_readiness(
             "current_work_status": current_work_status,
         }
 
-    readiness_script = target_root / ".claude" / "scripts" / "readiness.sh"
-    if readiness_script.is_file():
-        result = subprocess.run(
-            ["bash", str(readiness_script), "--quick", "--root", str(target_root)],
-            cwd=target_root,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
-        )
-        passed = result.returncode == 0 and result.stdout.strip().startswith("READY")
+    from aegis_foundation.gate import readiness as workflow_readiness
+
+    task_id, readiness_checks, readiness_state = workflow_readiness.evaluate(target_root)
+    if readiness_checks:
         return {
-            "status": "passed" if passed else "failed",
-            "command": f"bash {readiness_script.relative_to(target_root).as_posix()} --quick --root {target_root}",
-            "returncode": result.returncode,
-            "stdout": result.stdout.strip(),
-            "stderr": result.stderr.strip(),
+            "status": "passed" if readiness_state != workflow_readiness.BLOCKED else "failed",
+            "command": "aegis gate readiness --quick --target-dir .",
+            "returncode": 2 if readiness_state == workflow_readiness.BLOCKED else 0,
+            "stdout": f"{readiness_state} | task={task_id or 'unknown'}",
+            "stderr": "",
+            "checks": [
+                {"status": check.status, "message": check.message}
+                for check in readiness_checks
+            ],
         }
 
     workflow_checks, _current_work = _strict_current_work_checks(target_root)
@@ -14050,6 +14131,9 @@ def _artifact_members(path: Path) -> list[str]:
 def _required_artifact_suffixes(kind: str) -> tuple[str, ...]:
     shared = (
         "aegis_foundation/cli.py",
+        "aegis_foundation/gate/readiness.py",
+        "aegis_foundation/gate/hooks/entrypoint.py",
+        "aegis_foundation/gate/hooks/pretool.py",
         "aegis_mcp/server.py",
         "aegis_foundation/assets/.claude/scripts/pretooluse-gate.sh",
         "aegis_foundation/assets/.claude/scripts/posttooluse-tracking.sh",
@@ -14195,7 +14279,7 @@ def _certify_clean_cli_smoke(wheel: Path) -> dict[str, Any]:
             ),
             (
                 "readiness_quick",
-                ["bash", ".claude/scripts/readiness.sh", "--quick"],
+                ["./.aegis/bin/aegis", "gate", "readiness", "--quick", "--target-dir", "."],
                 target,
                 (0,),
                 None,

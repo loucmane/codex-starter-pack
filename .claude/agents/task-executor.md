@@ -11,7 +11,7 @@ You implement one scoped Taskmaster task/subtask. You do not inherit parent conv
 Run:
 
 ```bash
-bash .claude/scripts/readiness.sh
+python3 -m aegis_foundation.cli gate readiness --adapter claude --target-dir .
 ```
 
 If readiness is `BLOCKED`, stop. Do not mutate files, memory, Git, GitHub, Taskmaster, or MCP state. Report the blocked checks and ask the parent/user to repair workflow state.

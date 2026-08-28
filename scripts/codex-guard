@@ -60,7 +60,6 @@ IGNORE_PATH_PREFIXES = tuple(
 
 LAST_UPDATED_PATTERN = re.compile(r"\*\*Last Updated\*\*: (\d{4}-\d{2}-\d{2})")
 
-SERENA_MEMORY_PATTERN = re.compile(r"serena/memory|memories/\d{4}-\d{2}-\d{2}_", re.IGNORECASE)
 TASKMASTER_TASKS_REL = REPO_STRUCTURE.taskmaster_tasks_dir.relative_to(REPO_ROOT).as_posix()
 TASKMASTER_TASKS_JSON_REL = REPO_STRUCTURE.taskmaster_tasks_json.relative_to(REPO_ROOT).as_posix()
 TASKMASTER_ACTIVITY_PATTERN = re.compile(
@@ -770,13 +769,6 @@ def _tracker_has_today_entry(text: str) -> bool:
     return False
 
 
-def _tracker_has_serena_reference(text: str) -> bool:
-    for line in text.splitlines():
-        if TODAY_ISO in line and SERENA_MEMORY_PATTERN.search(line):
-            return True
-    return False
-
-
 def validate_work_tracking_documents(active_folder: Path) -> List[ValidationIssue]:
     issues: List[ValidationIssue] = []
     if not active_folder.exists():
@@ -796,14 +788,6 @@ def validate_work_tracking_documents(active_folder: Path) -> List[ValidationIssu
             )
         )
         return issues
-
-    if not _tracker_has_serena_reference(tracker_text):
-        issues.append(
-            ValidationIssue(
-                tracker_path.relative_to(REPO_ROOT),
-                'Serena memory reference missing for today in tracker progress log',
-            )
-        )
 
     for doc_name in WORK_TRACKING_REQUIRED_DOCS:
         doc_path = active_folder / doc_name

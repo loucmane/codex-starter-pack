@@ -41,6 +41,8 @@ REQUIRED_SURFACES = [
     "tracking-stop-gate.sh",
     "Closeout and handoff semantic gates",
     "Strict readiness and current-work blocks",
+    ".claude/scripts/readiness.sh implementation",
+    ".claude/scripts/gate_lib.py implementation",
     "aegis kickoff",
     "aegis closeout",
     "Protected workflow path rules",
@@ -51,6 +53,10 @@ REQUIRED_SURFACES = [
 ]
 
 ALLOWED_STATES = {"keep", "shadow", "demote", "retire"}
+DEMOTED_IMPLEMENTATION_SURFACES = {
+    ".claude/scripts/readiness.sh implementation",
+    ".claude/scripts/gate_lib.py implementation",
+}
 
 
 def _matrix_rows(text: str) -> list[dict[str, str]]:
@@ -98,8 +104,13 @@ def test_pr4_replacement_parity_matrix_is_complete() -> None:
             assert "TBD" not in value
             assert "TODO" not in value
             assert "placeholder" not in value.lower()
-        assert state in {"keep", "shadow"}
-        assert row["PR-4 go/no-go"].startswith("NO-GO")
+        surface = row["Old surface"].replace("`", "")
+        if surface in DEMOTED_IMPLEMENTATION_SURFACES:
+            assert state == "demote"
+            assert row["PR-4 go/no-go"].startswith("GO")
+        else:
+            assert state in {"keep", "shadow"}
+            assert row["PR-4 go/no-go"].startswith("NO-GO")
         assert len(row["Remaining unique legacy content"]) >= 40
         assert any(
             marker in row["Dogfood evidence"]

@@ -5,7 +5,7 @@ handler_target: aegis_foundation/reboot_readiness.py
 bead_ids: [ga-y1ei]
 branch_policy: codex/ga-y1ei-obsidian-observer-authority
 evidence_summary:
-  - docs/ai/work-tracking/active/20260827-ga-y1ei-obsidian-observer-authority-ACTIVE
+  - docs/ai/work-tracking/archive/20260827-ga-y1ei-obsidian-observer-authority-COMPLETED
   - aegis_foundation/reboot_readiness.py
   - bead:ga-y1ei
   - scripts/codex-task
@@ -21,20 +21,20 @@ emergency_bypass: false
 - **Handler Target (H)**: aegis_foundation/reboot_readiness.py
 - **Bead IDs**: ga-y1ei
 - **Branch Policy**: codex/ga-y1ei-obsidian-observer-authority
-- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260827-ga-y1ei-obsidian-observer-authority-ACTIVE, aegis_foundation/reboot_readiness.py, bead:ga-y1ei, scripts/codex-task
+- **Evidence Summary (E)**: docs/ai/work-tracking/archive/20260827-ga-y1ei-obsidian-observer-authority-COMPLETED, aegis_foundation/reboot_readiness.py, bead:ga-y1ei, scripts/codex-task
 - **Plan Version**: v1
 - **Emergency Bypass**: false
 
 ## Plan Table
 | Step ID | Description | Evidence | Status |
 |---|---|---|---|
-| plan-step-scope | Confirm scope and authority for Aegis Obsidian observer-authority hardening | docs/ai/work-tracking/active/20260827-ga-y1ei-obsidian-observer-authority-ACTIVE/FINDINGS.md | completed |
-| plan-step-implement | Implement Aegis Obsidian observer-authority hardening through the reviewed helper surface | aegis_foundation/reboot_readiness.py; docs/ai/work-tracking/active/20260827-ga-y1ei-obsidian-observer-authority-ACTIVE/IMPLEMENTATION.md | completed |
-| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/active/20260827-ga-y1ei-obsidian-observer-authority-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260827-ga-y1ei-obsidian-observer-authority-ACTIVE/TRACKER.md | completed |
+| plan-step-scope | Confirm scope and authority for Aegis Obsidian observer-authority hardening | docs/ai/work-tracking/archive/20260827-ga-y1ei-obsidian-observer-authority-COMPLETED/FINDINGS.md | completed |
+| plan-step-implement | Implement Aegis Obsidian observer-authority hardening through the reviewed helper surface | aegis_foundation/reboot_readiness.py; docs/ai/work-tracking/archive/20260827-ga-y1ei-obsidian-observer-authority-COMPLETED/IMPLEMENTATION.md | completed |
+| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/archive/20260827-ga-y1ei-obsidian-observer-authority-COMPLETED/HANDOFF.md; docs/ai/work-tracking/archive/20260827-ga-y1ei-obsidian-observer-authority-COMPLETED/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
-- `docs/ai/work-tracking/active/20260827-ga-y1ei-obsidian-observer-authority-ACTIVE`
+- `docs/ai/work-tracking/archive/20260827-ga-y1ei-obsidian-observer-authority-COMPLETED`
 - `aegis_foundation/reboot_readiness.py`
 - `scripts/codex-task`
 - `scripts/codex-guard`
@@ -52,7 +52,7 @@ emergency_bypass: false
 - Context reload steps:
   1. Read `sessions/current` and this plan.
   2. Read primary bead `ga-y1ei` through the rig-scoped bead surface.
-  3. Review `docs/ai/work-tracking/active/20260827-ga-y1ei-obsidian-observer-authority-ACTIVE/TRACKER.md` before changing implementation.
+  3. Review `docs/ai/work-tracking/archive/20260827-ga-y1ei-obsidian-observer-authority-COMPLETED/TRACKER.md` before changing implementation.
   4. Run `python3 scripts/codex-task plan sync` after tracker updates.
 - Outstanding risks/todos: none for the observer-authority implementation; publication remains a separate external-write boundary.
 

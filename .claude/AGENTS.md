@@ -3,7 +3,7 @@
 ## Primary Agent
 - Entry point: `CLAUDE.md`
 - Runtime contract: `.claude/engine/runtime-contract.md`
-- Readiness gate: `.claude/scripts/readiness.sh`
+- Readiness gate: canonical `aegis gate readiness`; `.claude/scripts/readiness.sh` is compatibility-only
 - PreToolUse dispatcher: `.claude/scripts/pretooluse-gate.sh`
 - PostToolUse tracker: `.claude/scripts/posttooluse-tracking.sh`
 - Stop tracking gate: `.claude/scripts/tracking-stop-gate.sh`
@@ -32,7 +32,7 @@ Sub-agents inherit no parent conversation context. Every delegation brief must i
 ## Commands
 | Command | Wraps |
 | --- | --- |
-| `/readiness` | `bash .claude/scripts/readiness.sh` |
+| `/readiness` | canonical `aegis gate readiness` evaluation |
 | `/kickoff` | `python3 scripts/codex-task wizard kickoff` |
 | `/guard` | `python3 scripts/codex-guard validate --include-untracked` |
 | `/plan-sync` | `python3 scripts/codex-task plan sync` |

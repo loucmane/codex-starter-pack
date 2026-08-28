@@ -1,8 +1,8 @@
 # Bead ga-y1ei Aegis Obsidian observer-authority hardening Tracker
 
 **Started**: 2026-08-27
-**Status**: ACTIVE
-**Last Updated**: 2026-08-27
+**Status**: COMPLETED
+**Last Updated**: 2026-08-28
 
 ## Goals
 - [x] Treat sandbox-hidden Obsidian IPC as observer UNKNOWN
@@ -11,11 +11,13 @@
 
 ## Progress Log
 - **2026-08-27 14:58** — [S:20260827|W:ga-y1ei-obsidian-observer-authority|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed current timestamp as `2026-08-27 14:58 CEST`
-- **2026-08-27 14:58** — [S:20260827|W:ga-y1ei-obsidian-observer-authority|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260827-ga-y1ei-obsidian-observer-authority-ACTIVE/TRACKER.md] Scaffolded the `ga-y1ei` ACTIVE work-tracking folder through the bead-native kickoff flow
+- **2026-08-27 14:58** — [S:20260827|W:ga-y1ei-obsidian-observer-authority|H:scripts/codex-task|E:docs/ai/work-tracking/archive/20260827-ga-y1ei-obsidian-observer-authority-COMPLETED/TRACKER.md] Scaffolded the `ga-y1ei` ACTIVE work-tracking folder through the bead-native kickoff flow
 - **2026-08-27 14:58** — [S:20260827|W:ga-y1ei-obsidian-observer-authority|H:bd:show|E:bead:ga-y1ei] Bound this source-workflow record to primary bead `ga-y1ei` without Taskmaster mutation
 - **2026-08-27 14:58** — [S:20260827|W:ga-y1ei-obsidian-observer-authority|H:sessions/current|E:sessions/current] Repointed current session, plan, and session state to `ga-y1ei`
 - **2026-08-27 15:20** — [S:20260827|W:ga-y1ei|H:serena/memory|E:.serena/memories/2026-08-27_ga-y1ei-obsidian-observer-authority.md] Captured the observer-authority contract, cross-project reuse, installed doctor digest, and verification evidence for durable continuity.
 - **2026-08-27 15:34** — [S:20260827|W:ga-y1ei|H:aegis:final-boundary|E:bead:ga-y1ei=closed;vault:cfc1bf6eece89cf60a172d6e6967452dffe34a25208381c57dd61c5917026d00;obsidian-read:ga-y1ei] Completed the filesystem and live-app boundaries; retained this completed tracker as ACTIVE publication evidence because the signed branch remains local and unpublished.
+- **2026-08-28 09:45** — [S:20260828|W:ga-y1ei-obsidian-observer-authority|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260827-ga-y1ei-obsidian-observer-authority-COMPLETED/TRACKER.md] Archived the completed work-tracking bundle through the supported helper
+- **2026-08-28 09:45** — [S:20260828|W:ga-y1ei-obsidian-observer-authority|H:serena/memory:archive-reference|E:.serena/memories/2026-08-27_ga-y1ei-obsidian-observer-authority.md] Preserved the existing continuity memory while archiving the completed bundle
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope

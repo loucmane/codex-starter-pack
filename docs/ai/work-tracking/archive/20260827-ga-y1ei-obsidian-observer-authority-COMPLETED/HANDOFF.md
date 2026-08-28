@@ -15,3 +15,4 @@
 
 - **2026-08-27 15:16** — [S:20260827|W:ga-y1ei|H:aegis:closeout-handoff|E:artifacts/ga-y1ei-obsidian-observer-authority/sandbox-readiness-final.json;artifacts/ga-y1ei-obsidian-observer-authority/host-wsl-readiness-final.json;bead:ga-zbmk] Ready for local closeout: sandbox Obsidian IPC is UNKNOWN, host WSL is PASS, ga-zbmk is append-forward corrected, stable doctor matches source, and all four rigs remain suspended.
 - **2026-08-27 15:34** — [S:20260827|W:ga-y1ei|H:aegis:final-handoff|E:bead:ga-y1ei=closed;doctor:9252cbd6;vault:cfc1bf6e;obsidian-read:ga-y1ei] Closeout is durable: the bead is closed PASS, the managed vault is fresh, the open Obsidian app reads the new note, and the only remaining boundary is optional Git publication.
+- Archived on 2026-08-28 09:45 CEST — Folder moved to archive and tracker marked COMPLETED.

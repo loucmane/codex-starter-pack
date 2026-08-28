@@ -7,8 +7,8 @@ The gate exists because documentation, memories, and verbal commitments are not 
 
 ## Command
 ```bash
-bash .claude/scripts/readiness.sh
-bash .claude/scripts/readiness.sh --quick
+python3 -m aegis_foundation.cli gate readiness --adapter claude --target-dir .
+python3 -m aegis_foundation.cli gate readiness --adapter claude --quick --target-dir .
 ```
 
 `--quick` is intended for PreToolUse hooks. It returns the same exit code as the full command but emits a single status line.

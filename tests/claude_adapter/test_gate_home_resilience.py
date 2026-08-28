@@ -16,7 +16,6 @@ Contract under test:
 from __future__ import annotations
 
 import importlib.util
-import io
 import json
 import os
 import pathlib
@@ -25,6 +24,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from aegis_foundation.gate.hooks import pretool as gate_pretool
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GATE_LIB = REPO_ROOT / ".claude" / "scripts" / "gate_lib.py"
@@ -83,7 +83,9 @@ def test_state_base_never_raises_without_home(monkeypatch: pytest.MonkeyPatch) -
     assert "aegis-state-" in base.name, "must fall back to a deterministic per-uid tmp store"
 
 
-def test_open_ledger_survives_unresolvable_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_open_ledger_survives_unresolvable_home(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     repo = make_repo(tmp_path, advisory=False)
     monkeypatch.setattr(pathlib.Path, "home", classmethod(lambda cls: raise_home()))
     ledger = ledger_lib.open_ledger(cwd=repo, env={})
@@ -98,7 +100,9 @@ def test_open_ledger_survives_unresolvable_home(tmp_path: Path, monkeypatch: pyt
 # --- gate path normalization ------------------------------------------------------
 
 
-def test_safe_expanduser_keeps_literal_when_home_unresolvable(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_safe_expanduser_keeps_literal_when_home_unresolvable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def raising_expanduser(self: Path) -> Path:
         raise RuntimeError("Could not determine home directory.")
 
@@ -117,7 +121,7 @@ def run_degraded(repo: Path, monkeypatch: pytest.MonkeyPatch, raw: str) -> int:
     def crash(_payload: object) -> bool:
         raise RuntimeError("Could not determine home directory.")
 
-    monkeypatch.setattr(gate_lib, "payload_is_read_only", crash)
+    monkeypatch.setattr(gate_pretool, "payload_is_read_only", crash)
     return gate_lib.pretooluse_gate_with_degraded_fallback(raw)
 
 
@@ -126,10 +130,14 @@ def test_degraded_mutation_in_advisory_allows_and_records(
 ) -> None:
     repo = make_repo(tmp_path, advisory=True)
     raw = payload("Write", file_path="src/main.ts", content="x")
-    assert run_degraded(repo, monkeypatch, raw) == 0, "advisory must never hard-block on infra failure"
+    assert run_degraded(repo, monkeypatch, raw) == 0, (
+        "advisory must never hard-block on infra failure"
+    )
     captured = capsys.readouterr()
     assert "DEGRADED-ADVISORY" in captured.err
-    degraded = json.loads((repo / ".aegis" / "state" / "degraded-events.json").read_text(encoding="utf-8"))
+    degraded = json.loads(
+        (repo / ".aegis" / "state" / "degraded-events.json").read_text(encoding="utf-8")
+    )
     event = degraded["events"][0]
     assert event["mode"] == "degraded_advisory_allow"
     assert event["action_class"] == "mutation_or_unsafe"
@@ -154,7 +162,9 @@ def test_degraded_read_only_still_allows_with_event(
     repo = make_repo(tmp_path, advisory=False)
     raw = payload("Bash", command="git status --short")
     assert run_degraded(repo, monkeypatch, raw) == 0
-    degraded = json.loads((repo / ".aegis" / "state" / "degraded-events.json").read_text(encoding="utf-8"))
+    degraded = json.loads(
+        (repo / ".aegis" / "state" / "degraded-events.json").read_text(encoding="utf-8")
+    )
     assert degraded["events"][0]["mode"] == "degraded_allow"
 
 
@@ -201,7 +211,9 @@ def test_gate_subprocess_with_unresolvable_home_renders_policy_verdict(tmp_path:
         check=False,
     )
     assert result.returncode == 0, result.stderr
-    assert "infrastructure failed" not in result.stderr, "infra wall must not appear in advisory mode"
+    assert "infrastructure failed" not in result.stderr, (
+        "infra wall must not appear in advisory mode"
+    )
 
 
 def test_assets_and_live_copies_identical() -> None:
