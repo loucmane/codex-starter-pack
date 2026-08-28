@@ -5,9 +5,10 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-import select
+import queue
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -184,6 +185,16 @@ def run_stdio_smoke(target: Path) -> tuple[set[str], set[str], set[str]]:
     assert process.stderr is not None
     stopped = False
 
+    stdout_lines: queue.Queue[str | None] = queue.Queue()
+
+    def read_stdout_lines() -> None:
+        assert process.stdout is not None
+        for line in process.stdout:
+            stdout_lines.put(line)
+        stdout_lines.put(None)
+
+    threading.Thread(target=read_stdout_lines, daemon=True).start()
+
     def stop_process() -> str:
         nonlocal stopped
         if stopped:
@@ -236,11 +247,11 @@ def run_stdio_smoke(target: Path) -> tuple[set[str], set[str], set[str]]:
                     f"stdio smoke timed out after {timeout}s waiting for responses; "
                     f"got ids={sorted(responses)}; returncode={returncode}; stderr={stderr}"
                 )
-            ready, _, _ = select.select([process.stdout], [], [], remaining)
-            if not ready:
+            try:
+                line = stdout_lines.get(timeout=remaining)
+            except queue.Empty:
                 continue
-            line = process.stdout.readline()
-            if not line:
+            if line is None:
                 stderr = stop_process()
                 raise AssertionError(
                     f"stdio server exited before expected responses; got ids={sorted(responses)}; "
