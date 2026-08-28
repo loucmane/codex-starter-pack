@@ -47,23 +47,30 @@ def _beads(status: str = "open") -> bytes:
     ).encode()
 
 
-def _registry(tmp_path: Path, root: Path, output: Path) -> Path:
+def _registry(
+    tmp_path: Path,
+    root: Path,
+    output: Path,
+    *,
+    live_index: dict[str, object] | None = None,
+) -> Path:
     path = tmp_path / "registry.json"
+    project: dict[str, object] = {
+        "id": "gas-city",
+        "enabled": True,
+        "target_dir": str(root),
+        "output_dir": str(output),
+        "bead_export_argv": ["/usr/bin/bd", "list", "--json"],
+        "include_bead_content": False,
+        "freshness_sla_seconds": 180,
+    }
+    if live_index is not None:
+        project["live_index"] = live_index
     path.write_text(
         json.dumps(
             {
                 "schema_version": "1",
-                "projects": [
-                    {
-                        "id": "gas-city",
-                        "enabled": True,
-                        "target_dir": str(root),
-                        "output_dir": str(output),
-                        "bead_export_argv": ["/usr/bin/bd", "list", "--json"],
-                        "include_bead_content": False,
-                        "freshness_sla_seconds": 180,
-                    }
-                ],
+                "projects": [project],
             },
             indent=2,
         )
@@ -96,6 +103,42 @@ def test_registry_is_explicit_bounded_and_rejects_ambiguous_paths(tmp_path: Path
     payload["projects"][0]["output_dir"] = str(root.parent)
     registry_path.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(RegistryError, match="must not overlap target_dir"):
+        load_registry(registry_path)
+
+
+def test_registry_live_index_contract_is_strict_and_not_arbitrary_argv(tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    live_index = {
+        "obsidian_cli": "/home/example/.local/bin/obsidian",
+        "vault": "main",
+        "probe_path": "GasCity/gas-city-operations/Aegis/Beads/ga-a9ap.md",
+        "timeout_seconds": 15,
+    }
+    registry_path = _registry(tmp_path, root, tmp_path / "vault", live_index=live_index)
+    registry = load_registry(registry_path)
+    configured = registry.projects[0].live_index
+    assert configured is not None
+    assert configured.obsidian_cli == Path("/home/example/.local/bin/obsidian")
+    assert configured.vault == "main"
+    assert configured.probe_path == "GasCity/gas-city-operations/Aegis/Beads/ga-a9ap.md"
+    assert configured.timeout_seconds == 15
+
+    payload = json.loads(registry_path.read_text(encoding="utf-8"))
+    payload["projects"][0]["live_index"]["obsidian_cli"] = "obsidian"
+    registry_path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(RegistryError, match="absolute executable"):
+        load_registry(registry_path)
+
+    payload["projects"][0]["live_index"]["obsidian_cli"] = "/usr/bin/obsidian"
+    payload["projects"][0]["live_index"]["probe_path"] = "../outside.md"
+    registry_path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(RegistryError, match="safe relative path"):
+        load_registry(registry_path)
+
+    payload["projects"][0]["live_index"]["probe_path"] = "Aegis/Beads/ga-a9ap.md"
+    payload["projects"][0]["live_index"]["refresh_argv"] = ["/bin/sh", "-c", "anything"]
+    registry_path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(RegistryError, match="unknown live_index fields"):
         load_registry(registry_path)
 
 
@@ -138,6 +181,159 @@ def test_reconcile_publishes_changed_snapshot_and_noops_when_current(tmp_path: P
     state = json.loads((state_dir / "gas-city.json").read_text(encoding="utf-8"))
     assert state["last_success"]["source_digest"] == second["projects"][0]["source_digest"]
     assert state["last_error"] is None
+
+
+def test_changed_publication_refreshes_and_probes_live_index_once(tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    output = tmp_path / "vault"
+    live_index = {
+        "obsidian_cli": "/usr/bin/obsidian",
+        "vault": "main",
+        "probe_path": "GasCity/gas-city-operations/Aegis/Beads/ga-eiyt.md",
+        "timeout_seconds": 15,
+    }
+    registry = load_registry(_registry(tmp_path, root, output, live_index=live_index))
+    state_dir = tmp_path / "state"
+    calls: list[tuple[tuple[str, ...], int]] = []
+
+    def run(argv: tuple[str, ...], timeout: int) -> subprocess.CompletedProcess[bytes]:
+        calls.append((argv, timeout))
+        return subprocess.CompletedProcess(argv, 0, b"ok\n", b"")
+
+    first = obsidian_reconciler.reconcile_registry(
+        registry,
+        state_dir=state_dir,
+        bead_exporter=lambda _argv, _timeout: _beads(),
+        event_reader=lambda _target: [],
+        live_index_runner=run,
+        force=True,
+    )
+    assert first["ok"] is True
+    assert first["projects"][0]["live_index"]["status"] == "confirmed"
+    assert calls == [
+        (("/usr/bin/obsidian", "vault=main", "reload"), 15),
+        (
+            (
+                "/usr/bin/obsidian",
+                "vault=main",
+                "read",
+                "path=GasCity/gas-city-operations/Aegis/Beads/ga-eiyt.md",
+            ),
+            15,
+        ),
+    ]
+    state = json.loads((state_dir / "gas-city.json").read_text(encoding="utf-8"))
+    assert state["last_success"]["live_index"]["status"] == "confirmed"
+
+    calls.clear()
+    second = obsidian_reconciler.reconcile_registry(
+        registry,
+        state_dir=state_dir,
+        bead_exporter=lambda _argv, _timeout: _beads(),
+        event_reader=lambda _target: [],
+        live_index_runner=run,
+        force=True,
+    )
+    assert second["ok"] is True
+    assert second["projects"][0]["status"] == "current"
+    assert second["projects"][0]["live_index"]["status"] == "not-run-no-change"
+    assert calls == []
+
+
+def test_closed_obsidian_is_observer_unavailable_not_publication_failure(tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    output = tmp_path / "vault"
+    registry = load_registry(
+        _registry(
+            tmp_path,
+            root,
+            output,
+            live_index={
+                "obsidian_cli": "/usr/bin/obsidian",
+                "vault": "main",
+                "probe_path": "GasCity/gas-city-operations/Aegis/Home.md",
+            },
+        )
+    )
+
+    def unavailable(
+        argv: tuple[str, ...], _timeout: int
+    ) -> subprocess.CompletedProcess[bytes]:
+        return subprocess.CompletedProcess(
+            argv,
+            1,
+            b"",
+            b"The CLI is unable to find Obsidian. Please make sure Obsidian is running.",
+        )
+
+    result = obsidian_reconciler.reconcile_registry(
+        registry,
+        state_dir=tmp_path / "state",
+        bead_exporter=lambda _argv, _timeout: _beads(),
+        event_reader=lambda _target: [],
+        live_index_runner=unavailable,
+        force=True,
+    )
+    assert result["ok"] is True
+    project = result["projects"][0]
+    assert project["status"] == "built"
+    assert project["live_index"]["status"] == "unavailable"
+    assert project["live_index"]["authority"] == "observer-limited"
+    assert (output / "Beads" / "ga-eiyt.md").is_file()
+
+
+def test_live_index_is_optional_for_filesystem_check_and_explicitly_gateable(
+    tmp_path: Path,
+) -> None:
+    root = _repo(tmp_path)
+    output = tmp_path / "vault"
+    registry = load_registry(
+        _registry(
+            tmp_path,
+            root,
+            output,
+            live_index={
+                "obsidian_cli": "/usr/bin/obsidian",
+                "vault": "main",
+                "probe_path": "GasCity/gas-city-operations/Aegis/Beads/ga-eiyt.md",
+            },
+        )
+    )
+    state_dir = tmp_path / "state"
+    ok_runner = lambda argv, _timeout: subprocess.CompletedProcess(argv, 0, b"ok\n", b"")
+    obsidian_reconciler.reconcile_registry(
+        registry,
+        state_dir=state_dir,
+        bead_exporter=lambda _argv, _timeout: _beads(),
+        event_reader=lambda _target: [],
+        live_index_runner=ok_runner,
+        force=True,
+    )
+
+    def failed_probe(argv: tuple[str, ...], _timeout: int) -> subprocess.CompletedProcess[bytes]:
+        return subprocess.CompletedProcess(argv, 2, b"", b"managed note not indexed")
+
+    filesystem = obsidian_reconciler.check_registry(
+        registry,
+        state_dir=state_dir,
+        bead_exporter=lambda _argv, _timeout: _beads(),
+        event_reader=lambda _target: [],
+        live_index_runner=failed_probe,
+    )
+    assert filesystem["ok"] is True
+
+    live = obsidian_reconciler.check_registry(
+        registry,
+        state_dir=state_dir,
+        bead_exporter=lambda _argv, _timeout: _beads(),
+        event_reader=lambda _target: [],
+        live_index_runner=failed_probe,
+        require_live_index=True,
+    )
+    assert live["ok"] is False
+    assert live["projects"][0]["filesystem_ok"] is True
+    assert live["projects"][0]["live_index"]["status"] == "failed"
+    assert "live Obsidian index" in live["projects"][0]["problems"][-1]
 
 
 def test_export_failure_retains_last_good_vault_and_records_error(tmp_path: Path) -> None:
