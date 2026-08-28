@@ -3,18 +3,35 @@ name: aegis-witness
 on:
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: aegis-witness-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   witness:
     name: aegis-witness
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.0.0
         with:
           python-version: "3.12"
-      - name: Install aegis
-        run: pip install -q -e .
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.6"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Sync locked Aegis environment
+        run: uv sync --locked --all-groups
       - name: Run delivery witness (CI mode)
-        run: aegis witness --ci --base "origin/${{ github.base_ref }}"
+        run: uv run --frozen --no-sync aegis witness --ci --base "origin/${{ github.base_ref }}"

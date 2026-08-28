@@ -77,7 +77,7 @@
         "require_no_unresolved_threads"
       ],
       "properties": {
-        "method": {"const": "squash"},
+        "method": {"const": "merge"},
         "required_workflows": {
           "type": "array",
           "minItems": 1,

@@ -12,8 +12,9 @@ privileged workflow are classified as attended paths by the policy on `main`.
 
 ## What This Changes
 
-After the bootstrap is merged, an eligible routine task pull request may be squash-
-merged without a new chat approval when all required evidence is current and green.
+After the bootstrap is merged, an eligible routine task pull request may be merged by
+the repository's configured merge-commit method without a new chat approval when all
+required evidence is current and green.
 The authority persists in the repository across agent sessions and context compaction.
 
 The source checkout also carries a Codex permission profile for the local execution
@@ -26,7 +27,7 @@ is allowlisted to GitHub, npm, PyPI, and OpenAI domains. This is not
 The same policy carries explicit routine workflow capabilities. In this repository the
 active evidence-gated policy authorizes, after the relevant evidence is surfaced:
 
-- supported Taskmaster task transitions and kickoff;
+- Beads-native lifecycle transitions; legacy Taskmaster remains read-only compatibility;
 - deterministic safe repair (never manual-review repair);
 - non-dry-run closeout after strict verification and successful dry-run preflight;
 - task-scoped commit, push, draft/ready PR transitions;
@@ -128,9 +129,12 @@ The required workflows for this repository are:
 - `Codex Guard`
 - `Meta Workflow Guard`
 - `aegis-witness`
+- `Dependency Review`
 
-The merge method is squash. The merge request includes the expected head SHA and uses
-GitHub's normal protected merge API without `--admin` or any bypass.
+The merge method is `merge`. This matches the repository's enabled merge method and
+preserves the exact reviewed head as a parent of the resulting merge commit. The merge
+request includes the expected head SHA and uses GitHub's normal protected merge API
+without `--admin` or any bypass.
 
 ## Decision Classes
 
@@ -188,12 +192,13 @@ The downstream `policy-authorized merge` executor:
 5. Requires the fresh trusted policy result to be exactly `allow`; `provisional` cannot
    merge.
 6. Re-fetches head and base immediately before merge.
-7. Calls the normal squash-merge endpoint only for the unchanged exact head and clean
+7. Calls the normal merge-commit endpoint only for the unchanged exact head and clean
    current base, then dispatches the exact merge SHA to post-merge guards.
 
-The workflow is serialized per repository. GitHub branch protection remains the final
-server-side enforcement layer and rejects merges that no longer satisfy protected-
-branch requirements.
+The workflow is serialized per candidate head, allowing unrelated pull requests to be
+evaluated independently without racing duplicate events for the same candidate. GitHub
+branch protection remains the final server-side enforcement layer and rejects merges
+that no longer satisfy protected-branch requirements.
 
 ## Attended Categories
 
@@ -243,7 +248,7 @@ Emergency server-side stop:
 - disable `.github/workflows/aegis-autonomous-delivery.yml` in GitHub Actions; or
 - tighten/remove the workflow token's branch-protection merge permission.
 
-Code rollback is a reviewed revert of the bootstrap squash commit. Do not delete audit
+Code rollback is a reviewed revert of the bootstrap merge commit. Do not delete audit
 records or rewrite history as rollback.
 
 ## Verification Contract

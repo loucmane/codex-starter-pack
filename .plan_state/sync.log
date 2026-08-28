@@ -682,5 +682,35 @@
     "plan_hash": "a14da2f64bb0c49f5cd881fb57b6deae8cda5d4e2c45c2dbda57d21e35bef18c",
     "tracker_hash": "fc8e333e712f1cb362800f4ee658dafc056988530c1f31d045e58184ed04b5b2",
     "synced_at": "2026-08-28T22:21:00.219351+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-6w1y-ci-aegis-delivery.md",
+    "plan_hash": "5fbe2db902aed356571e6181aa4440b9ab3c4e31cd477c1271abc7353be3a4e1",
+    "tracker_hash": "b40c647229d0835224c9720bddb85ccd46fd670ffd4da0b8937250061b083627",
+    "synced_at": "2026-08-28T22:39:38.944130+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-6w1y-ci-aegis-delivery.md",
+    "plan_hash": "5fbe2db902aed356571e6181aa4440b9ab3c4e31cd477c1271abc7353be3a4e1",
+    "tracker_hash": "b40c647229d0835224c9720bddb85ccd46fd670ffd4da0b8937250061b083627",
+    "synced_at": "2026-08-28T22:40:08.225488+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-6w1y-ci-aegis-delivery.md",
+    "plan_hash": "f8c1ae2a461c3ab7c7f42f30477754262ef0e9a093487dd8d4a5544997f21e49",
+    "tracker_hash": "fd8a4453a70771079e576be3f8eedbf93b0833240eccc2a8bc563b5ba9d13b91",
+    "synced_at": "2026-08-28T22:40:39.105398+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-6w1y-ci-aegis-delivery.md",
+    "plan_hash": "40b4a2215f678e18a76a70a6700c3ca11e6c01c252299067148d0a85867f1abe",
+    "tracker_hash": "9c92073eab49929232bfd4e092f8ef05d3517b5f6aa0e1339ffdd0b4c620ac77",
+    "synced_at": "2026-08-28T23:35:16.370873+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-6w1y-ci-aegis-delivery.md",
+    "plan_hash": "40b4a2215f678e18a76a70a6700c3ca11e6c01c252299067148d0a85867f1abe",
+    "tracker_hash": "72041431f820349c27db8d3a3a92535b64feee917a349d2ab640711081917bdf",
+    "synced_at": "2026-08-28T23:35:40.447581+02:00"
   }
 ]

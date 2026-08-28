@@ -27,12 +27,13 @@
     "allow_ci_remediation": true
   },
   "merge": {
-    "method": "squash",
+    "method": "merge",
     "required_workflows": [
       "CI",
       "Codex Guard",
       "Meta Workflow Guard",
-      "aegis-witness"
+      "aegis-witness",
+      "Dependency Review"
     ],
     "require_exact_head": true,
     "require_current_base": true,

@@ -197,7 +197,10 @@ def test_guard_workflows_generate_and_upload_performance_reports() -> None:
     codex_guard = (REPO_ROOT / ".github" / "workflows" / "codex-guard.yml").read_text(encoding="utf-8")
     meta_guard = (REPO_ROOT / ".github" / "workflows" / "meta-workflow-guard.yml").read_text(encoding="utf-8")
 
-    assert "python3 scripts/template-performance-harness --strict" in codex_guard
+    command = (
+        "uv run --frozen --no-sync python scripts/template-performance-harness --strict"
+    )
+    assert command in codex_guard
     assert "reports/template-performance/" in codex_guard
-    assert "python3 scripts/template-performance-harness --strict" in meta_guard
+    assert command in meta_guard
     assert "reports/template-performance/" in meta_guard

@@ -183,8 +183,8 @@ def validate_policy(raw_policy: Any) -> dict[str, Any]:
             "require_no_unresolved_threads",
         },
     )
-    if merge.get("method") != "squash":
-        raise PolicyError("merge.method must be 'squash'")
+    if merge.get("method") != "merge":
+        raise PolicyError("merge.method must be 'merge'")
     required_workflows = _string_list(
         merge.get("required_workflows"),
         "merge.required_workflows",

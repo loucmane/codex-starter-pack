@@ -232,9 +232,16 @@ def test_guard_workflows_generate_and_upload_phase0_reports() -> None:
     codex_guard = (REPO_ROOT / ".github" / "workflows" / "codex-guard.yml").read_text(encoding="utf-8")
     meta_guard = (REPO_ROOT / ".github" / "workflows" / "meta-workflow-guard.yml").read_text(encoding="utf-8")
 
-    assert "python3 scripts/template-ssot-scanner/run_all_scanners.py --profile ci" in codex_guard
-    assert "python3 scripts/template-phase0-validation --strict" in codex_guard
+    scanner = (
+        "uv run --frozen --no-sync python "
+        "scripts/template-ssot-scanner/run_all_scanners.py --profile ci"
+    )
+    validation = (
+        "uv run --frozen --no-sync python scripts/template-phase0-validation --strict"
+    )
+    assert scanner in codex_guard
+    assert validation in codex_guard
     assert "reports/phase0-scanner-validation/" in codex_guard
-    assert "python3 scripts/template-ssot-scanner/run_all_scanners.py --profile ci" in meta_guard
-    assert "python3 scripts/template-phase0-validation --strict" in meta_guard
+    assert scanner in meta_guard
+    assert validation in meta_guard
     assert "reports/phase0-scanner-validation/" in meta_guard

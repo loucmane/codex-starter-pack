@@ -99,7 +99,7 @@ def test_public_package_metadata_contract_is_release_ready() -> None:
     assert project["name"] == DISTRIBUTION_NAME == "aegis-foundation"
     assert project["version"] == PACKAGE_VERSION == __version__
     assert "Aegis" in project["description"]
-    assert project["requires-python"] == ">=3.11"
+    assert project["requires-python"] == ">=3.11,<3.15"
     assert project["readme"]["file"] == "README.md"
     assert project["readme"]["content-type"] == "text/markdown"
     assert project["license"] == "LicenseRef-Proprietary"
@@ -108,6 +108,8 @@ def test_public_package_metadata_contract_is_release_ready() -> None:
     assert {"agents", "aegis", "mcp", "workflow"} <= set(project["keywords"])
     assert "Programming Language :: Python :: 3.11" in project["classifiers"]
     assert "Programming Language :: Python :: 3.12" in project["classifiers"]
+    assert "Programming Language :: Python :: 3.13" in project["classifiers"]
+    assert "Programming Language :: Python :: 3.14" in project["classifiers"]
     assert project["urls"]["Repository"].endswith("codex-starter-pack")
 
     scripts = project["scripts"]

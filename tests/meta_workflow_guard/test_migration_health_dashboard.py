@@ -133,7 +133,11 @@ def test_guard_workflows_generate_and_upload_migration_health_reports() -> None:
     codex_guard = (REPO_ROOT / ".github" / "workflows" / "codex-guard.yml").read_text(encoding="utf-8")
     meta_guard = (REPO_ROOT / ".github" / "workflows" / "meta-workflow-guard.yml").read_text(encoding="utf-8")
 
-    assert "python3 scripts/template-migration-health-dashboard --strict" in codex_guard
+    command = (
+        "uv run --frozen --no-sync python "
+        "scripts/template-migration-health-dashboard --strict"
+    )
+    assert command in codex_guard
     assert "reports/migration-health/" in codex_guard
-    assert "python3 scripts/template-migration-health-dashboard --strict" in meta_guard
+    assert command in meta_guard
     assert "reports/migration-health/" in meta_guard
