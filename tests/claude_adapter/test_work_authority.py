@@ -51,9 +51,7 @@ def _beads(path: Path) -> None:
                         "gc.secret_token": "must-not-project",
                         "unreviewed": "must-not-project",
                     },
-                    "dependencies": [
-                        {"depends_on_id": "ga-946b", "type": "discovered-from"}
-                    ],
+                    "dependencies": [{"depends_on_id": "ga-946b", "type": "discovered-from"}],
                 }
             ],
             indent=2,
@@ -161,3 +159,27 @@ def test_accepts_one_record_beads_jsonl_export(tmp_path: Path) -> None:
     snapshot = work_authority.collect_work_authority(tmp_path, bead_snapshot=source)
 
     assert [item["id"] for item in snapshot["items"]] == ["ga-one"]
+
+
+def test_accepts_native_hierarchical_bead_ids_and_dependencies(tmp_path: Path) -> None:
+    source = tmp_path / "beads.json"
+    source.write_text(
+        json.dumps(
+            [
+                {"id": "ga-parent", "status": "open"},
+                {
+                    "id": "ga-parent.3",
+                    "parent_id": "ga-parent",
+                    "status": "open",
+                    "dependencies": [{"depends_on_id": "ga-parent.2", "type": "blocks"}],
+                },
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    snapshot = work_authority.collect_work_authority(tmp_path, bead_snapshot=source)
+
+    assert [item["id"] for item in snapshot["items"]] == ["ga-parent", "ga-parent.3"]
+    assert snapshot["items"][1]["parent_id"] == "ga-parent"
+    assert snapshot["items"][1]["dependencies"] == [{"id": "ga-parent.2", "type": "blocks"}]

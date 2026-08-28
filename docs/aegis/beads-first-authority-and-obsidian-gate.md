@@ -49,8 +49,9 @@ One compact line records each meaningful boundary:
 - `H` is the validated logical handler or workflow step, not an arbitrary shell fragment.
 - `E` is independently checkable: a ledger event, commit, receipt, report, PR, or bounded path.
 
-Record first, change second, gate last. Routine edits go to the passive ledger and human worklog;
-they do not trigger an Obsidian rebuild. Projection happens at a useful boundary.
+Record first, change second, gate last. Routine edits go to the passive ledger and human worklog.
+The user-scoped reconciler coalesces those changes into a bounded periodic rebuild; the strict
+readiness, closeout, and publication gates remain the synchronous workflow boundaries.
 
 ## Obsidian ownership
 
@@ -93,6 +94,25 @@ The gate blocks when ownership, inventory, hashes, source freshness, work author
 work-item presence disagrees. It does not close a bead, mutate Git, write a worklog, repair a
 vault, or run after each source edit.
 
+## Automatic freshness
+
+`aegis-obsidian-reconcile.timer` runs the installed, deterministic publisher after WSL user
+systemd starts and then once per minute. Its registry names every project, repository, exact bead
+export command, output subtree, content policy, and freshness SLA. There is no implicit project or
+bead-store discovery.
+
+Each run takes a non-blocking per-project lock, exports a size-bounded snapshot, reads the passive
+ledger without writing it, and builds through the existing atomic vault generator. Byte-identical
+input is a no-op. A failed export, parse, limit check, or staged publication retains the previous
+valid subtree and records a bounded error in the user-private state directory. Readiness runs the
+installed `check` command, which re-derives the current source digest; an old success timestamp by
+itself can never hide stale beads.
+
+Adding HPFetcher, Blog, or a new project is a registry change plus a deterministic unit refresh—not
+a second service or a copied script. The refresh extends the unit's write allowlist only to the new
+output's existing parent. The timer remains one host-side controller and each project retains a
+disjoint Aegis-owned output subtree.
+
 ## Observer authority
 
 The filesystem projection and the Obsidian desktop process are different evidence surfaces.
@@ -119,13 +139,11 @@ historical compatibility only; no bead/Taskmaster dual write is introduced.
 
 ## Reboot and upgrade behavior
 
-The projection contains no daemon and no in-memory authority. After WSL or Windows restarts:
-
-1. verify Gas City and the ledger through their normal readiness surfaces;
-2. export/read the current bead snapshot through the reviewed host path;
-3. run `aegis vault gate --phase readiness`;
-4. rebuild only if the gate reports stale or missing managed output;
-5. rerun the gate and continue.
+The projection contains no in-memory authority. The persistent user timer re-arms after WSL or
+Windows restarts, including missed-run reconciliation through `Persistent=true`. The readiness
+doctor requires the installed source-current check to pass; a stopped timer, stale source digest,
+or recorded publication failure is visible rather than silently leaving yesterday's vault in
+place. Manual `vault gate` remains available as the exact workflow boundary and recovery proof.
 
 Because the adapter consumes normalized JSON/JSONL and not a private Beads database API, Gas City
 or Beads upgrades can change their implementation without changing this contract. A source-format
@@ -136,6 +154,6 @@ change fails closed in the adapter tests before any vault replacement.
 - no Obsidian-to-beads synchronization;
 - no Taskmaster and bead dual writes;
 - no model-authored claim that substitutes for ledger or Git evidence;
-- no per-command or per-mutation vault gate;
+- no per-command or per-mutation vault gate (changes are debounced by one bounded host timer);
 - no overwrite of unknown or human-edited vault content;
 - no implicit title/label/description/assignee replication without the content-policy opt-in.

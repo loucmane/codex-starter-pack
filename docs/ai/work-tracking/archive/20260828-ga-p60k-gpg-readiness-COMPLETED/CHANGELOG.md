@@ -2,3 +2,4 @@
 
 - 2026-08-28 11:12 CEST — Initialized active work-tracking folder.
 - 2026-08-28 11:52 CEST — Replaced cache-flag-only readiness with exact cache or expiring agent-epoch signature proof after live GnuPG 2.4.4 disproved the original assumption.
+- 2026-08-28 21:00 CEST — Archived active work-tracking folder.

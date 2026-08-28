@@ -12,3 +12,4 @@
   `KEYINFO` continued to report `cached=-`; treating that implementation detail as the only
   readiness authority caused a false failure loop. Readiness now accepts either the exact
   agent cache or a non-secret proof bound to the exact key, WSL boot, agent PID, and expiry.
+- 2026-08-28 — Archive preconditions were satisfied and the completed bundle was preserved.

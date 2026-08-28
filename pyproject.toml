@@ -51,6 +51,7 @@ Issues = "https://github.com/loucmane/codex-starter-pack/issues"
 aegis = "aegis_foundation.cli:main"
 aegis-mcp-server = "aegis_mcp.server:main"
 codex-wsl-readiness = "aegis_foundation.reboot_readiness:main"
+aegis-obsidian-reconcile = "aegis_foundation.obsidian_reconcile_cli:main"
 
 [dependency-groups]
 dev = [
