@@ -130,12 +130,14 @@ These are deliberately separate contracts:
 - `aegis-obsidian-reconcile check` is the host-side automatic-freshness proof. It re-exports the
   registered bead sources and recomputes the vault digest without mutating the vault.
 
-The Aegis publisher atomically replaces its managed subtree. Windows-side Obsidian file
-watching over WSL can keep the previous index after that directory swap even though the new
-filesystem bytes and all vault gates are correct. If a host-WSL note read fails after the
-filesystem check passes, run the supported `obsidian vault=main reload` command and repeat the
-read. This reload is a publish-time host action, not part of the read-only doctor, and the stale
-index is never evidence that Obsidian is closed.
+The Aegis publisher atomically replaces its managed subtree. Windows-side Obsidian file watching
+over WSL can keep the previous index after that directory swap even though the new filesystem
+bytes and all vault gates are correct. A configured continuous reconciler therefore runs the
+supported bounded `obsidian vault=<id> reload` command after a changed, fully gated publication
+and immediately reads one configured managed note. It records this observer result separately;
+a closed or unreachable app never invalidates correct filesystem bytes. A byte-identical timer
+run does not reload the app. The host-only `aegis-obsidian-reconcile check
+--require-live-index` gate repeats the managed-note read when live application proof is required.
 
 The default doctor smoke targets vault `main` and
 `GasCity/gas-city-operations/Aegis/Beads/ga-zbmk.md`. Other projects use the same doctor with

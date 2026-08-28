@@ -23,6 +23,11 @@ def build_parser() -> argparse.ArgumentParser:
         command.add_argument("--registry", required=True)
         command.add_argument("--state-dir", default=str(_default_state()))
     subparsers.choices["run"].add_argument("--force", action="store_true")
+    subparsers.choices["check"].add_argument(
+        "--require-live-index",
+        action="store_true",
+        help="require a current managed-note read through host Obsidian IPC",
+    )
     return parser
 
 
@@ -37,7 +42,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 force=args.force,
             )
         else:
-            result = check_registry(registry, state_dir=args.state_dir)
+            result = check_registry(
+                registry,
+                state_dir=args.state_dir,
+                require_live_index=args.require_live_index,
+            )
     except (RegistryError, OSError, RuntimeError) as exc:
         print(
             json.dumps(

@@ -7,7 +7,8 @@ import subprocess
 
 import pytest
 
-from aegis_foundation import obsidian_reconciler
+from aegis_foundation import obsidian_live_index, obsidian_reconciler
+from aegis_foundation.obsidian_reconcile_cli import build_parser
 from aegis_foundation.obsidian_registry import RegistryError, load_registry
 
 
@@ -300,7 +301,10 @@ def test_live_index_is_optional_for_filesystem_check_and_explicitly_gateable(
         )
     )
     state_dir = tmp_path / "state"
-    ok_runner = lambda argv, _timeout: subprocess.CompletedProcess(argv, 0, b"ok\n", b"")
+
+    def ok_runner(argv: tuple[str, ...], _timeout: int) -> subprocess.CompletedProcess[bytes]:
+        return subprocess.CompletedProcess(argv, 0, b"ok\n", b"")
+
     obsidian_reconciler.reconcile_registry(
         registry,
         state_dir=state_dir,
@@ -334,6 +338,67 @@ def test_live_index_is_optional_for_filesystem_check_and_explicitly_gateable(
     assert live["projects"][0]["filesystem_ok"] is True
     assert live["projects"][0]["live_index"]["status"] == "failed"
     assert "live Obsidian index" in live["projects"][0]["problems"][-1]
+
+
+def test_live_index_timeout_and_output_overflow_are_bounded(tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    registry = load_registry(
+        _registry(
+            tmp_path,
+            root,
+            tmp_path / "vault",
+            live_index={
+                "obsidian_cli": "/usr/bin/obsidian",
+                "vault": "main",
+                "probe_path": "GasCity/Aegis/Home.md",
+            },
+        )
+    )
+    config = registry.projects[0].live_index
+    assert config is not None
+
+    def timeout(_argv: tuple[str, ...], seconds: int) -> subprocess.CompletedProcess[bytes]:
+        raise subprocess.TimeoutExpired("obsidian", seconds)
+
+    timed_out = obsidian_live_index.observe(config, refresh=True, runner=timeout)
+    assert timed_out["ok"] is False
+    assert timed_out["status"] == "timeout"
+    assert timed_out["probe"] is None
+
+    def overflow(argv: tuple[str, ...], _seconds: int) -> subprocess.CompletedProcess[bytes]:
+        return subprocess.CompletedProcess(
+            argv,
+            0,
+            b"x" * (obsidian_live_index.MAX_OUTPUT_BYTES + 1),
+            b"",
+        )
+
+    too_large = obsidian_live_index.observe(config, refresh=False, runner=overflow)
+    assert too_large["ok"] is False
+    assert too_large["status"] == "failed"
+    assert "bounded size" in too_large["probe"]["detail"]
+
+
+def test_cli_has_explicit_live_index_gate_only_on_check() -> None:
+    parser = build_parser()
+    check = parser.parse_args(
+        [
+            "check",
+            "--registry",
+            "/tmp/registry.json",
+            "--require-live-index",
+        ]
+    )
+    assert check.require_live_index is True
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            [
+                "run",
+                "--registry",
+                "/tmp/registry.json",
+                "--require-live-index",
+            ]
+        )
 
 
 def test_export_failure_retains_last_good_vault_and_records_error(tmp_path: Path) -> None:
