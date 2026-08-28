@@ -3,10 +3,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import subprocess
+import sys
 
 import pytest
 
 from aegis_foundation import obsidian_install
+
+REPO_ROOT = Path(__file__).parents[2]
 
 
 def test_rendered_user_units_are_reboot_persistent_and_output_scoped(tmp_path: Path) -> None:
@@ -68,6 +71,30 @@ def test_runtime_archive_is_byte_deterministic(tmp_path: Path) -> None:
     assert result.returncode == 0
     assert "run" in result.stdout
     assert "check" in result.stdout
+
+
+def test_source_installer_plans_from_external_working_directory(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    registry = _source_registry(tmp_path, home)
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REPO_ROOT / "scripts/install-aegis-obsidian-reconciler"),
+            "--plan",
+            "--registry-source",
+            str(registry),
+            "--home",
+            str(home),
+            "--source-root",
+            str(REPO_ROOT),
+        ],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["schema_version"] == "1"
 
 
 def _source_registry(tmp_path: Path, home: Path) -> Path:
