@@ -1,0 +1,29 @@
+{
+  "schema": "gas-city-workflow.project-registry.v1",
+  "projects": [
+    {
+      "id": "gas-city",
+      "root": "/home/loucmane/gascity/city/rigs/gascity",
+      "repository": "loucmane/gascity",
+      "rig": "gascity",
+      "workflow_authority": "beads",
+      "workflow_profile": "beads-with-aegis-evidence"
+    },
+    {
+      "id": "hpfetcher",
+      "root": "/home/loucmane/dev/hpfetcher",
+      "repository": "loucmane/hp-coach",
+      "rig": "hpfetcher",
+      "workflow_authority": "beads",
+      "workflow_profile": "beads-with-frozen-legacy-evidence"
+    },
+    {
+      "id": "blog",
+      "root": "/home/loucmane/dev/blog",
+      "repository": "loucmane/blog",
+      "rig": "blog",
+      "workflow_authority": "beads",
+      "workflow_profile": "beads-with-frozen-legacy-evidence"
+    }
+  ]
+}

@@ -13,8 +13,12 @@ from pathlib import Path
 import pytest
 
 from scripts._source_workflow_state import (
+    LIFECYCLE_ACTIVE,
+    LIFECYCLE_CLOSEOUT_PENDING,
+    LIFECYCLE_IDLE,
     SourceWorkflowStateError,
     derive_completed_source_work,
+    derive_source_lifecycle,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -322,6 +326,79 @@ def test_completed_source_work_supports_bead_native_closeout(tmp_path: Path) -> 
     assert not (root / ".taskmaster").exists()
 
 
+def test_source_lifecycle_classifies_idle_active_and_closeout_pending(
+    tmp_path: Path,
+) -> None:
+    root, tracker = _init_bead_source_repo(tmp_path)
+    branch = "codex/ga-test1-source-closeout"
+
+    idle = derive_source_lifecycle(root, branch)
+
+    assert idle.state == LIFECYCLE_IDLE
+    assert idle.work_kind == "bead"
+    assert idle.work_id == "ga-test1"
+    assert idle.completed_work is not None
+
+    active = (
+        root
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "active"
+        / "20300101-ga-test1-source-closeout-ACTIVE"
+    )
+    tracker.parent.rename(active)
+    (active / "TRACKER.md").write_text(
+        _bead_tracker_text("ga-test1", status="ACTIVE"), encoding="utf-8"
+    )
+
+    in_progress = derive_source_lifecycle(root, branch)
+
+    assert in_progress.state == LIFECYCLE_ACTIVE
+    assert in_progress.work_kind == "bead"
+    assert in_progress.work_id == "ga-test1"
+    assert in_progress.active_folder == active.resolve()
+
+    journal = root / ".plan_state" / "source-closeout-transaction.json"
+    _write(
+        journal,
+        json.dumps(
+            {
+                "schema": "aegis.source-closeout-transaction.v1",
+                "transaction_id": "a" * 64,
+                "phase": "prepared",
+                "work": {"kind": "bead", "id": "ga-test1"},
+                "paths": {
+                    "active": active.relative_to(root).as_posix(),
+                    "archive": (
+                        Path("docs/ai/work-tracking/archive")
+                        / "20300101-ga-test1-source-closeout-COMPLETED"
+                    ).as_posix(),
+                    "plan": (root / "plans" / "current").resolve().relative_to(root).as_posix(),
+                    "session": (
+                        (root / "sessions" / "current").resolve().relative_to(root).as_posix()
+                    ),
+                },
+                "timestamps": {
+                    "created_at": "2030-01-01T00:00:00+00:00",
+                    "date": "2030-01-01",
+                    "display": "2030-01-01 00:00 UTC",
+                    "tracker": "2030-01-01 00:00",
+                },
+            },
+            indent=2,
+        )
+        + "\n",
+    )
+
+    pending = derive_source_lifecycle(root, branch)
+
+    assert pending.state == LIFECYCLE_CLOSEOUT_PENDING
+    assert pending.work_kind == "bead"
+    assert pending.work_id == "ga-test1"
+    assert pending.transaction is not None
+
+
 def test_completed_bead_source_work_derives_on_default_branch(tmp_path: Path) -> None:
     root, tracker = _init_bead_source_repo(tmp_path)
     _write_delivery_policy(root)
@@ -519,6 +596,7 @@ def test_clean_source_checkout_readiness_accepts_completed_archive(tmp_path: Pat
 
     assert result.returncode == 0, result.stdout + result.stderr
     assert "STATE: READY" in result.stdout
+    assert "source lifecycle is IDLE" in result.stdout
     assert "completed source tracker derived" in result.stdout
     assert "completed plan and tracker steps align" in result.stdout
     assert not (root / ".aegis" / "state" / "current-work.json").exists()
@@ -542,9 +620,83 @@ def test_clean_source_checkout_readiness_accepts_completed_bead_archive(
 
     assert result.returncode == 0, result.stdout + result.stderr
     assert "STATE: READY" in result.stdout
+    assert "source lifecycle is IDLE" in result.stdout
     assert "completed source Bead ga-test1" in result.stdout
     assert "completed source tracker derived" in result.stdout
     assert not (root / ".aegis" / "state" / "current-work.json").exists()
+
+
+def test_source_readiness_blocks_closeout_pending_and_names_reconcile(
+    tmp_path: Path,
+) -> None:
+    root, tracker = _init_bead_source_repo(tmp_path)
+    active = (
+        root
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "active"
+        / "20300101-ga-test1-source-closeout-ACTIVE"
+    )
+    tracker.parent.rename(active)
+    (active / "TRACKER.md").write_text(
+        _bead_tracker_text("ga-test1", status="ACTIVE"), encoding="utf-8"
+    )
+    _write(
+        root / ".plan_state" / "source-closeout-transaction.json",
+        json.dumps(
+            {
+                "schema": "aegis.source-closeout-transaction.v1",
+                "transaction_id": "b" * 64,
+                "phase": "prepared",
+                "work": {"kind": "bead", "id": "ga-test1"},
+                "paths": {
+                    "active": active.relative_to(root).as_posix(),
+                    "archive": "docs/ai/work-tracking/archive/20300101-ga-test1-source-closeout-COMPLETED",
+                    "plan": (root / "plans/current").resolve().relative_to(root).as_posix(),
+                    "session": (root / "sessions/current").resolve().relative_to(root).as_posix(),
+                },
+                "timestamps": {
+                    "created_at": "2030-01-01T00:00:00+00:00",
+                    "date": "2030-01-01",
+                    "display": "2030-01-01 00:00 UTC",
+                    "tracker": "2030-01-01 00:00",
+                },
+            }
+        )
+        + "\n",
+    )
+    _commit_fixture(root)
+
+    result = _run_readiness(root)
+
+    assert result.returncode == 2
+    assert "source lifecycle is CLOSEOUT_PENDING" in result.stdout
+    assert "work-tracking reconcile" in result.stdout
+
+    guard = _load_guard_module()
+    monkeypatch = pytest.MonkeyPatch()
+    try:
+        monkeypatch.setattr(guard, "REPO_ROOT", root)
+        monkeypatch.setattr(
+            guard,
+            "WORK_TRACKING_PREFIX",
+            root / "docs" / "ai" / "work-tracking" / "active",
+        )
+        monkeypatch.setattr(
+            guard,
+            "WORK_TRACKING_ARCHIVE_BASE",
+            root / "docs" / "ai" / "work-tracking" / "archive",
+        )
+        monkeypatch.setattr(
+            guard,
+            "CURRENT_WORK_STATE_PATH",
+            root / ".aegis/state/current-work.json",
+        )
+        with pytest.raises(SystemExit, match="CLOSEOUT_PENDING.*work-tracking reconcile"):
+            guard.get_active_tracker_path()
+    finally:
+        monkeypatch.undo()
 
 
 def test_clean_source_checkout_readiness_accepts_completed_archive_on_default_branch(

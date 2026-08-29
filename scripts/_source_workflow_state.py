@@ -27,6 +27,18 @@ PLANS_RELATIVE = Path("plans")
 PLANS_CURRENT_RELATIVE = PLANS_RELATIVE / "current"
 SESSIONS_RELATIVE = Path("sessions")
 SESSIONS_CURRENT_RELATIVE = SESSIONS_RELATIVE / "current"
+SOURCE_CLOSEOUT_JOURNAL_RELATIVE = Path(".plan_state/source-closeout-transaction.json")
+SOURCE_CLOSEOUT_JOURNAL_SCHEMA = "aegis.source-closeout-transaction.v1"
+SOURCE_CLOSEOUT_PHASES = (
+    "prepared",
+    "bundle_annotated",
+    "archive_moved",
+    "references_rewritten",
+    "plan_synced",
+)
+LIFECYCLE_IDLE = "IDLE"
+LIFECYCLE_ACTIVE = "ACTIVE"
+LIFECYCLE_CLOSEOUT_PENDING = "CLOSEOUT_PENDING"
 
 
 class SourceWorkflowStateError(RuntimeError):
@@ -51,6 +63,23 @@ class CompletedSourceWork:
     @property
     def work_title(self) -> str:
         return self.task_title
+
+
+@dataclass(frozen=True)
+class SourceLifecycle:
+    """Derived lifecycle for the uninstalled source checkout.
+
+    Readiness remains an authorization decision.  Lifecycle only answers whether
+    the checkout is between tasks, actively tracking one task, or must reconcile
+    an interrupted closeout before either state can be trusted.
+    """
+
+    state: str
+    work_kind: str | None = None
+    work_id: str | None = None
+    active_folder: Path | None = None
+    completed_work: CompletedSourceWork | None = None
+    transaction: dict[str, object] | None = None
 
 
 def task_id_from_branch(branch: str) -> str | None:
@@ -248,6 +277,59 @@ def _source_work_identity(root: Path, branch: str) -> tuple[str, str] | None:
     return _work_identity_from_current_pointers(root)
 
 
+def _validate_relative_journal_path(root: Path, value: object, label: str) -> Path:
+    if not isinstance(value, str) or not value or "\\" in value:
+        raise SourceWorkflowStateError(f"closeout journal {label} path is invalid")
+    relative = Path(value)
+    if relative.is_absolute() or relative.as_posix() != value or ".." in relative.parts:
+        raise SourceWorkflowStateError(f"closeout journal {label} path is not contained")
+    candidate = (root / relative).resolve(strict=False)
+    if not candidate.is_relative_to(root.resolve()):
+        raise SourceWorkflowStateError(f"closeout journal {label} path escapes the checkout")
+    return candidate
+
+
+def read_source_closeout_transaction(root: Path) -> dict[str, object] | None:
+    """Read and validate the write-ahead closeout journal without mutating it."""
+
+    root = root.resolve()
+    journal_path = root / SOURCE_CLOSEOUT_JOURNAL_RELATIVE
+    if not journal_path.exists():
+        return None
+    if not journal_path.is_file() or journal_path.is_symlink():
+        raise SourceWorkflowStateError("source closeout journal must be a regular file")
+    try:
+        payload = json.loads(journal_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise SourceWorkflowStateError(f"source closeout journal is invalid JSON: {exc}") from exc
+    if not isinstance(payload, dict) or payload.get("schema") != SOURCE_CLOSEOUT_JOURNAL_SCHEMA:
+        raise SourceWorkflowStateError("source closeout journal schema is invalid")
+    transaction_id = payload.get("transaction_id")
+    if not isinstance(transaction_id, str) or not re.fullmatch(r"[0-9a-f]{64}", transaction_id):
+        raise SourceWorkflowStateError("source closeout transaction_id is invalid")
+    if payload.get("phase") not in SOURCE_CLOSEOUT_PHASES:
+        raise SourceWorkflowStateError("source closeout journal phase is invalid")
+    work = payload.get("work")
+    if not isinstance(work, dict) or work.get("kind") not in {"task", "bead"}:
+        raise SourceWorkflowStateError("source closeout journal work identity is invalid")
+    work_id = work.get("id")
+    work_pattern = r"\d+" if work.get("kind") == "task" else r"[a-z][a-z0-9]*-[a-z0-9-]+"
+    if not isinstance(work_id, str) or not re.fullmatch(work_pattern, work_id):
+        raise SourceWorkflowStateError("source closeout journal work ID is invalid")
+    paths = payload.get("paths")
+    if not isinstance(paths, dict) or set(paths) != {"active", "archive", "plan", "session"}:
+        raise SourceWorkflowStateError("source closeout journal paths are invalid")
+    for label in ("active", "archive", "plan", "session"):
+        _validate_relative_journal_path(root, paths[label], label)
+    timestamps = payload.get("timestamps")
+    required_timestamps = {"created_at", "date", "display", "tracker"}
+    if not isinstance(timestamps, dict) or set(timestamps) != required_timestamps:
+        raise SourceWorkflowStateError("source closeout journal timestamps are invalid")
+    if not all(isinstance(timestamps[key], str) and timestamps[key] for key in required_timestamps):
+        raise SourceWorkflowStateError("source closeout journal timestamp value is invalid")
+    return payload
+
+
 def is_uninstalled_aegis_source_checkout(root: Path) -> bool:
     root = root.resolve()
     if (root / MANIFEST_RELATIVE).exists():
@@ -262,7 +344,12 @@ def is_uninstalled_aegis_source_checkout(root: Path) -> bool:
     return isinstance(project_table, dict) and project_table.get("name") == "aegis-foundation"
 
 
-def derive_completed_source_work(root: Path, branch: str) -> CompletedSourceWork | None:
+def derive_completed_source_work(
+    root: Path,
+    branch: str,
+    *,
+    _identity: tuple[str, str] | None = None,
+) -> CompletedSourceWork | None:
     """Return completed source work when every independent authority agrees.
 
     ``None`` means the source-only fallback is not applicable. Once a checkout is
@@ -275,6 +362,10 @@ def derive_completed_source_work(root: Path, branch: str) -> CompletedSourceWork
         return None
     if (root / CURRENT_WORK_RELATIVE).exists():
         return None
+    if read_source_closeout_transaction(root) is not None:
+        raise SourceWorkflowStateError(
+            "source lifecycle is CLOSEOUT_PENDING; run work-tracking reconcile"
+        )
 
     active_root = root / ACTIVE_RELATIVE
     active_folders = (
@@ -289,7 +380,7 @@ def derive_completed_source_work(root: Path, branch: str) -> CompletedSourceWork
     if active_folders:
         return None
 
-    identity = _source_work_identity(root, branch)
+    identity = _identity if _identity is not None else _source_work_identity(root, branch)
     if identity is None:
         return None
     work_kind, work_id = identity
@@ -371,4 +462,102 @@ def derive_completed_source_work(root: Path, branch: str) -> CompletedSourceWork
         archive_folder=completed_folder,
         tracker_path=tracker_resolved,
         work_kind=work_kind,
+    )
+
+
+def derive_source_lifecycle(root: Path, branch: str) -> SourceLifecycle:
+    """Derive IDLE, ACTIVE, or CLOSEOUT_PENDING for an Aegis source checkout."""
+
+    root = root.resolve()
+    if not is_uninstalled_aegis_source_checkout(root):
+        raise SourceWorkflowStateError(
+            "source lifecycle is only defined for an uninstalled source checkout"
+        )
+    if (root / CURRENT_WORK_RELATIVE).exists():
+        raise SourceWorkflowStateError("installed current-work state overrides source lifecycle")
+
+    transaction = read_source_closeout_transaction(root)
+    if transaction is not None:
+        work = transaction["work"]
+        assert isinstance(work, dict)
+        paths = transaction["paths"]
+        assert isinstance(paths, dict)
+        return SourceLifecycle(
+            state=LIFECYCLE_CLOSEOUT_PENDING,
+            work_kind=str(work["kind"]),
+            work_id=str(work["id"]),
+            active_folder=_validate_relative_journal_path(root, paths["active"], "active"),
+            transaction=transaction,
+        )
+
+    active_root = root / ACTIVE_RELATIVE
+    active_folders = (
+        sorted(
+            path.resolve()
+            for path in active_root.iterdir()
+            if path.is_dir() and not path.is_symlink() and path.name.endswith("-ACTIVE")
+        )
+        if active_root.is_dir()
+        else []
+    )
+    if len(active_folders) > 1:
+        names = ", ".join(path.name for path in active_folders)
+        raise SourceWorkflowStateError(f"expected at most one ACTIVE folder, found {names}")
+    if active_folders:
+        branch_identity = _source_work_identity(root, branch)
+        pointer_identity = _work_identity_from_current_pointers(root)
+        identity = branch_identity or pointer_identity
+        if branch_identity is not None and branch_identity != pointer_identity:
+            raise SourceWorkflowStateError(
+                "active branch identity disagrees with current plan/session identity"
+            )
+        if identity is None:
+            raise SourceWorkflowStateError("ACTIVE source work has no authoritative identity")
+        work_kind, work_id = identity
+        active = active_folders[0]
+        token = (
+            _task_token_pattern(work_id)
+            if work_kind == "task"
+            else _bead_token_pattern(work_id)
+        )
+        if not token.search(active.name):
+            raise SourceWorkflowStateError(
+                f"ACTIVE folder {active.name!r} does not match {work_kind} {work_id}"
+            )
+        tracker = active / "TRACKER.md"
+        if not tracker.is_file() or tracker.is_symlink():
+            raise SourceWorkflowStateError("ACTIVE tracker is missing or not a regular file")
+        tracker_text = tracker.read_text(encoding="utf-8")
+        references = _tracker_references_task if work_kind == "task" else _tracker_references_bead
+        if not references(tracker_text, work_id):
+            raise SourceWorkflowStateError(
+                f"ACTIVE tracker does not reference {work_kind} {work_id}"
+            )
+        if not re.search(r"^\*\*Status\*\*:\s*ACTIVE\s*$", tracker_text, flags=re.MULTILINE):
+            raise SourceWorkflowStateError("ACTIVE tracker status is not ACTIVE")
+        return SourceLifecycle(
+            state=LIFECYCLE_ACTIVE,
+            work_kind=work_kind,
+            work_id=work_id,
+            active_folder=active,
+        )
+
+    plan_pointer = root / PLANS_CURRENT_RELATIVE
+    session_pointer = root / SESSIONS_CURRENT_RELATIVE
+    if (
+        not plan_pointer.exists()
+        and not plan_pointer.is_symlink()
+        and not session_pointer.exists()
+        and not session_pointer.is_symlink()
+    ):
+        return SourceLifecycle(state=LIFECYCLE_IDLE)
+    pointer_identity = _work_identity_from_current_pointers(root)
+    completed = derive_completed_source_work(root, branch, _identity=pointer_identity)
+    if completed is None:
+        raise SourceWorkflowStateError("IDLE source pointers do not resolve to completed work")
+    return SourceLifecycle(
+        state=LIFECYCLE_IDLE,
+        work_kind=pointer_identity[0],
+        work_id=pointer_identity[1],
+        completed_work=completed,
     )

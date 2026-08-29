@@ -1572,6 +1572,18 @@ def _load_source_workflow_state():
 
 
 def get_active_tracker_path() -> Path:
+    source_module = _load_source_workflow_state()
+    if source_module is not None:
+        try:
+            transaction = source_module.read_source_closeout_transaction(REPO_ROOT)
+        except Exception as exc:  # noqa: BLE001 - pending source state fails closed.
+            raise SystemExit(f'Source closeout derivation failed: {exc}') from exc
+        if transaction is not None:
+            raise SystemExit(
+                'Source lifecycle is CLOSEOUT_PENDING; run '
+                '`python3 scripts/codex-task work-tracking reconcile` before mutation'
+            )
+
     override = os.environ.get('CODEX_WORK_TRACKING_FOLDER', '').strip()
     if override:
         override_path = Path(override)

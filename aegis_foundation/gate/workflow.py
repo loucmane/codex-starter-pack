@@ -531,14 +531,32 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
     if not aegis_work_path.is_file():
         try:
             source_module = load_source_workflow_state(root)
-            source_work = (
-                source_module.derive_completed_source_work(root, branch)
+            source_lifecycle = (
+                source_module.derive_source_lifecycle(root, branch)
                 if source_module is not None
                 else None
             )
         except Exception as exc:  # noqa: BLE001 - source contradictions fail closed.
             checks.append(Check(BLOCKED, f"source closeout derivation failed: {exc}"))
-            return task_id_from_branch(branch), checks
+            return bead_id_from_branch(branch) or task_id_from_branch(branch), checks
+        if source_lifecycle is not None:
+            lifecycle_state = str(getattr(source_lifecycle, "state"))
+            lifecycle_work_id = getattr(source_lifecycle, "work_id", None)
+            if lifecycle_state == source_module.LIFECYCLE_CLOSEOUT_PENDING:
+                checks.append(
+                    Check(
+                        BLOCKED,
+                        "source lifecycle is CLOSEOUT_PENDING; run "
+                        "`python3 scripts/codex-task work-tracking reconcile` before kickoff or mutation",
+                    )
+                )
+                return str(lifecycle_work_id) if lifecycle_work_id else None, checks
+            checks.append(Check(READY, f"source lifecycle is {lifecycle_state}"))
+            branch_work_id = bead_id_from_branch(branch) or task_id_from_branch(branch)
+            if lifecycle_state == source_module.LIFECYCLE_IDLE and (
+                branch_work_id is None or branch_work_id == lifecycle_work_id
+            ):
+                source_work = getattr(source_lifecycle, "completed_work", None)
         if source_work is not None:
             work_id = str(getattr(source_work, "work_id", source_work.task_id))
             work_kind = str(getattr(source_work, "work_kind", "task"))
@@ -560,7 +578,8 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
             return build_completed_source_checks(root, work_id, source_work, checks)
         source_bead_id = bead_id_from_branch(branch)
         if source_module is not None and source_bead_id is not None:
-            return build_bead_source_checks(root, branch, source_bead_id)
+            work_id, bead_checks = build_bead_source_checks(root, branch, source_bead_id)
+            return work_id, checks + bead_checks
 
     task_id = task_id_from_branch(branch)
     if not task_id:

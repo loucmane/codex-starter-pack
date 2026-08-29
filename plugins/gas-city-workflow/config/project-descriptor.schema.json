@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gas-city.local/schemas/project-descriptor.v1.json",
+  "title": "Gas City Workflow Project Descriptor",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "id",
+    "repository",
+    "rig",
+    "workflow_authority",
+    "workflow_profile"
+  ],
+  "properties": {
+    "schema": {
+      "const": "gas-city-workflow.project.v1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "repository": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+    },
+    "rig": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "workflow_authority": {
+      "const": "beads"
+    },
+    "workflow_profile": {
+      "enum": [
+        "beads-with-aegis-evidence",
+        "beads-with-frozen-legacy-evidence"
+      ]
+    }
+  }
+}
