@@ -538,7 +538,15 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
             )
         except Exception as exc:  # noqa: BLE001 - source contradictions fail closed.
             checks.append(Check(BLOCKED, f"source closeout derivation failed: {exc}"))
-            return bead_id_from_branch(branch) or task_id_from_branch(branch), checks
+            # Preserve the lifecycle contradiction as a hard block, but continue with
+            # the branch-specific source checks when possible. Those checks expose the
+            # exact session/plan/tracker mismatch that an operator can repair instead
+            # of collapsing every contradiction into the derivation exception alone.
+            source_bead_id = bead_id_from_branch(branch)
+            if source_bead_id is not None:
+                work_id, bead_checks = build_bead_source_checks(root, branch, source_bead_id)
+                return work_id, checks + bead_checks
+            return task_id_from_branch(branch), checks
         if source_lifecycle is not None:
             lifecycle_state = str(getattr(source_lifecycle, "state"))
             lifecycle_work_id = getattr(source_lifecycle, "work_id", None)

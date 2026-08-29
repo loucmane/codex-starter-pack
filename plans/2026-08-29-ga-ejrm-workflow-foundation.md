@@ -69,3 +69,18 @@ emergency_bypass: false
 
 ## Emergency Bypass Protocol
 - No bypass authorized.
+
+<!-- AEGIS:BEGIN generated-sweh-projection -->
+<!-- AEGIS:projection-state {"event_count": 5, "last_event_id": "5f440613b053428cbdda1d7230c50045", "schema": "legacy-shadow-sweh-projection-v1"} -->
+
+## Generated S:W:H:E Projection
+
+_Generated from the passive Aegis ledger. Human-authored content outside this block is preserved._
+
+- [S:cb975924-bfd0-4d6e-902f-e305554714f2 W:main H:session E:ledger:1ec75e34673...] Session began via startup.
+- [S:cb975924-bfd0-4d6e-902f-e305554714f2 W:main H:failure E:ledger:0ff29381316...] Bash failure recorded.
+- [S:02b8396d-4342-4720-87bd-61045504170d W:main H:session E:ledger:144264708a4...] Session began via startup.
+- [S:unknown W:codex/ga-ejrm-witness-fix H:witness E:ledger:5cc03307509...] Delivery witness FAIL recorded at fba7ff62f; report: .aegis/reports/witness-report.json.
+- [S:unknown W:codex/ga-ejrm-workflow-foundation H:witness E:ledger:5f440613b05...] Delivery witness FAIL recorded at 48cee7e06; report: .aegis/reports/witness-report.json.
+
+<!-- AEGIS:END generated-sweh-projection -->
