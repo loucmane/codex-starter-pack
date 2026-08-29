@@ -30,7 +30,7 @@ emergency_bypass: false
 |---|---|---|---|
 | plan-step-scope | Confirm scope and authority for Transactional workflow foundation and reusable project plugin | docs/ai/work-tracking/active/20260829-ga-ejrm-workflow-foundation-ACTIVE/FINDINGS.md | completed |
 | plan-step-implement | Implement Transactional workflow foundation and reusable project plugin through the reviewed helper surface | scripts/_source_workflow_state.py; docs/ai/work-tracking/active/20260829-ga-ejrm-workflow-foundation-ACTIVE/IMPLEMENTATION.md | in-progress |
-| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/active/20260829-ga-ejrm-workflow-foundation-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260829-ga-ejrm-workflow-foundation-ACTIVE/TRACKER.md | pending |
+| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/active/20260829-ga-ejrm-workflow-foundation-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260829-ga-ejrm-workflow-foundation-ACTIVE/TRACKER.md; codex plugin marketplace add;codex plugin add;110 focused tests | in-progress |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
@@ -49,6 +49,7 @@ emergency_bypass: false
 - 2026-08-29 - Scope completed and implementation expanded to the lifecycle transaction,
   versioned Gas City Workflow plugin, and two-stage Gas City Operations naming migration.
 - 2026-08-29 - `aegis log` updated `plan-step-implement` to `in-progress` with evidence `scripts/_source_workflow_state.py`.
+- 2026-08-29 - `aegis log` updated `plan-step-verify` to `in-progress` with evidence `codex plugin marketplace add;codex plugin add;110 focused tests`.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)

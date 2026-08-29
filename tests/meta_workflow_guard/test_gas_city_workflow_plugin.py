@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+MARKETPLACE_ROOT = REPO_ROOT / ".agents" / "plugins"
 PLUGIN = REPO_ROOT / "plugins" / "gas-city-workflow"
 CONTEXT_SCRIPT = PLUGIN / "scripts" / "project_context.py"
 PLUGIN_VALIDATOR = REPO_ROOT / "scripts" / "validate_codex_plugin.py"
@@ -120,7 +121,8 @@ def test_plugin_manifest_and_router_skill_validate() -> None:
     assert manifest["interface"]["capabilities"] == ["Read"]
     assert not (PLUGIN / ".mcp.json").exists()
     assert not (PLUGIN / "hooks").exists()
-    marketplace = json.loads((REPO_ROOT / "marketplace.json").read_text(encoding="utf-8"))
+    assert not (REPO_ROOT / "marketplace.json").exists()
+    marketplace = json.loads((MARKETPLACE_ROOT / "marketplace.json").read_text(encoding="utf-8"))
     assert marketplace["name"] == "gas-city-operations"
     assert marketplace["plugins"] == [
         {
@@ -136,6 +138,10 @@ def test_plugin_manifest_and_router_skill_validate() -> None:
             "category": "Developer Tools",
         }
     ]
+    source = marketplace["plugins"][0]["source"]["path"]
+    assert source.startswith("./")
+    assert (REPO_ROOT / source.removeprefix("./")).resolve() == PLUGIN.resolve()
+    assert PLUGIN.is_dir()
 
 
 def test_context_capsule_supports_three_registered_projects_without_mutation(
@@ -204,9 +210,7 @@ def test_future_project_onboards_with_local_descriptor(tmp_path: Path) -> None:
     assert context["project"]["id"] == "future-project"
     assert context["project"]["identity_source"] == "descriptor"
     assert context["workflow"]["rig"] == "future-project"
-    assert context["workflow"]["active_trackers"] == [
-        "20300101-future-project-ACTIVE"
-    ]
+    assert context["workflow"]["active_trackers"] == ["20300101-future-project-ACTIVE"]
 
 
 def test_descriptor_and_registry_disagreement_fails_closed(tmp_path: Path) -> None:
@@ -232,9 +236,7 @@ def test_descriptor_and_registry_disagreement_fails_closed(tmp_path: Path) -> No
 
 
 def test_codex_and_fable_adapters_share_one_context_and_keep_roles_bounded() -> None:
-    skill = (PLUGIN / "skills" / "gas-city-workflow" / "SKILL.md").read_text(
-        encoding="utf-8"
-    )
+    skill = (PLUGIN / "skills" / "gas-city-workflow" / "SKILL.md").read_text(encoding="utf-8")
     codex = (PLUGIN / "adapters" / "codex.md").read_text(encoding="utf-8")
     fable = (PLUGIN / "adapters" / "fable.md").read_text(encoding="utf-8")
 

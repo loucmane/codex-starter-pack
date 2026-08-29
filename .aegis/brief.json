@@ -29,7 +29,7 @@
       "templates/",
       "config/",
       "plugins/",
-      "marketplace.json",
+      ".agents/plugins/",
       ".mcp.json",
       "README.md",
       "CLAUDE.md",

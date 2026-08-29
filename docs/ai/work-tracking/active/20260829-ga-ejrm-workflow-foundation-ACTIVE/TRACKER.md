@@ -18,6 +18,7 @@
 - **2026-08-29 20:43** — [S:20260829|W:ga-ejrm-workflow-foundation|H:sessions/current|E:sessions/current] Repointed current session, plan, and session state to `ga-ejrm`
 - **2026-08-29 20:56** — [S:20260829|W:ga-ejrm-workflow-foundation|H:pytest|E:tests/meta_workflow_guard/test_source_checkout_closeout.py] RED-GREEN lifecycle foundation complete: source readiness now distinguishes ACTIVE, IDLE, and CLOSEOUT_PENDING; transactional closeout survives a simulated crash after atomic archive move, reconciles without duplicate evidence, and makes completed reruns verified no-ops. Focused source/command suite: 246 passed.
 - **2026-08-29 22:54 CEST** - [S:20260829|W:ga-ejrm-workflow-foundation|H:codex:workflow-foundation-recovery|E:scripts/_source_workflow_state.py] Added fail-closed atomic current-work recovery for active uninstalled source checkouts and verified idempotent bead-native logging.
+- **2026-08-29 23:17 CEST** - [S:20260829|W:ga-ejrm-workflow-foundation|H:plugin-marketplace-layout|E:codex plugin marketplace add;codex plugin add;110 focused tests] Moved the repository marketplace manifest to the Codex-standard .agents/plugins location, retained the plugin at its repo-root-resolved source path, proved a real isolated CLI install, and passed 110 focused regressions.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope

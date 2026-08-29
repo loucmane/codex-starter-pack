@@ -59,3 +59,4 @@ _Generated from the passive Aegis ledger. Human-authored content outside this bl
 
 ### Progress Log
 - **[22:54]** - [S:20260829|W:ga-ejrm-workflow-foundation|H:codex:workflow-foundation-recovery|E:scripts/_source_workflow_state.py] Added fail-closed atomic current-work recovery for active uninstalled source checkouts and verified idempotent bead-native logging.
+- **[23:17]** - [S:20260829|W:ga-ejrm-workflow-foundation|H:plugin-marketplace-layout|E:codex plugin marketplace add;codex plugin add;110 focused tests] Moved the repository marketplace manifest to the Codex-standard .agents/plugins location, retained the plugin at its repo-root-resolved source path, proved a real isolated CLI install, and passed 110 focused regressions.
