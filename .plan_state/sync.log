@@ -682,5 +682,23 @@
     "plan_hash": "a14da2f64bb0c49f5cd881fb57b6deae8cda5d4e2c45c2dbda57d21e35bef18c",
     "tracker_hash": "fc8e333e712f1cb362800f4ee658dafc056988530c1f31d045e58184ed04b5b2",
     "synced_at": "2026-08-28T22:21:00.219351+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-a9ap-obsidian-live-index.md",
+    "plan_hash": "ce6a748e9e02c61929a331581de926c5ac7d75e6ec27dd4920889eab2a523eb7",
+    "tracker_hash": "5d1bdf5b0e59c1865422f436ecb402686446db6fd7f04db7836888ac0a7b18f3",
+    "synced_at": "2026-08-29T02:00:14.757250+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-a9ap-obsidian-live-index.md",
+    "plan_hash": "6b5d55f0512ff7782451abc5b44443fdc603e6742c752728909b500d07af373e",
+    "tracker_hash": "a5ce899a328c30f553217f05e29d04bed86607dcb6797b39d1409c70ad02db4e",
+    "synced_at": "2026-08-29T02:03:11.092437+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-a9ap-obsidian-live-index.md",
+    "plan_hash": "bc2cc000cc889b7716b7f6fc29e5ece00daa96232ffd80404c0e86de9c8e155e",
+    "tracker_hash": "7a36f55fa3dfe744bb92be107652d8c6924fb69023a0444b4988c9b02672ce54",
+    "synced_at": "2026-08-29T02:03:24.656240+02:00"
   }
 ]
