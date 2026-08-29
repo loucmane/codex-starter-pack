@@ -934,5 +934,29 @@
     "plan_hash": "45dc1b85a6fa3c9785f8f9d3545c22c57b94c66d1fd3a1ada13f04c77f9044fc",
     "tracker_hash": "e61963863f347ffda25114ac694c8cd05e1700ad668557063e618a1d19f3ab71",
     "synced_at": "2026-08-30T00:28:37.438033+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-ejrm-workflow-foundation.md",
+    "plan_hash": "3f9d377aff6cf9f98011b68522ab9cd109b7133c49236b85a20759f37cab8ffe",
+    "tracker_hash": "ebd73ed2bfe060078dfb0f4836ecb5fce2cf29ca3549c27804b7642cfb466bc7",
+    "synced_at": "2026-08-30T00:46:11.027699+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-ejrm-workflow-foundation.md",
+    "plan_hash": "3f9d377aff6cf9f98011b68522ab9cd109b7133c49236b85a20759f37cab8ffe",
+    "tracker_hash": "f9fda219cadeeeb4e7dc7bef1ef0e3f12923649c77b5359ca0249057c31b7249",
+    "synced_at": "2026-08-30T00:47:23.141425+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-ejrm-workflow-foundation.md",
+    "plan_hash": "289f024fa3aed924f2d8e9dafbf07e48753198279cccff71eece1a2b0969d34b",
+    "tracker_hash": "c2a2e731682d802675b12f5775dff800619f5eb06b98648e3197383b211f04c3",
+    "synced_at": "2026-08-30T00:47:30.636814+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-ejrm-workflow-foundation.md",
+    "plan_hash": "622fc55b50e28fb264bc16a5b438ee9d4c2a373bbab183f3a2363737b67c0a49",
+    "tracker_hash": "5275ba227644c630c7d8c2cc17c227ee8a329c04f243c11e31ef9953595e8e53",
+    "synced_at": "2026-08-30T00:48:21.468142+02:00"
   }
 ]
