@@ -169,6 +169,8 @@ signing, or lifecycle boundaries.
   supervisor restarts, and reboot drills require explicit bounded authority.
 - Make recovery deterministic: report which layer failed (Desktop config, WSL boot, user
   systemd, supervisor, store, signer, or worker) rather than applying broad repair.
+- Follow `docs/operations/gas-city-managed-worker-recovery.md` for the supported interrupted-session,
+  tmux-residue, retry, fixed-broker upgrade, reboot-survival, and Obsidian closeout procedures.
 
 ---
 

@@ -28,7 +28,7 @@ Bead `ga-6w1y` was kicked off via `python3 scripts/codex-task wizard kickoff --b
 
 ### 📝 Progress Log
 - **[22:39]** — [S:20260828|W:ga-6w1y-ci-aegis-delivery|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M:%S %Z %z"`] Confirmed current timestamp as `2026-08-28 22:39:38 CEST +0200`
-- **[22:39]** — [S:20260828|W:ga-6w1y-ci-aegis-delivery|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260828-ga-6w1y-ci-aegis-delivery-ACTIVE/TRACKER.md] Scaffolded the `ga-6w1y` ACTIVE work-tracking folder through the bead-native kickoff flow
+- **[22:39]** — [S:20260828|W:ga-6w1y-ci-aegis-delivery|H:scripts/codex-task|E:docs/ai/work-tracking/archive/20260828-ga-6w1y-ci-aegis-delivery-COMPLETED/TRACKER.md] Scaffolded the `ga-6w1y` ACTIVE work-tracking folder through the bead-native kickoff flow
 - **[22:39]** — [S:20260828|W:ga-6w1y-ci-aegis-delivery|H:bd:show|E:bead:ga-6w1y] Bound the source-workflow record to primary bead `ga-6w1y`
 - **[22:39]** — [S:20260828|W:ga-6w1y-ci-aegis-delivery|H:sessions/current|E:sessions/current] Repointed current session, plan, and session state to `ga-6w1y`
 - **[23:34]** — [S:20260828|W:plan-step-implement|H:.github/workflows|E:.github/workflows/ci.yml;scripts/aegis-ci-taskmaster-compatibility;aegis.delivery-policy.json] Replaced floating, duplicated CI with lockfile-driven Python 3.11-3.14 jobs, conditional Taskmaster compatibility, immutable action pins, bounded permissions/timeouts/concurrency, dependency review, Dependabot, and repository-compatible merge commits

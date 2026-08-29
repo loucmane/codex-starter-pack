@@ -736,5 +736,65 @@
     "plan_hash": "bc2cc000cc889b7716b7f6fc29e5ece00daa96232ffd80404c0e86de9c8e155e",
     "tracker_hash": "7a36f55fa3dfe744bb92be107652d8c6924fb69023a0444b4988c9b02672ce54",
     "synced_at": "2026-08-29T02:03:24.656240+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-6w1y-ci-aegis-delivery.md",
+    "plan_hash": "6d58c6f7c9365f795f0975f0465b2e58c1cdcdc2005714fcfc96ea4c68a0b240",
+    "tracker_hash": "df41d00065bb3013a99695bfcfdcc2ea4e8ff423083cbbd71da7df5dfc4d44c6",
+    "synced_at": "2026-08-29T17:04:31.138487+02:00"
+  },
+  {
+    "plan": "plans/2026-08-28-ga-6w1y-ci-aegis-delivery.md",
+    "plan_hash": "435ac14f3080a5d9f2a00772ec9323fcd2a37fcf5d66751a2199555767ce27e5",
+    "tracker_hash": "9eee0d696e70f123da15d23177a9cb4d01ef5c37fa919fc3cad17b0de620acc6",
+    "synced_at": "2026-08-29T17:04:31.373109+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-vqm2-recovery-certification.md",
+    "plan_hash": "dad8e2e2576ba18c9e1f9497e7f8bfb3cb656dd472fdc0924b484e12c2b2be09",
+    "tracker_hash": "328b72c509204c1aeb67a5495c6c55495bab57a335e7866ae4931c5e009e690b",
+    "synced_at": "2026-08-29T17:04:31.746004+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-vqm2-recovery-certification.md",
+    "plan_hash": "dad8e2e2576ba18c9e1f9497e7f8bfb3cb656dd472fdc0924b484e12c2b2be09",
+    "tracker_hash": "328b72c509204c1aeb67a5495c6c55495bab57a335e7866ae4931c5e009e690b",
+    "synced_at": "2026-08-29T17:04:32.107583+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-vqm2-recovery-certification.md",
+    "plan_hash": "3bd21814e38e9ab623c974a0aa7937b4e3d2354e7a006fc41312d36fbfa21f85",
+    "tracker_hash": "b8263b0ed10e0630761894ba0033d227c627b0f44efb19c43515dff1e2973559",
+    "synced_at": "2026-08-29T17:07:41.446907+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-vqm2-recovery-certification.md",
+    "plan_hash": "3bd21814e38e9ab623c974a0aa7937b4e3d2354e7a006fc41312d36fbfa21f85",
+    "tracker_hash": "b8263b0ed10e0630761894ba0033d227c627b0f44efb19c43515dff1e2973559",
+    "synced_at": "2026-08-29T17:51:46.482579+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-vqm2-recovery-certification.md",
+    "plan_hash": "c767a631e982831c81518574141fd4bca8a68764436c5b377469ae2fd19e2fba",
+    "tracker_hash": "5a5c3692e09804f2250c96d12846a426c56e09f0c0ffefc71256450f100857cf",
+    "synced_at": "2026-08-29T19:38:17.986619+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-vqm2-recovery-certification.md",
+    "plan_hash": "a9f761f932b623058a88bbdced53342b631b6f925629a19d36af748feea1420b",
+    "tracker_hash": "8c0bfce676a1dadc095b780c758a1f1d3318726056d1cabe5036327b0ef9b2ac",
+    "synced_at": "2026-08-29T19:52:30.581138+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-vqm2-recovery-certification.md",
+    "plan_hash": "bfb2f75ca4fc6b7c45c7f395a968558e535a2dd001a9bc437d0340f7fc694a85",
+    "tracker_hash": "57317ad5cc67c050f1646eb672c7f718c6c629e5098f4d55aea3dba7de803e30",
+    "synced_at": "2026-08-29T19:53:23.072309+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-vqm2-recovery-certification.md",
+    "plan_hash": "bfb2f75ca4fc6b7c45c7f395a968558e535a2dd001a9bc437d0340f7fc694a85",
+    "tracker_hash": "57317ad5cc67c050f1646eb672c7f718c6c629e5098f4d55aea3dba7de803e30",
+    "synced_at": "2026-08-29T19:53:31.281741+02:00"
   }
 ]

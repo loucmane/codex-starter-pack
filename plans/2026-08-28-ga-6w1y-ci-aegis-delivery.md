@@ -5,7 +5,7 @@ handler_target: .github/workflows/ci.yml
 bead_ids: [ga-6w1y]
 branch_policy: codex/ga-6w1y-ci-aegis-delivery
 evidence_summary:
-  - docs/ai/work-tracking/active/20260828-ga-6w1y-ci-aegis-delivery-ACTIVE
+  - docs/ai/work-tracking/archive/20260828-ga-6w1y-ci-aegis-delivery-COMPLETED
   - bead:ga-6w1y
   - .github/workflows
   - aegis.delivery-policy.json
@@ -21,20 +21,20 @@ emergency_bypass: false
 - **Handler Target (H)**: .github/workflows/ci.yml
 - **Bead IDs**: ga-6w1y
 - **Branch Policy**: codex/ga-6w1y-ci-aegis-delivery
-- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260828-ga-6w1y-ci-aegis-delivery-ACTIVE, bead:ga-6w1y, .github/workflows, aegis.delivery-policy.json
+- **Evidence Summary (E)**: docs/ai/work-tracking/archive/20260828-ga-6w1y-ci-aegis-delivery-COMPLETED, bead:ga-6w1y, .github/workflows, aegis.delivery-policy.json
 - **Plan Version**: v1
 - **Emergency Bypass**: false
 
 ## Plan Table
 | Step ID | Description | Evidence | Status |
 |---|---|---|---|
-| plan-step-scope | Confirm scope and authority for Repair CI and Aegis delivery contract | docs/ai/work-tracking/active/20260828-ga-6w1y-ci-aegis-delivery-ACTIVE/FINDINGS.md | completed |
-| plan-step-implement | Implement Repair CI and Aegis delivery contract through the reviewed helper surface | .github/workflows; aegis.delivery-policy.json; docs/ai/work-tracking/active/20260828-ga-6w1y-ci-aegis-delivery-ACTIVE/IMPLEMENTATION.md | completed |
-| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/active/20260828-ga-6w1y-ci-aegis-delivery-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260828-ga-6w1y-ci-aegis-delivery-ACTIVE/TRACKER.md | in_progress |
+| plan-step-scope | Confirm scope and authority for Repair CI and Aegis delivery contract | docs/ai/work-tracking/archive/20260828-ga-6w1y-ci-aegis-delivery-COMPLETED/FINDINGS.md | completed |
+| plan-step-implement | Implement Repair CI and Aegis delivery contract through the reviewed helper surface | .github/workflows; aegis.delivery-policy.json; docs/ai/work-tracking/archive/20260828-ga-6w1y-ci-aegis-delivery-COMPLETED/IMPLEMENTATION.md | completed |
+| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/archive/20260828-ga-6w1y-ci-aegis-delivery-COMPLETED/HANDOFF.md; docs/ai/work-tracking/archive/20260828-ga-6w1y-ci-aegis-delivery-COMPLETED/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
-- `docs/ai/work-tracking/active/20260828-ga-6w1y-ci-aegis-delivery-ACTIVE`
+- `docs/ai/work-tracking/archive/20260828-ga-6w1y-ci-aegis-delivery-COMPLETED`
 - `.github/workflows/`
 - `.github/dependabot.yml`
 - `aegis.delivery-policy.json`
@@ -57,18 +57,16 @@ emergency_bypass: false
   policy readback also showed that only Python 3.11/3.12 are required and both guard
   workflows published the ambiguous context `guard`; the guard jobs were renamed to
   unique contexts so one consolidated settings update can enforce the complete suite.
+- 2026-08-29 - PR #297 merged as `42e21ad2294c716b19a7ad2b3de1665d2532557e`; repository settings and SHA pinning were verified in final state, and `ga-6w1y` closed PASS.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)
 - Context reload steps:
   1. Read `sessions/current` and this plan.
   2. Read primary bead `ga-6w1y` through the rig-scoped bead surface.
-  3. Review `docs/ai/work-tracking/active/20260828-ga-6w1y-ci-aegis-delivery-ACTIVE/TRACKER.md` before changing implementation.
+  3. Review `docs/ai/work-tracking/archive/20260828-ga-6w1y-ci-aegis-delivery-COMPLETED/TRACKER.md` before changing implementation.
   4. Run `python3 scripts/codex-task plan sync` after tracker updates.
-- Outstanding risks/todos: publish the amended signed exact head, enable Dependency
-  Graph and the reviewed repository security features, require the uniquely named
-  hosted checks in the active main-branch ruleset, and retain legacy Taskmaster only
-  as conditional compatibility evidence.
+- Outstanding risks/todos: none for `ga-6w1y`; retain legacy Taskmaster only as conditional compatibility evidence under deferred `ga-xk0m`.
 
 ## Conflict & Scope Declaration
 - Related plans: none declared at kickoff.

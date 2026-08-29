@@ -12,3 +12,4 @@
 - 2026-08-28 — Add Dependency Review to the delivery-policy evidence set and Dependabot
   for both Actions and `uv`; repository-level protection settings remain a distinct,
   evidence-backed external mutation.
+- 2026-08-29 — Archived through the supported archive helper; no evidence was deleted.
