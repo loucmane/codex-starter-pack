@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import os
 import re
 import runpy
 import tomllib
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Iterable
 
@@ -80,6 +83,20 @@ class SourceLifecycle:
     active_folder: Path | None = None
     completed_work: CompletedSourceWork | None = None
     transaction: dict[str, object] | None = None
+
+
+@dataclass(frozen=True)
+class ActiveSourceWork:
+    """Validated authorities needed to recover ignored source-checkout runtime state."""
+
+    work_kind: str
+    work_id: str
+    title: str
+    slug: str
+    branch: str
+    active_folder: Path
+    plan_path: Path
+    session_path: Path
 
 
 def task_id_from_branch(branch: str) -> str | None:
@@ -223,21 +240,15 @@ def _work_identity_from_current_pointers(root: Path) -> tuple[str, str]:
             "current plan must declare exactly one task_ids or bead_ids entry"
         )
     if task_ids_match:
-        task_items = [
-            item.strip().strip("'\"") for item in task_ids_match.group(1).split(",")
-        ]
+        task_items = [item.strip().strip("'\"") for item in task_ids_match.group(1).split(",")]
         if len(task_items) != 1 or not re.fullmatch(r"\d+", task_items[0]):
             raise SourceWorkflowStateError("current plan must declare exactly one numeric task ID")
         work_kind = "task"
         work_id = task_items[0]
     else:
         assert bead_ids_match is not None
-        bead_items = [
-            item.strip().strip("'\"") for item in bead_ids_match.group(1).split(",")
-        ]
-        if len(bead_items) != 1 or not re.fullmatch(
-            r"[a-z][a-z0-9]*-[a-z0-9]+", bead_items[0]
-        ):
+        bead_items = [item.strip().strip("'\"") for item in bead_ids_match.group(1).split(",")]
+        if len(bead_items) != 1 or not re.fullmatch(r"[a-z][a-z0-9]*-[a-z0-9]+", bead_items[0]):
             raise SourceWorkflowStateError("current plan must declare exactly one valid bead ID")
         work_kind = "bead"
         work_id = bead_items[0]
@@ -254,9 +265,7 @@ def _work_identity_from_current_pointers(root: Path) -> tuple[str, str]:
     label = "Task" if work_kind == "task" else "Bead"
     references = _tracker_references_task if work_kind == "task" else _tracker_references_bead
     if not token.search(session_relative):
-        raise SourceWorkflowStateError(
-            f"current session path does not reference {label} {work_id}"
-        )
+        raise SourceWorkflowStateError(f"current session path does not reference {label} {work_id}")
     if not references(session_text, work_id):
         raise SourceWorkflowStateError(
             f"current session content does not reference {label} {work_id}"
@@ -449,9 +458,7 @@ def derive_completed_source_work(
         raise SourceWorkflowStateError("completed tracker resolves outside its archive folder")
     tracker_text = tracker_path.read_text(encoding="utf-8")
     if not references(tracker_text, work_id):
-        raise SourceWorkflowStateError(
-            f"completed tracker does not reference {label} {work_id}"
-        )
+        raise SourceWorkflowStateError(f"completed tracker does not reference {label} {work_id}")
     if not re.search(r"^\*\*Status\*\*:\s*COMPLETED\s*$", tracker_text, flags=re.MULTILINE):
         raise SourceWorkflowStateError("completed tracker status is not COMPLETED")
 
@@ -465,7 +472,12 @@ def derive_completed_source_work(
     )
 
 
-def derive_source_lifecycle(root: Path, branch: str) -> SourceLifecycle:
+def derive_source_lifecycle(
+    root: Path,
+    branch: str,
+    *,
+    _ignore_current_work: bool = False,
+) -> SourceLifecycle:
     """Derive IDLE, ACTIVE, or CLOSEOUT_PENDING for an Aegis source checkout."""
 
     root = root.resolve()
@@ -473,7 +485,7 @@ def derive_source_lifecycle(root: Path, branch: str) -> SourceLifecycle:
         raise SourceWorkflowStateError(
             "source lifecycle is only defined for an uninstalled source checkout"
         )
-    if (root / CURRENT_WORK_RELATIVE).exists():
+    if (root / CURRENT_WORK_RELATIVE).exists() and not _ignore_current_work:
         raise SourceWorkflowStateError("installed current-work state overrides source lifecycle")
 
     transaction = read_source_closeout_transaction(root)
@@ -516,9 +528,7 @@ def derive_source_lifecycle(root: Path, branch: str) -> SourceLifecycle:
         work_kind, work_id = identity
         active = active_folders[0]
         token = (
-            _task_token_pattern(work_id)
-            if work_kind == "task"
-            else _bead_token_pattern(work_id)
+            _task_token_pattern(work_id) if work_kind == "task" else _bead_token_pattern(work_id)
         )
         if not token.search(active.name):
             raise SourceWorkflowStateError(
@@ -561,3 +571,246 @@ def derive_source_lifecycle(root: Path, branch: str) -> SourceLifecycle:
         work_id=pointer_identity[1],
         completed_work=completed,
     )
+
+
+def derive_active_source_work(root: Path, branch: str) -> ActiveSourceWork:
+    """Derive recovery inputs only when every tracked ACTIVE authority agrees."""
+
+    root = root.resolve()
+    lifecycle = derive_source_lifecycle(root, branch, _ignore_current_work=True)
+    if lifecycle.state != LIFECYCLE_ACTIVE:
+        raise SourceWorkflowStateError(
+            f"source current-work recovery requires ACTIVE lifecycle, found {lifecycle.state}"
+        )
+    if lifecycle.active_folder is None or lifecycle.work_kind is None or lifecycle.work_id is None:
+        raise SourceWorkflowStateError("ACTIVE source lifecycle is missing validated work identity")
+
+    plan_path = _resolve_contained_pointer(
+        root,
+        pointer_relative=PLANS_CURRENT_RELATIVE,
+        container_relative=PLANS_RELATIVE,
+        label="current plan",
+    )
+    session_path = _resolve_contained_pointer(
+        root,
+        pointer_relative=SESSIONS_CURRENT_RELATIVE,
+        container_relative=SESSIONS_RELATIVE,
+        label="current session",
+    )
+    plan_text = plan_path.read_text(encoding="utf-8")
+    if not plan_text.startswith("---"):
+        raise SourceWorkflowStateError("current plan is missing front matter")
+    front_matter_parts = plan_text.split("---", 2)
+    if len(front_matter_parts) < 3:
+        raise SourceWorkflowStateError("current plan front matter is incomplete")
+    front_matter = front_matter_parts[1]
+
+    work_context_match = re.search(
+        r"^work_context:\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*$",
+        front_matter,
+        flags=re.MULTILINE,
+    )
+    if work_context_match is None:
+        raise SourceWorkflowStateError("current plan work_context is missing or invalid")
+    work_context = work_context_match.group(1)
+    context_prefix = (
+        f"{lifecycle.work_id}-" if lifecycle.work_kind == "bead" else f"task{lifecycle.work_id}-"
+    )
+    if not work_context.startswith(context_prefix):
+        raise SourceWorkflowStateError(
+            f"current plan work_context does not match {lifecycle.work_kind} {lifecycle.work_id}"
+        )
+    slug = work_context[len(context_prefix) :]
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", slug):
+        raise SourceWorkflowStateError("current plan work_context has an invalid work slug")
+
+    if lifecycle.work_kind == "bead":
+        branch_policy_match = re.search(
+            r"^branch_policy:\s*([^\s#]+)\s*$",
+            front_matter,
+            flags=re.MULTILINE,
+        )
+        if branch_policy_match is None or branch_policy_match.group(1) != branch:
+            raise SourceWorkflowStateError(
+                "current plan branch_policy does not match the current bead branch"
+            )
+
+    work_label = "Bead" if lifecycle.work_kind == "bead" else "Task"
+    title_prefix = f"# Plan - {work_label} {lifecycle.work_id}"
+    title = ""
+    for line in front_matter_parts[2].splitlines():
+        if line.startswith(title_prefix):
+            title = line[len(title_prefix) :].strip().lstrip("-—:").strip()
+            break
+    if not title:
+        raise SourceWorkflowStateError("current plan title is missing or invalid")
+
+    return ActiveSourceWork(
+        work_kind=lifecycle.work_kind,
+        work_id=lifecycle.work_id,
+        title=title,
+        slug=slug,
+        branch=branch,
+        active_folder=lifecycle.active_folder,
+        plan_path=plan_path,
+        session_path=session_path,
+    )
+
+
+def _active_source_current_work_payload(
+    root: Path,
+    active: ActiveSourceWork,
+    *,
+    schema_version: str,
+    recovered_at: str,
+) -> dict[str, object]:
+    root = root.resolve()
+    active_rel = active.active_folder.relative_to(root).as_posix()
+    plan_rel = active.plan_path.relative_to(root).as_posix()
+    session_rel = active.session_path.relative_to(root).as_posix()
+    reports_rel = f"{active_rel}/reports/{active.slug}"
+    task: dict[str, object] = {
+        "id": active.work_id,
+        "slug": active.slug,
+        "title": active.title,
+        "status": "in-progress",
+    }
+    if active.work_kind == "bead":
+        task["source"] = "gas-city-bead"
+    core: dict[str, object] = {
+        "schema_version": schema_version,
+        "mode": active.work_kind,
+        "status": "in-progress",
+        "task": task,
+        "branch": {
+            "before": active.branch,
+            "current": active.branch,
+            "action": "recovered_source_checkout",
+            "created": False,
+        },
+        "paths": {
+            "session": session_rel,
+            "session_current": SESSIONS_CURRENT_RELATIVE.as_posix(),
+            "plan": plan_rel,
+            "plan_current": PLANS_CURRENT_RELATIVE.as_posix(),
+            "work_tracking": active_rel,
+            "reports": reports_rel,
+            "workflow_templates": ".aegis/templates/workflow",
+        },
+        "integrations": {
+            "taskmaster": {
+                "required": False,
+                "detected": (root / ".taskmaster").exists(),
+                **({"mutation_allowed": False} if active.work_kind == "bead" else {}),
+            },
+            "serena": {
+                "required": False,
+                "detected": (root / ".serena").exists(),
+            },
+        },
+    }
+    if active.work_kind == "bead":
+        core["authority"] = {
+            "kind": "gas-city-bead",
+            "id": active.work_id,
+            "mutable": True,
+        }
+    fingerprint = hashlib.sha256(
+        json.dumps(core, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return {
+        **core,
+        "created_at": recovered_at,
+        "updated_at": recovered_at,
+        "recovery": {
+            "kind": "tracked-source-lifecycle",
+            "fingerprint": fingerprint,
+            "recovered_at": recovered_at,
+        },
+    }
+
+
+def recover_source_current_work(
+    root: Path,
+    branch: str,
+    *,
+    schema_version: str,
+) -> dict[str, object]:
+    """Atomically recover ignored runtime state from aligned tracked authorities.
+
+    This is intentionally a mutation helper for explicit workflow commands such as
+    ``aegis log``. Readiness continues to derive source lifecycle without writing.
+    """
+
+    root = root.resolve()
+    active = derive_active_source_work(root, branch)
+    current_path = root / CURRENT_WORK_RELATIVE
+    existing: object | None = None
+    if current_path.exists() or current_path.is_symlink():
+        if not current_path.is_file() or current_path.is_symlink():
+            raise SourceWorkflowStateError("source current-work state must be a regular file")
+        try:
+            existing = json.loads(current_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise SourceWorkflowStateError(
+                f"source current-work state is invalid JSON: {exc}"
+            ) from exc
+
+    recovered_at = datetime.now().astimezone().replace(microsecond=0).isoformat()
+    expected = _active_source_current_work_payload(
+        root,
+        active,
+        schema_version=schema_version,
+        recovered_at=recovered_at,
+    )
+    if existing is not None:
+        if not isinstance(existing, dict):
+            raise SourceWorkflowStateError("source current-work state must be a JSON object")
+        expected_core = {
+            key: value
+            for key, value in expected.items()
+            if key not in {"created_at", "updated_at", "recovery"}
+        }
+        existing_core = {
+            key: value
+            for key, value in existing.items()
+            if key not in {"created_at", "updated_at", "recovery"}
+        }
+        if existing_core != expected_core:
+            raise SourceWorkflowStateError(
+                "source current-work state contradicts the tracked ACTIVE authorities"
+            )
+        expected_recovery = expected["recovery"]
+        existing_recovery = existing.get("recovery")
+        if not isinstance(expected_recovery, dict) or not isinstance(existing_recovery, dict):
+            raise SourceWorkflowStateError("source current-work recovery metadata is missing")
+        if existing_recovery.get("fingerprint") != expected_recovery.get("fingerprint"):
+            raise SourceWorkflowStateError(
+                "source current-work state contradicts the tracked ACTIVE authorities"
+            )
+        return existing
+
+    cursor = root
+    for part in CURRENT_WORK_RELATIVE.parent.parts:
+        cursor /= part
+        if cursor.exists() and cursor.is_symlink():
+            raise SourceWorkflowStateError("source current-work state directory contains a symlink")
+    state_dir = current_path.parent
+    state_dir.mkdir(parents=True, exist_ok=True)
+    if state_dir.is_symlink() or not state_dir.resolve().is_relative_to(root):
+        raise SourceWorkflowStateError("source current-work state directory is not contained")
+    encoded = (json.dumps(expected, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    temporary = state_dir / f".{current_path.name}.{os.getpid()}.tmp"
+    try:
+        fd = os.open(temporary, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(encoded)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, current_path)
+    finally:
+        temporary.unlink(missing_ok=True)
+    written = json.loads(current_path.read_text(encoding="utf-8"))
+    if written != expected:
+        raise SourceWorkflowStateError("source current-work atomic write readback mismatch")
+    return expected

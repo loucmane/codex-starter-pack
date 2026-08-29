@@ -44,20 +44,29 @@ def _manifest(tmp_path: Path, *, old_root: Path, new_root: Path) -> Path:
     return path
 
 
-def _run(root: Path, manifest: Path, phase: str) -> subprocess.CompletedProcess[str]:
+def _run(
+    root: Path,
+    manifest: Path,
+    phase: str,
+    *,
+    tracked_only: bool = False,
+) -> subprocess.CompletedProcess[str]:
+    command = [
+        str(SCRIPT),
+        "inventory",
+        "--repository",
+        str(root),
+        "--scan-root",
+        str(root),
+        "--manifest",
+        str(manifest),
+        "--phase",
+        phase,
+    ]
+    if tracked_only:
+        command.append("--tracked-only")
     return subprocess.run(
-        [
-            str(SCRIPT),
-            "inventory",
-            "--repository",
-            str(root),
-            "--scan-root",
-            str(root),
-            "--manifest",
-            str(manifest),
-            "--phase",
-            phase,
-        ],
+        command,
         check=False,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -78,6 +87,8 @@ def test_naming_contract_keeps_the_four_identities_distinct() -> None:
     assert payload["compatibility"]["python_distribution"] == "aegis-foundation"
     assert payload["workspace"]["strategy"] == "fresh-clone"
     assert payload["workspace"]["legacy_retirement"] == "separate-gate"
+    assert "tests/fixtures" in payload["historical_roots"]
+    assert "docs/aegis/AEGIS_VNEXT_PROGRAM.md" in payload["historical_roots"]
 
 
 def test_pre_rename_inventory_classifies_active_and_historical_references(tmp_path: Path) -> None:
@@ -94,6 +105,12 @@ def test_pre_rename_inventory_classifies_active_and_historical_references(tmp_pa
     current_session = historical / "current-session.md"
     current_session.write_text(str(old_root), encoding="utf-8")
     (historical / "current").symlink_to(current_session.name)
+    nested_environment = root / "worktrees" / "nested" / ".venv" / "lib"
+    nested_environment.mkdir(parents=True)
+    (nested_environment / "generated.txt").write_text(
+        "loucmane/codex-starter-pack\n",
+        encoding="utf-8",
+    )
     manifest = _manifest(tmp_path, old_root=old_root, new_root=tmp_path / "new")
 
     completed = _run(root, manifest, "pre-rename")
@@ -106,9 +123,7 @@ def test_pre_rename_inventory_classifies_active_and_historical_references(tmp_pa
         "active.txt",
         "sessions/current-session.md",
     ]
-    assert [item["path"] for item in payload["references"]["historical"]] == [
-        "sessions/old.md"
-    ]
+    assert [item["path"] for item in payload["references"]["historical"]] == ["sessions/old.md"]
 
 
 def test_post_rename_refuses_active_legacy_reference_then_passes_when_removed(
@@ -160,3 +175,28 @@ def test_script_is_read_only_for_repository_and_scan_tree(tmp_path: Path) -> Non
     )
     assert after == before
     assert shutil.which("git") is not None
+
+
+def test_tracked_only_ignores_untracked_runtime_and_cache_files(tmp_path: Path) -> None:
+    old_root = tmp_path / "legacy"
+    old_root.mkdir()
+    root = _fixture(
+        tmp_path,
+        origin="https://github.com/loucmane/codex-starter-pack.git",
+    )
+    tracked = root / "tracked.txt"
+    tracked.write_text("loucmane/codex-starter-pack\n", encoding="utf-8")
+    _git(root, "add", "tracked.txt")
+    _git(root, "commit", "-m", "tracked migration fixture")
+    (root / "untracked.txt").write_text(str(old_root), encoding="utf-8")
+    cache = root / ".cache"
+    cache.mkdir()
+    (cache / "generated.txt").write_text(str(old_root), encoding="utf-8")
+    manifest = _manifest(tmp_path, old_root=old_root, new_root=tmp_path / "new")
+
+    completed = _run(root, manifest, "pre-rename", tracked_only=True)
+
+    assert completed.returncode == 0, completed.stderr
+    payload = json.loads(completed.stdout)
+    assert payload["scan_mode"] == "tracked-only"
+    assert [item["path"] for item in payload["references"]["active"]] == ["tracked.txt"]

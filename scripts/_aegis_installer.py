@@ -642,11 +642,11 @@ def _render_contract(primary_agent: str, enabled_agents: Sequence[str]) -> bytes
             "",
             '- When a Gas City bead is authoritative, use `aegis kickoff --bead <bead-id> --slug <slug> --title "<title>"`; never create or mutate Taskmaster work for the same scope.',
             '- Start local work with `aegis start "<task title>"` only when no external work id exists.',
-            '- Use `aegis kickoff --task <id> ...` only for an explicitly historical numeric-task compatibility flow.',
+            "- Use `aegis kickoff --task <id> ...` only for an explicitly historical numeric-task compatibility flow.",
             "- Kickoff creates Aegis-native current work state, session, plan, and work-tracking files.",
             "- `.aegis/state/current-work.json` is the portable authority for READY.",
             "- In beads-first projects, Taskmaster remains a read-only historical input and its MCP mutation surface should not be registered.",
-            '- Normal feature work is: confirm readiness and `aegis next`; read the authoritative bead; run bead-native kickoff; mark scope complete with `aegis log --plan-step auto`; make the bead-scoped change with native tools; log pending tracking; run focused verification; run `aegis verify --strict`; preflight and complete closeout; then close the bead through its rig-scoped surface.',
+            "- Normal feature work is: confirm readiness and `aegis next`; read the authoritative bead; run bead-native kickoff; mark scope complete with `aegis log --plan-step auto`; make the bead-scoped change with native tools; log pending tracking; run focused verification; run `aegis verify --strict`; preflight and complete closeout; then close the bead through its rig-scoped surface.",
             '- After every meaningful mutation, run `aegis log --pending-id <id> --note "<past-tense note>"` to write S:W:H:E entries to the active session, tracker, and event-aware canonical surfaces.',
             "- `aegis log` updates plan state only when `--plan-step` is supplied. This prevents generic evidence logs from accidentally changing an unrelated plan step.",
             "- The next persistent mutation is blocked until pending S:W:H:E tracking is logged; this is what makes the workflow mechanical rather than advisory.",
@@ -1367,9 +1367,7 @@ def _local_gate_runtime_assets(source_root: Path) -> list[Asset]:
         "aegis_foundation/version.py",
         *(
             path.relative_to(runtime_source_root).as_posix()
-            for path in sorted(
-                (runtime_source_root / "aegis_foundation" / "gate").rglob("*.py")
-            )
+            for path in sorted((runtime_source_root / "aegis_foundation" / "gate").rglob("*.py"))
         ),
     ]
     return [
@@ -2020,13 +2018,7 @@ def _looks_like_aegis_source_root(path: Path) -> bool:
         and (path / "scripts" / "_aegis_installer.py").is_file()
         and gate_source_root is not None
         and (gate_source_root / "aegis_foundation" / "gate" / "readiness.py").is_file()
-        and (
-            gate_source_root
-            / "aegis_foundation"
-            / "gate"
-            / "hooks"
-            / "entrypoint.py"
-        ).is_file()
+        and (gate_source_root / "aegis_foundation" / "gate" / "hooks" / "entrypoint.py").is_file()
         and (path / ".claude" / "scripts" / "gate_lib.py").is_file()
         and (path / ".claude" / "scripts" / "readiness.sh").is_file()
     )
@@ -3115,7 +3107,9 @@ def _expected_manifest_summary(primary_agent: str, enabled_agents: Sequence[str]
                 "gate_ids": list(
                     CLAUDE_GATE_IDS
                     if agent == "claude"
-                    else CODEX_GATE_IDS if agent == "codex" else ()
+                    else CODEX_GATE_IDS
+                    if agent == "codex"
+                    else ()
                 ),
             }
             for agent in ("claude", "codex", "gemini")
@@ -4445,7 +4439,9 @@ def next_action(
         marker_agent = (
             normalized_invoker
             if normalized_invoker in marker_agents
-            else marker_agents[0] if marker_agents else "unknown"
+            else marker_agents[0]
+            if marker_agents
+            else "unknown"
         )
         if marker_agent == "codex":
             reload_action = (
@@ -5624,9 +5620,7 @@ def _normalize_task_id(task_id: str | int) -> str:
 def _normalize_bead_id(bead_id: str) -> str:
     value = str(bead_id).strip()
     if not BEAD_ID_PATTERN.fullmatch(value):
-        raise AegisError(
-            "Aegis bead kickoff requires a lowercase bead id such as ga-zbmk"
-        )
+        raise AegisError("Aegis bead kickoff requires a lowercase bead id such as ga-zbmk")
     return value
 
 
@@ -6522,7 +6516,9 @@ def reconcile(
     status_value = (
         "drift"
         if severity_counts["error"]
-        else "needs_review" if severity_counts["warning"] else "clean"
+        else "needs_review"
+        if severity_counts["warning"]
+        else "clean"
     )
     report = {
         "schema_version": SCHEMA_VERSION,
@@ -6728,9 +6724,7 @@ def _plan_rel(task_id: str, slug: str, now: datetime, *, work_mode: str = "task"
     return f"plans/{now.strftime('%Y-%m-%d')}-{identity}-{slug}.md"
 
 
-def _work_tracking_rel(
-    task_id: str, slug: str, now: datetime, *, work_mode: str = "task"
-) -> str:
+def _work_tracking_rel(task_id: str, slug: str, now: datetime, *, work_mode: str = "task") -> str:
     identity = f"task{task_id}" if work_mode == "task" else task_id
     return f"docs/ai/work-tracking/active/{now.strftime('%Y%m%d')}-{identity}-{slug}-ACTIVE"
 
@@ -7655,9 +7649,7 @@ def kickoff(
     if not clean_title:
         raise AegisError("title is required")
     work_label = (
-        f"bead {normalized_task_id}"
-        if _work_mode == "bead"
-        else f"task {normalized_task_id}"
+        f"bead {normalized_task_id}" if _work_mode == "bead" else f"task {normalized_task_id}"
     )
     task_payload = {
         "id": normalized_task_id,
@@ -7713,9 +7705,7 @@ def kickoff(
         target_root, normalized_task_id, normalized_slug, now, work_mode=_work_mode
     )
     plan_rel = _plan_rel(normalized_task_id, normalized_slug, now, work_mode=_work_mode)
-    work_rel = _work_tracking_rel(
-        normalized_task_id, normalized_slug, now, work_mode=_work_mode
-    )
+    work_rel = _work_tracking_rel(normalized_task_id, normalized_slug, now, work_mode=_work_mode)
     reports_rel = f"{work_rel}/reports/{normalized_slug}"
     template_context = _workflow_template_context(
         task_id=normalized_task_id,
@@ -8539,8 +8529,43 @@ def start_local_work(
     return report
 
 
+def _recover_source_current_work_payload(target_root: Path) -> dict[str, Any] | None:
+    """Recover ignored runtime state for this repository's uninstalled source checkout."""
+
+    helper_path = target_root / "scripts" / "_source_workflow_state.py"
+    if not helper_path.is_file() or helper_path.is_symlink():
+        return None
+    module_name = (
+        "_aegis_source_current_work_recovery_"
+        + hashlib.sha256(target_root.as_posix().encode("utf-8")).hexdigest()[:16]
+    )
+    spec = importlib.util.spec_from_file_location(module_name, helper_path)
+    if spec is None or spec.loader is None:
+        raise AegisError("could not load source workflow recovery helper")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)
+        if not module.is_uninstalled_aegis_source_checkout(target_root):
+            return None
+        recovered = module.recover_source_current_work(
+            target_root,
+            _current_branch(target_root),
+            schema_version=SCHEMA_VERSION,
+        )
+    except Exception as exc:  # noqa: BLE001 - normalize source recovery failures.
+        raise AegisError(f"Aegis source current-work recovery refused: {exc}") from exc
+    finally:
+        sys.modules.pop(module_name, None)
+    if not isinstance(recovered, dict):
+        raise AegisError("Aegis source current-work recovery returned an invalid payload")
+    return recovered
+
+
 def _current_work_payload(target_root: Path) -> dict[str, Any]:
     current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
+    if current_work is None:
+        current_work = _recover_source_current_work_payload(target_root)
     if current_work is None:
         raise AegisError(
             "Aegis log requires .aegis/state/current-work.json; run aegis kickoff first"
@@ -9676,7 +9701,8 @@ def log_work(
     now = datetime.now().astimezone().replace(microsecond=0)
     session_value = now.strftime("%Y%m%d")
     date_value = now.strftime("%Y-%m-%d")
-    work_context = f"task{task_id}-{slug}"
+    work_mode = str(current_work.get("mode") or "task").strip()
+    work_context = f"{task_id}-{slug}" if work_mode == "bead" else f"task{task_id}-{slug}"
     swhe = f"[S:{session_value}|W:{work_context}|H:{clean_handler}|E:{evidence_rel}]"
     session_line = f"- **[{now.strftime('%H:%M')}]** - {swhe} {clean_note}"
     tracker_line = f"- **{now.strftime('%Y-%m-%d %H:%M %Z').strip()}** - {swhe} {clean_note}"
@@ -13012,8 +13038,7 @@ def _closeout_readiness(
             "stdout": f"{readiness_state} | task={task_id or 'unknown'}",
             "stderr": "",
             "checks": [
-                {"status": check.status, "message": check.message}
-                for check in readiness_checks
+                {"status": check.status, "message": check.message} for check in readiness_checks
             ],
         }
 

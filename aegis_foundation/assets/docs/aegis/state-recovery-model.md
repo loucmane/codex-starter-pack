@@ -19,6 +19,7 @@ It complements the invocation contract, update/rollback guide, and public adopti
 | `not_installed` | No valid `.aegis/foundation-manifest.json` is present. | Run `aegis init` or review `aegis plan-install`. |
 | `invalid_manifest` | A manifest exists but cannot be parsed or validated against the installed schema. | Review manifest drift; repair only if the manifest can be restored from managed evidence. |
 | `installed_no_current_work` | Runtime files are installed, but `.aegis/state/current-work.json` is absent. | Start local work with `aegis start "<title>"` or explicit-id work with `aegis kickoff`. |
+| `source_active_no_current_work` | The uninstalled Aegis source checkout has one aligned ACTIVE tracker plus matching `plans/current`, `sessions/current`, and branch identity, but its ignored runtime envelope is absent after a clone or worktree change. | Readiness derives ACTIVE without writing. The first explicit `aegis log` mutation atomically recovers `.aegis/state/current-work.json` from those tracked authorities and then records evidence. |
 | `in_progress_ready` | Current work exists, branch/session/plan/work-tracking state is aligned, and readiness passes. | Continue normal implementation or verification. |
 | `workflow_scaffold_incomplete` | Current work exists, but required pointers, directories, or workflow surfaces are missing. | Run `aegis doctor`, then `aegis repair --apply` only for safe mechanical fixes. |
 | `pending_tracking` | `.aegis/state/pending-tracking.json` contains one or more unlogged mutation events. | Run `aegis log --pending-id current ...`; repair must not clear these events. |
@@ -44,6 +45,23 @@ It complements the invocation contract, update/rollback guide, and public adopti
 | `aegis closeout --update-handoff` | Final closeout writes the closeout report and marks current work completed. Replaying after completed closeout should pass without reverting work to in-progress or churning state unless an explicit refresh mode exists. |
 | `aegis doctor` | Read-only diagnostic. It produces checks, current-state classification, repair plan, and next action. |
 | `aegis repair` | Dry-run by default and read-only. `--apply` executes only safe deterministic repair actions and writes `.aegis/reports/repair-report.json`. |
+
+### Uninstalled source-checkout recovery
+
+The Aegis source repository deliberately does not commit `.aegis/state/current-work.json`.
+Tracked source-workflow authorities survive a clone or isolated worktree instead:
+
+- the exact bead/task identity and branch policy in `plans/current`;
+- the matching `sessions/current` target and content;
+- exactly one matching `docs/ai/work-tracking/active/*-ACTIVE` tracker; and
+- the current Git branch.
+
+Readiness validates those authorities without creating files. When an explicit `aegis log`
+mutation needs the runtime envelope, recovery revalidates the same authorities, derives the
+bead-native payload, and writes it atomically. Repeating recovery is a byte-preserving no-op.
+Any identity, pointer, branch-policy, title, slug, containment, or existing-payload mismatch
+refuses before the evidence surfaces are changed. Installed projects retain the normal
+kickoff/start contract and never use this source-only fallback.
 
 ## Doctor Contract
 

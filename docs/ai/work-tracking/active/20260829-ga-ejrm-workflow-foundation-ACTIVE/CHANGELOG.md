@@ -7,3 +7,6 @@
   descriptor schema, shared adapters, and live read-only project checks.
 - 2026-08-29 — Added the Gas City Operations naming contract, two-stage migration procedure,
   and read-only legacy-consumer/worktree inventory tool.
+
+## Progress Log
+- **2026-08-29 22:54 CEST** - [S:20260829|W:ga-ejrm-workflow-foundation|H:codex:workflow-foundation-recovery|E:scripts/_source_workflow_state.py] Added fail-closed atomic current-work recovery for active uninstalled source checkouts and verified idempotent bead-native logging.

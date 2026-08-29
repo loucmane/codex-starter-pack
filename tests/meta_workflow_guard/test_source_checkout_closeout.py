@@ -19,7 +19,9 @@ from scripts._source_workflow_state import (
     SourceWorkflowStateError,
     derive_completed_source_work,
     derive_source_lifecycle,
+    recover_source_current_work,
 )
+from scripts import _aegis_installer
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 READINESS_SOURCE = REPO_ROOT / ".claude" / "scripts" / "readiness.sh"
@@ -220,6 +222,46 @@ def _write_delivery_policy(root: Path, *, default_branch: str = "main") -> None:
     )
 
 
+def _activate_bead_source_state(root: Path, bead_id: str = "ga-test1") -> Path:
+    branch = f"codex/{bead_id}-source-closeout"
+    archive = next((root / "docs" / "ai" / "work-tracking" / "archive").iterdir())
+    active = (
+        root
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "active"
+        / f"20300101-{bead_id}-source-closeout-ACTIVE"
+    )
+    archive.rename(active)
+    (active / "TRACKER.md").write_text(
+        _bead_tracker_text(bead_id, status="ACTIVE", checked=False), encoding="utf-8"
+    )
+    for name in ("IMPLEMENTATION.md", "CHANGELOG.md", "HANDOFF.md"):
+        _write(active / name, f"# {name.removesuffix('.md').title()}\n\n## Progress Log\n")
+
+    plan = (root / "plans" / "current").resolve()
+    plan.write_text(
+        f"""---
+session_id: 2030-01-01-001
+work_context: {bead_id}-source-closeout
+bead_ids: [{bead_id}]
+branch_policy: {branch}
+---
+
+# Plan - Bead {bead_id} Source closeout fixture
+
+| Step ID | Description | Evidence | Status |
+|---|---|---|---|
+| plan-step-scope | Scope | evidence | in-progress |
+| plan-step-implement | Implement | evidence | pending |
+| plan-step-verify | Verify | evidence | pending |
+""",
+        encoding="utf-8",
+    )
+    return active
+
+
 def _init_source_repo(tmp_path: Path, task_id: int = 99) -> tuple[Path, Path]:
     root = tmp_path / "source"
     root.mkdir()
@@ -399,6 +441,96 @@ def test_source_lifecycle_classifies_idle_active_and_closeout_pending(
     assert pending.transaction is not None
 
 
+def test_source_current_work_recovery_is_atomic_idempotent_and_bead_native(
+    tmp_path: Path,
+) -> None:
+    root, _ = _init_bead_source_repo(tmp_path)
+    active = _activate_bead_source_state(root)
+    branch = "codex/ga-test1-source-closeout"
+
+    first = recover_source_current_work(root, branch, schema_version="fixture-v1")
+    current_path = root / ".aegis" / "state" / "current-work.json"
+    first_bytes = current_path.read_bytes()
+    second = recover_source_current_work(root, branch, schema_version="fixture-v1")
+
+    assert first == second
+    assert current_path.read_bytes() == first_bytes
+    assert first["mode"] == "bead"
+    assert first["task"] == {
+        "id": "ga-test1",
+        "slug": "source-closeout",
+        "title": "Source closeout fixture",
+        "status": "in-progress",
+        "source": "gas-city-bead",
+    }
+    assert first["authority"] == {
+        "kind": "gas-city-bead",
+        "id": "ga-test1",
+        "mutable": True,
+    }
+    assert first["paths"]["work_tracking"] == active.relative_to(root).as_posix()
+
+    tampered = json.loads(current_path.read_text(encoding="utf-8"))
+    tampered["task"]["title"] = "Tampered title"
+    current_path.write_text(json.dumps(tampered), encoding="utf-8")
+    with pytest.raises(SourceWorkflowStateError, match="contradicts"):
+        recover_source_current_work(root, branch, schema_version="fixture-v1")
+
+
+def test_source_current_work_recovery_refuses_branch_policy_drift_without_write(
+    tmp_path: Path,
+) -> None:
+    root, _ = _init_bead_source_repo(tmp_path)
+    _activate_bead_source_state(root)
+    plan = (root / "plans" / "current").resolve()
+    plan.write_text(
+        plan.read_text(encoding="utf-8").replace(
+            "branch_policy: codex/ga-test1-source-closeout",
+            "branch_policy: codex/ga-test1-wrong-branch",
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(SourceWorkflowStateError, match="branch_policy"):
+        recover_source_current_work(
+            root,
+            "codex/ga-test1-source-closeout",
+            schema_version="fixture-v1",
+        )
+
+    assert not (root / ".aegis" / "state" / "current-work.json").exists()
+
+
+def test_aegis_log_recovers_source_current_work_once_and_uses_bead_context(
+    tmp_path: Path,
+) -> None:
+    root, _ = _init_bead_source_repo(tmp_path)
+    active = _activate_bead_source_state(root)
+    evidence = f"{active.relative_to(root).as_posix()}/TRACKER.md"
+
+    first = _aegis_installer.log_work(
+        root,
+        handler="codex:source-recovery",
+        evidence=evidence,
+        note="Recovered source workflow evidence",
+        surfaces=("implementation",),
+    )
+    second = _aegis_installer.log_work(
+        root,
+        handler="codex:source-recovery",
+        evidence=evidence,
+        note="Recovered source workflow evidence",
+        surfaces=("implementation",),
+    )
+
+    assert first["status"] == "logged"
+    assert first["entry"]["w"] == "ga-test1-source-closeout"
+    assert second["status"] == "already_logged"
+    assert second["idempotent"] is True
+    session = (root / "sessions" / "current").resolve().read_text(encoding="utf-8")
+    assert session.count("[S:") == 1
+
+
 def test_completed_bead_source_work_derives_on_default_branch(tmp_path: Path) -> None:
     root, tracker = _init_bead_source_repo(tmp_path)
     _write_delivery_policy(root)
@@ -428,12 +560,7 @@ def test_completed_bead_source_work_rejects_identity_status_and_ambiguity(
 
     tracker.write_text(_bead_tracker_text("ga-test1"), encoding="utf-8")
     second = (
-        root
-        / "docs"
-        / "ai"
-        / "work-tracking"
-        / "archive"
-        / "20300102-ga-test1-second-COMPLETED"
+        root / "docs" / "ai" / "work-tracking" / "archive" / "20300102-ga-test1-second-COMPLETED"
     )
     _write(second / "TRACKER.md", _bead_tracker_text("ga-test1"))
     with pytest.raises(SourceWorkflowStateError, match="exactly one completed archive for Bead"):

@@ -129,9 +129,7 @@ def test_source_policy_and_packaged_assets_are_valid_and_identical() -> None:
     assert "Dependency Review" in policy["merge"]["required_workflows"]
     assert policy["routine"]["allow_taskmaster_transitions"] is False
     assert all(
-        value
-        for key, value in policy["routine"].items()
-        if key != "allow_taskmaster_transitions"
+        value for key, value in policy["routine"].items() if key != "allow_taskmaster_transitions"
     )
     branch_pattern = policy["repository"]["task_branch_pattern"]
     assert re.fullmatch(branch_pattern, "codex/ga-zbmk-aegis-beads-obsidian")
@@ -173,7 +171,7 @@ def test_witness_scope_accounts_for_delivery_authority_surfaces() -> None:
     assert ".codex/" in always_in_scope
     assert ".plan_state/" in always_in_scope
     assert "aegis.delivery-policy.json" in always_in_scope
-    assert {"config/", "plugins/", "marketplace.json"} <= always_in_scope
+    assert {"config/", "plugins/", ".agents/plugins/"} <= always_in_scope
 
 
 def test_routine_exact_head_with_complete_evidence_is_allowed() -> None:

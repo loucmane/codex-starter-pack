@@ -3,11 +3,12 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import sqlite3
 import subprocess
 
 import pytest
 
-from aegis_foundation import obsidian_live_index, obsidian_reconciler
+from aegis_foundation import obsidian_ledger_reader, obsidian_live_index, obsidian_reconciler
 from aegis_foundation.obsidian_reconcile_cli import build_parser
 from aegis_foundation.obsidian_registry import RegistryError, load_registry
 
@@ -46,6 +47,91 @@ def _beads(status: str = "open") -> bytes:
         )
         + "\n"
     ).encode()
+
+
+def _ledger_event_values(root: Path) -> tuple[object, ...]:
+    return (
+        "1",
+        "event-1",
+        "2026-08-29T21:00:00Z",
+        "session-1",
+        "gas-city-operations",
+        str(root),
+        "codex/ga-ejrm-workflow-foundation",
+        "0" * 40,
+        str(root),
+        "verification",
+        "pytest",
+        "test",
+        "[]",
+        "pass",
+        "pass",
+        1,
+        "agent-1",
+        "codex",
+        None,
+        "a" * 64,
+        "{}",
+    )
+
+
+def _wal_ledger(root: Path, state_home: Path) -> tuple[sqlite3.Connection, Path]:
+    store = obsidian_ledger_reader.ledger_store(root, {"XDG_STATE_HOME": str(state_home)})
+    store.mkdir(parents=True)
+    database = store / "ledger.db"
+    connection = sqlite3.connect(database)
+    connection.execute("PRAGMA journal_mode=WAL")
+    connection.execute("PRAGMA wal_autocheckpoint=0")
+    connection.execute(
+        """
+        CREATE TABLE events (
+            seq INTEGER PRIMARY KEY AUTOINCREMENT,
+            schema_version TEXT NOT NULL, event_id TEXT NOT NULL UNIQUE,
+            ts TEXT NOT NULL, session_id TEXT, repository_identity TEXT,
+            worktree_root TEXT, branch TEXT, head TEXT, cwd TEXT,
+            event_type TEXT NOT NULL, tool_name TEXT, handler TEXT,
+            paths TEXT NOT NULL DEFAULT '[]', outcome TEXT, exit_class TEXT,
+            duration_ms INTEGER, agent_id TEXT, agent_type TEXT,
+            parent_agent_id TEXT, payload_digest TEXT,
+            extra TEXT NOT NULL DEFAULT '{}'
+        )
+        """
+    )
+    placeholders = ",".join("?" for _ in range(21))
+    columns = ",".join(obsidian_ledger_reader._FIELDS)
+    connection.execute(
+        f"INSERT INTO events ({columns}) VALUES ({placeholders})",
+        _ledger_event_values(root),
+    )
+    connection.commit()
+    return connection, database
+
+
+def test_passive_ledger_uses_writable_snapshot_and_preserves_live_wal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = _repo(tmp_path)
+    connection, database = _wal_ledger(root, tmp_path / "state")
+    source_bytes = {path.name: path.read_bytes() for path in database.parent.iterdir()}
+    opened: list[Path] = []
+    original = obsidian_ledger_reader._sqlite_events
+
+    def inspect_snapshot(path: Path, max_events: int) -> list[dict[str, object]]:
+        opened.append(path)
+        assert path.parent != database.parent
+        assert path.parent.name.startswith("aegis-ledger-snapshot-")
+        return original(path, max_events)
+
+    monkeypatch.setattr(obsidian_ledger_reader, "_sqlite_events", inspect_snapshot)
+    try:
+        events = obsidian_ledger_reader.read_events(
+            root, env={"XDG_STATE_HOME": str(tmp_path / "state")}
+        )
+        assert {path.name: path.read_bytes() for path in database.parent.iterdir()} == source_bytes
+    finally:
+        connection.close()
+    assert [event["event_id"] for event in events] == ["event-1"]
+    assert len(opened) == 1
 
 
 def _registry(
@@ -257,9 +343,7 @@ def test_closed_obsidian_is_observer_unavailable_not_publication_failure(tmp_pat
         )
     )
 
-    def unavailable(
-        argv: tuple[str, ...], _timeout: int
-    ) -> subprocess.CompletedProcess[bytes]:
+    def unavailable(argv: tuple[str, ...], _timeout: int) -> subprocess.CompletedProcess[bytes]:
         return subprocess.CompletedProcess(
             argv,
             1,

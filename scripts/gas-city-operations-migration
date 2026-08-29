@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -71,11 +72,54 @@ def _candidate_files(scan_root: Path) -> Iterable[Path]:
     if scan_root.is_file():
         yield scan_root
         return
-    for path in sorted(scan_root.rglob("*")):
-        if not path.is_file() or path.is_symlink():
+    excluded_dirs = {
+        ".cache",
+        ".git",
+        ".tmp",
+        ".toolchains",
+        ".tools",
+        ".venv",
+        "__pycache__",
+        "node_modules",
+    }
+    for current, dirnames, filenames in os.walk(scan_root, topdown=True, followlinks=False):
+        current_path = Path(current)
+        dirnames[:] = sorted(
+            name
+            for name in dirnames
+            if name not in excluded_dirs and not (current_path / name).is_symlink()
+        )
+        for name in sorted(filenames):
+            path = current_path / name
+            if path.is_symlink():
+                continue
+            try:
+                if path.stat().st_size <= 2 * 1024 * 1024:
+                    yield path
+            except OSError:
+                continue
+
+
+def _tracked_candidate_files(repository: Path) -> Iterable[Path]:
+    """Yield only source-controlled regular files from the selected worktree."""
+
+    excluded_dirs = {
+        ".cache",
+        ".git",
+        ".tmp",
+        ".toolchains",
+        ".tools",
+        ".venv",
+        "__pycache__",
+        "node_modules",
+    }
+    for relative in sorted(_run_git(repository, "ls-files", "-z").split("\0")):
+        if not relative:
             continue
-        relative = path.relative_to(scan_root).as_posix()
-        if _under(relative, (".git", ".venv", "node_modules", "__pycache__")):
+        path = repository / relative
+        if any(part in excluded_dirs for part in Path(relative).parts):
+            continue
+        if not path.is_file() or path.is_symlink():
             continue
         try:
             if path.stat().st_size <= 2 * 1024 * 1024:
@@ -107,10 +151,12 @@ def _references(
     tokens: tuple[str, ...],
     historical_roots: tuple[str, ...],
     allowlist: tuple[str, ...],
+    *,
+    candidates: Iterable[Path] | None = None,
 ) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
     active_workflow_paths = _current_workflow_paths(scan_root) if scan_root.is_dir() else ()
-    for path in _candidate_files(scan_root):
+    for path in candidates if candidates is not None else _candidate_files(scan_root):
         relative = path.relative_to(scan_root).as_posix() if scan_root.is_dir() else path.name
         try:
             text = path.read_text(encoding="utf-8")
@@ -153,11 +199,17 @@ def inventory(args: argparse.Namespace) -> tuple[dict[str, Any], bool]:
     for scan_root in scan_roots:
         if not scan_root.exists():
             raise ValueError(f"scan root does not exist: {scan_root}")
+        candidates: Iterable[Path] | None = None
+        if args.tracked_only:
+            if scan_root != repository:
+                raise ValueError("--tracked-only requires every --scan-root to equal --repository")
+            candidates = _tracked_candidate_files(repository)
         for item in _references(
             scan_root,
             tokens,
             tuple(manifest["historical_roots"]),
             tuple(manifest["self_reference_allowlist"]),
+            candidates=candidates,
         ):
             item["scan_root"] = str(scan_root)
             references.append(item)
@@ -167,7 +219,9 @@ def inventory(args: argparse.Namespace) -> tuple[dict[str, Any], bool]:
     tree = _run_git(repository, "rev-parse", "HEAD^{tree}")
     active = [item for item in references if item["classification"] == "active"]
     phase_checks: dict[str, bool] = {
-        "repository_is_git_worktree": bool(_run_git(repository, "rev-parse", "--is-inside-work-tree") == "true"),
+        "repository_is_git_worktree": bool(
+            _run_git(repository, "rev-parse", "--is-inside-work-tree") == "true"
+        ),
         "legacy_root_preserved": old_root.exists(),
     }
     if args.phase == "pre-rename":
@@ -190,6 +244,7 @@ def inventory(args: argparse.Namespace) -> tuple[dict[str, Any], bool]:
         "schema": SCHEMA,
         "ok": ok,
         "phase": args.phase,
+        "scan_mode": "tracked-only" if args.tracked_only else "filesystem",
         "manifest": {"path": str(manifest_path), "sha256": _sha256(manifest_path)},
         "repository": {
             "root": str(repository),
@@ -224,7 +279,14 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     result.add_argument("--repository", type=Path, default=REPO_ROOT)
     result.add_argument("--scan-root", type=Path, action="append")
-    result.add_argument("--phase", choices=("inventory", "pre-rename", "post-rename"), default="inventory")
+    result.add_argument(
+        "--tracked-only",
+        action="store_true",
+        help="scan only files tracked by the selected repository; requires matching scan roots",
+    )
+    result.add_argument(
+        "--phase", choices=("inventory", "pre-rename", "post-rename"), default="inventory"
+    )
     result.add_argument("--output", type=Path, help="optional JSON output path")
     return result
 

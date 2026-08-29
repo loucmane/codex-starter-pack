@@ -6,12 +6,17 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import sqlite3
+import stat
 import subprocess
+import tempfile
 from typing import Any, Mapping
 
 MAX_EVENTS = 200_000
 MAX_SHARD_BYTES = 128 * 1024 * 1024
+MAX_SQLITE_SNAPSHOT_BYTES = 256 * 1024 * 1024
+MAX_SQLITE_SNAPSHOT_ATTEMPTS = 4
 _FIELDS = (
     "schema_version",
     "event_id",
@@ -102,6 +107,72 @@ def _sqlite_events(path: Path, max_events: int) -> list[dict[str, Any]]:
         connection.close()
 
 
+def _file_signature(path: Path) -> tuple[int, int, int, int] | None:
+    try:
+        metadata = path.lstat()
+    except FileNotFoundError:
+        return None
+    if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+        raise LedgerReadError(f"passive ledger component is not a regular file: {path.name}")
+    return (metadata.st_dev, metadata.st_ino, metadata.st_size, metadata.st_mtime_ns)
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _sqlite_snapshot(path: Path, max_events: int) -> list[dict[str, Any]]:
+    """Read a stable DB+WAL snapshot without granting ledger write access.
+
+    SQLite WAL readers may need to create or update ``-shm`` coordination state. The
+    reconciler deliberately runs with ``ProtectHome=read-only``, so opening the live
+    ledger directly is not reliable while a writer has WAL state. Copy only the database
+    and WAL into a private writable directory, prove that the source pair stayed
+    byte-stable across the copy, and let SQLite rebuild transient ``-shm`` state there.
+    """
+
+    components = (path, Path(f"{path}-wal"))
+    for _attempt in range(MAX_SQLITE_SNAPSHOT_ATTEMPTS):
+        before = tuple(_file_signature(component) for component in components)
+        if before[0] is None:
+            raise LedgerReadError("passive ledger disappeared before snapshot")
+        total_bytes = sum(item[2] for item in before if item is not None)
+        if total_bytes > MAX_SQLITE_SNAPSHOT_BYTES:
+            raise LedgerReadError(
+                "passive SQLite ledger exceeds snapshot byte limit "
+                f"({total_bytes} > {MAX_SQLITE_SNAPSHOT_BYTES})"
+            )
+        with tempfile.TemporaryDirectory(prefix="aegis-ledger-snapshot-") as temporary:
+            snapshot = Path(temporary) / "ledger.db"
+            copied_hashes: list[str | None] = []
+            for source, signature in zip(components, before, strict=True):
+                if signature is None:
+                    copied_hashes.append(None)
+                    continue
+                destination = snapshot if source == path else Path(f"{snapshot}-wal")
+                shutil.copyfile(source, destination)
+                copied_hashes.append(_sha256(destination))
+            after_copy = tuple(_file_signature(component) for component in components)
+            if after_copy != before:
+                continue
+            source_hashes = tuple(
+                _sha256(component) if signature is not None else None
+                for component, signature in zip(components, after_copy, strict=True)
+            )
+            after_hash = tuple(_file_signature(component) for component in components)
+            if after_hash != before or tuple(copied_hashes) != source_hashes:
+                continue
+            return _sqlite_events(snapshot, max_events)
+    raise LedgerReadError(
+        "passive SQLite ledger remained unstable across "
+        f"{MAX_SQLITE_SNAPSHOT_ATTEMPTS} snapshot attempts"
+    )
+
+
 def _shard_events(path: Path, max_events: int) -> list[dict[str, Any]]:
     shards = sorted(path.glob("*.jsonl")) if path.is_dir() else []
     total_bytes = sum(item.stat().st_size for item in shards)
@@ -138,7 +209,7 @@ def read_events(
     store = ledger_store(target, env)
     database = store / "ledger.db"
     if database.is_file() and not database.is_symlink():
-        return _sqlite_events(database, max_events)
+        return _sqlite_snapshot(database, max_events)
     return _shard_events(store / "shards", max_events)
 
 
