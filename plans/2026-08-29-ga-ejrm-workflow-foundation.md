@@ -1,11 +1,11 @@
 ---
-session_id: 2026-08-29-003
+session_id: 2026-08-30-001
 work_context: ga-ejrm-workflow-foundation
 handler_target: scripts/_source_workflow_state.py
 bead_ids: [ga-ejrm]
-branch_policy: codex/ga-ejrm-workflow-foundation
+branch_policy: codex/ga-ejrm-closeout
 evidence_summary:
-  - docs/ai/work-tracking/active/20260829-ga-ejrm-workflow-foundation-ACTIVE
+  - docs/ai/work-tracking/archive/20260829-ga-ejrm-workflow-foundation-COMPLETED
   - scripts/_source_workflow_state.py
   - bead:ga-ejrm
   - scripts/codex-task
@@ -16,25 +16,25 @@ emergency_bypass: false
 # Plan - Bead ga-ejrm Transactional workflow foundation and reusable project plugin
 
 ## Header
-- **Session ID (S)**: 2026-08-29-003
+- **Session ID (S)**: 2026-08-30-001
 - **Work Context (W)**: ga-ejrm-workflow-foundation
 - **Handler Target (H)**: scripts/_source_workflow_state.py
 - **Bead IDs**: ga-ejrm
-- **Branch Policy**: codex/ga-ejrm-workflow-foundation
-- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260829-ga-ejrm-workflow-foundation-ACTIVE, scripts/_source_workflow_state.py, bead:ga-ejrm, scripts/codex-task
+- **Branch Policy**: codex/ga-ejrm-closeout
+- **Evidence Summary (E)**: docs/ai/work-tracking/archive/20260829-ga-ejrm-workflow-foundation-COMPLETED, scripts/_source_workflow_state.py, bead:ga-ejrm, scripts/codex-task
 - **Plan Version**: v1
 - **Emergency Bypass**: false
 
 ## Plan Table
 | Step ID | Description | Evidence | Status |
 |---|---|---|---|
-| plan-step-scope | Confirm scope and authority for Transactional workflow foundation and reusable project plugin | docs/ai/work-tracking/active/20260829-ga-ejrm-workflow-foundation-ACTIVE/FINDINGS.md | completed |
-| plan-step-implement | Implement Transactional workflow foundation and reusable project plugin through the reviewed helper surface | scripts/_source_workflow_state.py; docs/ai/work-tracking/active/20260829-ga-ejrm-workflow-foundation-ACTIVE/IMPLEMENTATION.md; aegis_foundation/obsidian_ledger_reader.py;tests/claude_adapter/test_obsidian_reconciler.py;pytest:2280-pass-21-skip;focused:26-pass;ruff:pass;live-ledger:18050-events | completed |
-| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/active/20260829-ga-ejrm-workflow-foundation-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260829-ga-ejrm-workflow-foundation-ACTIVE/TRACKER.md; codex plugin marketplace add;codex plugin add;110 focused tests; docs/ai/work-tracking/active/20260829-ga-ejrm-workflow-foundation-ACTIVE/reports/workflow-foundation/task-verification.md;pytest:2280-pass-21-skip;focused:26-pass;ruff:pass | completed |
+| plan-step-scope | Confirm scope and authority for Transactional workflow foundation and reusable project plugin | docs/ai/work-tracking/archive/20260829-ga-ejrm-workflow-foundation-COMPLETED/FINDINGS.md | completed |
+| plan-step-implement | Implement Transactional workflow foundation and reusable project plugin through the reviewed helper surface | scripts/_source_workflow_state.py; docs/ai/work-tracking/archive/20260829-ga-ejrm-workflow-foundation-COMPLETED/IMPLEMENTATION.md; aegis_foundation/obsidian_ledger_reader.py;tests/claude_adapter/test_obsidian_reconciler.py;pytest:2280-pass-21-skip;focused:26-pass;ruff:pass;live-ledger:18050-events | completed |
+| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/archive/20260829-ga-ejrm-workflow-foundation-COMPLETED/HANDOFF.md; docs/ai/work-tracking/archive/20260829-ga-ejrm-workflow-foundation-COMPLETED/TRACKER.md; docs/ai/work-tracking/archive/20260829-ga-ejrm-workflow-foundation-COMPLETED/IMPLEMENTATION.md; codex plugin marketplace add;codex plugin add;pytest:2280-pass-21-skip;focused:369-pass-2-skip;hosted-ci:green;cutover-r2:pass | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
-- `docs/ai/work-tracking/active/20260829-ga-ejrm-workflow-foundation-ACTIVE`
+- `docs/ai/work-tracking/archive/20260829-ga-ejrm-workflow-foundation-COMPLETED`
 - `scripts/_source_workflow_state.py`
 - `scripts/codex-task`
 - `scripts/codex-guard`
@@ -42,7 +42,7 @@ emergency_bypass: false
 - Primary bead `ga-ejrm`
 
 ## Branch Policy
-- Working branch: `codex/ga-ejrm-workflow-foundation`
+- Working branch: `codex/ga-ejrm-closeout`
 
 ## Amendments & Versioning
 - 2026-08-29 - Bead `ga-ejrm` kickoff created through the bead-native source workflow.
@@ -51,14 +51,15 @@ emergency_bypass: false
 - 2026-08-29 - `aegis log` updated `plan-step-implement` to `in-progress` with evidence `scripts/_source_workflow_state.py`.
 - 2026-08-29 - `aegis log` updated `plan-step-verify` to `in-progress` with evidence `codex plugin marketplace add;codex plugin add;110 focused tests`.
 - 2026-08-29 - `aegis log` updated `plan-step-implement` to `completed` with evidence `aegis_foundation/obsidian_ledger_reader.py;tests/claude_adapter/test_obsidian_reconciler.py;pytest:2280-pass-21-skip;focused:26-pass;ruff:pass;live-ledger:18050-events`.
-- 2026-08-29 - `aegis log` updated `plan-step-verify` to `completed` with evidence `docs/ai/work-tracking/active/20260829-ga-ejrm-workflow-foundation-ACTIVE/reports/workflow-foundation/task-verification.md;pytest:2280-pass-21-skip;focused:26-pass;ruff:pass`.
+- 2026-08-29 - `aegis log` updated `plan-step-verify` to `completed`; the ignored local report was consolidated into tracked terminal evidence at `docs/ai/work-tracking/archive/20260829-ga-ejrm-workflow-foundation-COMPLETED/IMPLEMENTATION.md`, with `pytest:2280-pass-21-skip;focused:26-pass;ruff:pass` retained.
+- 2026-08-30 - Continued on the isolated `codex/ga-ejrm-closeout` branch after exact PR #310/R2 PASS and replaced the ignored local report reference with tracked terminal evidence in `IMPLEMENTATION.md`, `HANDOFF.md`, and `TRACKER.md`.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)
 - Context reload steps:
   1. Read `sessions/current` and this plan.
   2. Read primary bead `ga-ejrm` through the rig-scoped bead surface.
-  3. Review `docs/ai/work-tracking/active/20260829-ga-ejrm-workflow-foundation-ACTIVE/TRACKER.md` before changing implementation.
+  3. Review `docs/ai/work-tracking/archive/20260829-ga-ejrm-workflow-foundation-COMPLETED/TRACKER.md` before changing implementation.
   4. Run `python3 scripts/codex-task plan sync` after tracker updates.
 - Outstanding risks/todos: preserve bead authority and avoid allocating shadow Taskmaster work.
 
