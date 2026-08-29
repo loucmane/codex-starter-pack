@@ -3,17 +3,30 @@ name: Codex Guard
 on:
   pull_request:
   push:
+    branches: [main]
   repository_dispatch:
     types: [aegis-autonomous-delivery]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: codex-guard-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   guard:
+    name: codex-guard
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.client_payload.merge_sha || github.sha }}
+          persist-credentials: false
       - name: Bind repository-dispatch branch identity
         if: github.event_name == 'repository_dispatch'
         env:
@@ -25,92 +38,89 @@ jobs:
           [[ "$MERGE_SHA" =~ ^[0-9a-f]{40}$ ]]
           git switch -C "$DEFAULT_BRANCH" "$MERGE_SHA"
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.0.0
         with:
           python-version: '3.12'
-      - name: Install project dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 - <<'PY' > /tmp/codex-project-dependencies.txt
-          import tomllib
-          from pathlib import Path
-
-          data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
-          print("\n".join(data["project"]["dependencies"]))
-          PY
-          python3 -m pip install -r /tmp/codex-project-dependencies.txt
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.6"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Sync locked project dependencies
+        run: uv sync --locked --all-groups
       - name: Sync active plan
-        run: python3 scripts/codex-task plan sync
+        run: uv run --frozen --no-sync python scripts/codex-task plan sync
       - name: Run codex guard
-        run: python3 scripts/codex-guard validate --include-untracked
+        run: uv run --frozen --no-sync python scripts/codex-guard validate --include-untracked
       - name: Run template drift check
-        run: python3 scripts/codex-guard drift-check --strict
+        run: uv run --frozen --no-sync python scripts/codex-guard drift-check --strict
       - name: Generate scanner validation baseline
-        run: python3 scripts/template-ssot-scanner/run_all_scanners.py --profile ci
+        run: uv run --frozen --no-sync python scripts/template-ssot-scanner/run_all_scanners.py --profile ci
       - name: Verify no automatic reference fixes are pending
         run: |
           mkdir -p reports/reference-fix-gate
-          python3 scripts/template-ssot-scanner/apply_reference_fixes.py \
+          uv run --frozen --no-sync python scripts/template-ssot-scanner/apply_reference_fixes.py \
             --dry-run \
             --fail-on-changes \
             --log-file reports/reference-fix-gate/latest.json
       - name: Generate template metrics dashboard
-        run: python3 scripts/template-metrics-dashboard
+        run: uv run --frozen --no-sync python scripts/template-metrics-dashboard
       - name: Generate template monitoring report
-        run: python3 scripts/template-monitoring --strict
+        run: uv run --frozen --no-sync python scripts/template-monitoring --strict
       - name: Generate Phase 0 scanner validation report
-        run: python3 scripts/template-phase0-validation --strict
+        run: uv run --frozen --no-sync python scripts/template-phase0-validation --strict
       - name: Generate template performance report
-        run: python3 scripts/template-performance-harness --strict
+        run: uv run --frozen --no-sync python scripts/template-performance-harness --strict
       - name: Generate cost tracking report
-        run: python3 scripts/template-cost-report --strict
+        run: uv run --frozen --no-sync python scripts/template-cost-report --strict
       - name: Generate migration health dashboard
-        run: python3 scripts/template-migration-health-dashboard --strict
+        run: uv run --frozen --no-sync python scripts/template-migration-health-dashboard --strict
       - name: Upload drift artefacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         with:
           name: codex-guard-template-drift
           path: reports/template-drift/
       - name: Upload metrics artefacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         with:
           name: codex-guard-template-metrics
           path: reports/template-metrics/
       - name: Upload monitoring artefacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         with:
           name: codex-guard-template-monitoring
           path: reports/template-monitoring/
       - name: Upload Phase 0 validation artefacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         with:
           name: codex-guard-phase0-scanner-validation
           path: reports/phase0-scanner-validation/
       - name: Upload reference-fix gate artefacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         with:
           name: codex-guard-reference-fix-gate
           path: reports/reference-fix-gate/
       - name: Upload performance artefacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         with:
           name: codex-guard-template-performance
           path: reports/template-performance/
       - name: Upload cost tracking artefacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         with:
           name: codex-guard-cost-tracking
           path: reports/cost-tracking/
       - name: Upload migration health artefacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         with:
           name: codex-guard-migration-health
           path: reports/migration-health/

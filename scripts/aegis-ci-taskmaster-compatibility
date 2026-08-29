@@ -1,0 +1,185 @@
+#!/usr/bin/env python3
+"""Build the bounded legacy-Taskmaster CI evidence bundle.
+
+Routine CI is Beads-first and does not provision Taskmaster. This entrypoint keeps the
+remaining compatibility replay in one auditable, read-only place for the conditional
+compatibility job.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import tempfile
+from pathlib import Path
+from typing import Any
+
+from aegis_foundation.reconcile_shadow_apply import (
+    SHADOW_CI_VALIDATION_KILL_SWITCH,
+    build_ci_shadow_cascade_validation_report,
+    build_ci_shadow_context_proof,
+    build_shadow_accumulation_report,
+    classify_shadow_accumulation_evidence,
+)
+from aegis_foundation.reconcile_shadow_precision import (
+    build_replayable_shadow_precision_corpus_artifact,
+)
+from aegis_foundation.taskmaster_toolchain import (
+    build_validated_taskmaster_ci_toolchain_baseline,
+    capture_taskmaster_toolchain_evidence,
+)
+from scripts._aegis_installer import reconcile
+from tests.meta_workflow_guard.reconcile_side_effect_oracle import snapshot_whole_tree
+
+
+def _write_json(path: Path, payload: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _capture_context(repo: Path, report_dir: Path) -> None:
+    payload = {
+        "record_type": "reconcile_shadow_context_proof",
+        "mode": "shadow",
+        "executed": False,
+        "mutated_live_repo": False,
+        "proof": build_ci_shadow_context_proof(
+            os.environ,
+            task_id="ci-context-proof",
+            proof="git_ancestor",
+        ),
+    }
+    _write_json(report_dir / "reconcile-shadow-context-proof.json", payload)
+
+
+def _capture_cascade(report_dir: Path) -> None:
+    with tempfile.TemporaryDirectory(prefix="aegis-ci-shadow-cascade-") as work_dir:
+        payload = build_ci_shadow_cascade_validation_report(
+            os.environ,
+            work_root=Path(work_dir),
+            toolchain_evidence=capture_taskmaster_toolchain_evidence(os.environ),
+        )
+    _write_json(report_dir / "reconcile-shadow-cascade-validation.json", payload)
+
+
+def _capture_accumulation(repo: Path, shadow_dir: Path) -> None:
+    before = snapshot_whole_tree(repo, require_tmp_root=False)
+    context = build_ci_shadow_context_proof(
+        os.environ,
+        task_id="post-merge-shadow-accumulation",
+        proof="git_ancestor",
+    )
+    candidates: list[dict[str, Any]] = []
+    candidate_source: dict[str, Any] = {
+        "ran_reconcile": False,
+        "valid_for_shadow": context["valid_for_shadow"],
+    }
+    if context["valid_for_shadow"]:
+        reconcile_report = reconcile(
+            repo,
+            source_root=repo,
+            base_ref="main",
+            use_github=False,
+            preview_candidates=True,
+        )
+        preview = reconcile_report.get("mutation_candidate_preview")
+        if isinstance(preview, dict):
+            raw_candidates = preview.get("candidates")
+            if isinstance(raw_candidates, list):
+                candidates = [item for item in raw_candidates if isinstance(item, dict)]
+        candidate_source["ran_reconcile"] = True
+        candidate_source["candidate_count"] = len(candidates)
+
+    accumulations: list[dict[str, Any]] = []
+    with tempfile.TemporaryDirectory(prefix="aegis-shadow-accumulation-") as clone_dir:
+        if candidates:
+            for index, candidate in enumerate(candidates):
+                candidate_context = build_ci_shadow_context_proof(
+                    os.environ,
+                    task_id=str(candidate.get("task_id") or ""),
+                    proof=str(candidate.get("proof") or ""),
+                )
+                accumulations.append(
+                    build_shadow_accumulation_report(
+                        [candidate],
+                        target_root=repo,
+                        approved_context_proof=candidate_context,
+                        kill_switch_state=SHADOW_CI_VALIDATION_KILL_SWITCH,
+                        artifact_mode="ci",
+                        external_anchor=candidate_context["external_anchor"],
+                        clone_parent=Path(clone_dir) / str(index),
+                    )
+                )
+        else:
+            accumulations.append(
+                build_shadow_accumulation_report(
+                    [],
+                    target_root=repo,
+                    approved_context_proof=context,
+                    kill_switch_state=SHADOW_CI_VALIDATION_KILL_SWITCH,
+                    artifact_mode="ci",
+                    external_anchor=context["external_anchor"],
+                    clone_parent=Path(clone_dir),
+                )
+            )
+
+    payload = {
+        "record_type": "reconcile_shadow_accumulation_artifact",
+        "mode": "shadow",
+        "executed": False,
+        "mutated_live_repo": False,
+        "candidate_source": candidate_source,
+        "accumulations": accumulations,
+        "summary": {
+            "candidate_count": len(candidates),
+            "valid_for_shadow": context["valid_for_shadow"],
+            "report_count": len(accumulations),
+            "would_apply": sum(item["summary"]["would_apply"] for item in accumulations),
+            "shadow_refused": sum(item["summary"]["shadow_refused"] for item in accumulations),
+            "triage_required": any(item["summary"]["triage_required"] for item in accumulations),
+        },
+    }
+    payload["evidence_classification"] = classify_shadow_accumulation_evidence(payload)
+    _write_json(shadow_dir / "reconcile-shadow-accumulation.json", payload)
+    before.assert_matches(snapshot_whole_tree(repo, require_tmp_root=False))
+
+
+def _capture_precision(repo: Path, shadow_dir: Path) -> None:
+    before = snapshot_whole_tree(repo, require_tmp_root=False)
+    with tempfile.TemporaryDirectory(prefix="aegis-shadow-precision-") as work_dir:
+        payload = build_replayable_shadow_precision_corpus_artifact(
+            labels_path=(
+                repo / "tests" / "fixtures" / "aegis" / "reconcile_shadow_precision_corpus.json"
+            ),
+            work_root=Path(work_dir),
+            source_root=repo,
+            validated_toolchain_evidence=build_validated_taskmaster_ci_toolchain_baseline(
+                os.environ
+            ),
+            current_toolchain_evidence=capture_taskmaster_toolchain_evidence(os.environ),
+        )
+    if not payload["precision_gate"]["passed"]:
+        raise SystemExit(json.dumps(payload["precision_gate"], sort_keys=True))
+    _write_json(shadow_dir / "reconcile-shadow-precision-corpus.json", payload)
+    before.assert_matches(snapshot_whole_tree(repo, require_tmp_root=False))
+
+
+def main() -> int:
+    repo = Path.cwd().resolve()
+    runner_temp_raw = os.environ.get("RUNNER_TEMP", "").strip()
+    if not runner_temp_raw:
+        raise SystemExit("RUNNER_TEMP is required")
+    report_dir = repo / "reports" / "ci"
+    shadow_dir = Path(runner_temp_raw).resolve() / "aegis-shadow"
+    report_dir.mkdir(parents=True, exist_ok=True)
+    shadow_dir.mkdir(parents=True, exist_ok=True)
+
+    _capture_context(repo, report_dir)
+    _capture_cascade(report_dir)
+    _capture_accumulation(repo, shadow_dir)
+    _capture_precision(repo, shadow_dir)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

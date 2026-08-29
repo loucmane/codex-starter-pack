@@ -1251,11 +1251,18 @@ def test_ci_workflow_captures_shadow_context_artifact_without_apply_surface() ->
     workflow_path = REPO_ROOT / ".github" / "workflows" / "ci.yml"
     workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
     text = workflow_path.read_text(encoding="utf-8")
-    steps = workflow["jobs"]["python-tests"]["steps"]
+    script_path = REPO_ROOT / "scripts" / "aegis-ci-taskmaster-compatibility"
+    script = script_path.read_text(encoding="utf-8")
+    steps = workflow["jobs"]["legacy-taskmaster-compatibility"]["steps"]
 
-    assert "build_ci_shadow_context_proof" in text
-    assert "reconcile-shadow-context-proof.json" in text
-    assert any(step.get("uses") == "actions/upload-artifact@v7" for step in steps)
+    assert "scripts/aegis-ci-taskmaster-compatibility" in text
+    assert "build_ci_shadow_context_proof" in script
+    assert "reconcile-shadow-context-proof.json" in script
+    assert any(
+        step.get("uses")
+        == "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
+        for step in steps
+    )
     assert "--apply" not in text
     assert "task-master set-status" not in text
 

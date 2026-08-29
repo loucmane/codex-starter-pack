@@ -2,7 +2,7 @@ name: Aegis Autonomous Delivery
 
 on:
   workflow_run:
-    workflows: [CI, Codex Guard, Meta Workflow Guard, aegis-witness]
+    workflows: [CI, Codex Guard, Meta Workflow Guard, aegis-witness, Dependency Review]
     types: [completed]
   pull_request_target:
     types: [opened, reopened, synchronize, ready_for_review, labeled, unlabeled]
@@ -10,7 +10,7 @@ on:
 permissions: {}
 
 concurrency:
-  group: aegis-autonomous-delivery-${{ github.repository }}
+  group: aegis-autonomous-delivery-${{ github.repository }}-${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.run_id }}
   cancel-in-progress: false
 
 jobs:
@@ -20,6 +20,7 @@ jobs:
       github.event_name == 'pull_request_target' ||
       github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       candidate_eligible: ${{ steps.candidate.outputs.eligible }}
       pr_number: ${{ steps.candidate.outputs.number }}
@@ -33,7 +34,7 @@ jobs:
       # pull_request_target is privileged. Checkout is therefore pinned to the current
       # default branch and PR code, artifacts, actions, and scripts are never executed.
       - name: Checkout trusted default branch
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.repository.default_branch }}
           path: trusted
@@ -234,6 +235,7 @@ jobs:
       (needs.delivery.outputs.decision == 'allow' ||
        needs.delivery.outputs.decision == 'provisional')
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       actions: read
       checks: read
@@ -241,7 +243,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout trusted default branch
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.repository.default_branch }}
           path: trusted
@@ -433,7 +435,7 @@ jobs:
             echo "- Fresh decision: \`allow\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Squash-merge freshly authorized exact head
+      - name: Merge freshly authorized exact head
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
@@ -591,7 +593,7 @@ jobs:
             --method PUT \
             -H "Accept: application/vnd.github+json" \
             "repos/${REPOSITORY}/pulls/${PR_NUMBER}/merge" \
-            -f merge_method=squash \
+            -f merge_method=merge \
             -f sha="$EXPECTED_HEAD" \
             > "$RUNNER_TEMP/merge-result.json"
           jq -e '.merged == true' "$RUNNER_TEMP/merge-result.json" > /dev/null
@@ -617,5 +619,5 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             "repos/${REPOSITORY}/dispatches" \
             --input "$RUNNER_TEMP/post-merge-dispatch.json"
-          echo "Policy-authorized squash merge completed for exact head \`${EXPECTED_HEAD}\`." \
+          echo "Policy-authorized merge commit completed for exact head \`${EXPECTED_HEAD}\`." \
             >> "$GITHUB_STEP_SUMMARY"

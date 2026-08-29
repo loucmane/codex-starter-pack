@@ -53,9 +53,16 @@ def test_privileged_workflow_has_narrow_triggers_and_serial_delivery() -> None:
     assert "pull_request_target:" in text
     assert "\n  pull_request:\n" not in text
     assert "types: [opened, reopened, synchronize, ready_for_review, labeled, unlabeled]" in text
-    assert "workflows: [CI, Codex Guard, Meta Workflow Guard, aegis-witness]" in text
+    assert (
+        "workflows: [CI, Codex Guard, Meta Workflow Guard, aegis-witness, Dependency Review]"
+        in text
+    )
     assert workflow["concurrency"]["cancel-in-progress"] is False
-    assert workflow["concurrency"]["group"] == "aegis-autonomous-delivery-${{ github.repository }}"
+    assert workflow["concurrency"]["group"] == (
+        "aegis-autonomous-delivery-${{ github.repository }}-"
+        "${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.run_id }}"
+    )
+    assert all(job["timeout-minutes"] <= 15 for job in workflow["jobs"].values())
 
 
 def test_privileged_workflow_uses_only_required_permissions() -> None:
@@ -104,7 +111,9 @@ def test_privileged_workflow_executes_only_trusted_default_branch_code() -> None
 
     assert len(checkouts) == 2
     for checkout in checkouts:
-        assert checkout["uses"] == "actions/checkout@v6"
+        assert checkout["uses"] == (
+            "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+        )
         assert checkout["with"] == {
             "ref": "${{ github.event.repository.default_branch }}",
             "path": "trusted",
@@ -189,7 +198,7 @@ def test_executor_identity_comes_from_its_trusted_run_not_candidate_checks() -> 
     merge = next(
         step
         for step in executor["steps"]
-        if step.get("name") == "Squash-merge freshly authorized exact head"
+        if step.get("name") == "Merge freshly authorized exact head"
     )
 
     assert executor["permissions"]["actions"] == "read"
@@ -270,7 +279,8 @@ def test_workflow_merges_only_allow_at_unchanged_head_and_base() -> None:
         '"repos/${REPOSITORY}/pulls/${PR_NUMBER}/merge"'
     )
     assert '"repos/${REPOSITORY}/pulls/${PR_NUMBER}/merge"' in text
-    assert "-f merge_method=squash" in text
+    assert "-f merge_method=merge" in text
+    assert "merge_method=squash" not in text
     assert '-f sha="$EXPECTED_HEAD"' in text
     assert "--admin" not in text
     assert "force-push" not in text
@@ -294,9 +304,9 @@ def test_policy_merge_dispatches_exact_merge_sha_to_post_merge_guards() -> None:
     for path in guarded_workflows:
         workflow_text = path.read_text(encoding="utf-8")
         guarded_workflow = yaml.safe_load(workflow_text)
-        job = next(iter(guarded_workflow["jobs"].values()))
         bind_step = next(
             step
+            for job in guarded_workflow["jobs"].values()
             for step in job["steps"]
             if step.get("name") == "Bind repository-dispatch branch identity"
         )

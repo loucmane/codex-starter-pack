@@ -10,21 +10,75 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  classify-compatibility:
+    name: Classify legacy compatibility scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      taskmaster: ${{ steps.scope.outputs.taskmaster }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.client_payload.merge_sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Classify Taskmaster compatibility scope
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=true
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+            if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- \
+              '.taskmaster/**' \
+              'taskmaster-toolchain.json' \
+              'aegis_foundation/taskmaster_toolchain.py' \
+              'aegis_foundation/reconcile*.py' \
+              'scripts/_aegis_installer.py' \
+              'scripts/aegis-ci-taskmaster-compatibility' \
+              'aegis_foundation/assets/scripts/_aegis_installer.py' \
+              'tests/meta_workflow_guard/test_aegis_reconcile_*' \
+              '.github/workflows/ci.yml' \
+              'pyproject.toml' \
+              'uv.lock'; then
+              required=false
+            fi
+          fi
+          echo "taskmaster=$required" >> "$GITHUB_OUTPUT"
+
   python-tests:
     name: Python tests (${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.client_payload.merge_sha || github.sha }}
+          persist-credentials: false
 
       - name: Bind repository-dispatch branch identity
         if: github.event_name == 'repository_dispatch'
@@ -38,250 +92,130 @@ jobs:
           git switch -C "$DEFAULT_BRANCH" "$MERGE_SHA"
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.0.0
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.6"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
 
       - name: Install shell integration test dependency
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends zsh
+          if ! command -v zsh >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install --yes --no-install-recommends zsh
+          fi
 
-      - name: Set up Node for Taskmaster CLI
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22"
-
-      - name: Install project and test dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 - <<'PY' > /tmp/codex-ci-dependencies.txt
-          import tomllib
-          from pathlib import Path
-
-          data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
-          dependencies = list(data["project"]["dependencies"])
-          dependencies.extend(data.get("dependency-groups", {}).get("dev", []))
-          print("\n".join(dependencies))
-          PY
-          python3 -m pip install -r /tmp/codex-ci-dependencies.txt
-          python3 -m pip install -e .
-
-      - name: Provision pinned Taskmaster CLI
-        run: |
-          mkdir -p reports/ci
-          TASKMASTER_INSTALL_SPEC="$(python3 -m aegis_foundation.taskmaster_toolchain install-spec)"
-          npm install -g "$TASKMASTER_INSTALL_SPEC"
-          python3 -m aegis_foundation.taskmaster_toolchain capture --output reports/ci/taskmaster-toolchain.json
-          task-master --version
-
-      - name: Run Taskmaster health
-        run: python3 scripts/codex-task taskmaster health
-
-      - name: Capture reconcile shadow context proof
-        run: |
-          mkdir -p reports/ci
-          python3 - <<'PY' > reports/ci/reconcile-shadow-context-proof.json
-          import json
-          import os
-
-          from aegis_foundation.reconcile_shadow_apply import build_ci_shadow_context_proof
-
-          payload = {
-              "record_type": "reconcile_shadow_context_proof",
-              "mode": "shadow",
-              "executed": False,
-              "mutated_live_repo": False,
-              "proof": build_ci_shadow_context_proof(
-                  os.environ,
-                  task_id="ci-context-proof",
-                  proof="git_ancestor",
-              ),
-          }
-          print(json.dumps(payload, indent=2, sort_keys=True))
-          PY
-
-      - name: Capture reconcile shadow cascade validation
-        run: |
-          mkdir -p reports/ci
-          python3 - <<'PY' > reports/ci/reconcile-shadow-cascade-validation.json
-          import json
-          import os
-          import tempfile
-          from pathlib import Path
-
-          from aegis_foundation.reconcile_shadow_apply import (
-              build_ci_shadow_cascade_validation_report,
-          )
-          from aegis_foundation.taskmaster_toolchain import (
-              capture_taskmaster_toolchain_evidence,
-          )
-
-          with tempfile.TemporaryDirectory(prefix="aegis-ci-shadow-cascade-") as work_dir:
-              payload = build_ci_shadow_cascade_validation_report(
-                  os.environ,
-                  work_root=Path(work_dir),
-                  toolchain_evidence=capture_taskmaster_toolchain_evidence(os.environ),
-              )
-          print(json.dumps(payload, indent=2, sort_keys=True))
-          PY
-
-      - name: Capture post-merge reconcile shadow accumulation
-        run: |
-          PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'
-          import json
-          import os
-          import tempfile
-          from pathlib import Path
-
-          from aegis_foundation.reconcile_shadow_apply import (
-              SHADOW_CI_VALIDATION_KILL_SWITCH,
-              build_ci_shadow_context_proof,
-              build_shadow_accumulation_report,
-              classify_shadow_accumulation_evidence,
-          )
-          from scripts._aegis_installer import reconcile
-          from tests.meta_workflow_guard.reconcile_side_effect_oracle import snapshot_whole_tree
-
-          repo = Path(".").resolve()
-          report_dir = Path(os.environ["RUNNER_TEMP"]) / "aegis-shadow"
-          report_dir.mkdir(parents=True, exist_ok=True)
-          report_path = report_dir / "reconcile-shadow-accumulation.json"
-          before = snapshot_whole_tree(repo, require_tmp_root=False)
-          context = build_ci_shadow_context_proof(
-              os.environ,
-              task_id="post-merge-shadow-accumulation",
-              proof="git_ancestor",
-          )
-          candidates = []
-          candidate_source = {
-              "ran_reconcile": False,
-              "valid_for_shadow": context["valid_for_shadow"],
-          }
-          if context["valid_for_shadow"]:
-              reconcile_report = reconcile(
-                  repo,
-                  source_root=repo,
-                  base_ref="main",
-                  use_github=False,
-                  preview_candidates=True,
-              )
-              preview = reconcile_report.get("mutation_candidate_preview")
-              if isinstance(preview, dict):
-                  raw_candidates = preview.get("candidates")
-                  if isinstance(raw_candidates, list):
-                      candidates = [candidate for candidate in raw_candidates if isinstance(candidate, dict)]
-              candidate_source["ran_reconcile"] = True
-              candidate_source["candidate_count"] = len(candidates)
-
-          accumulations = []
-          with tempfile.TemporaryDirectory(prefix="aegis-shadow-accumulation-") as clone_dir:
-              if candidates:
-                  for index, candidate in enumerate(candidates):
-                      candidate_context = build_ci_shadow_context_proof(
-                          os.environ,
-                          task_id=str(candidate.get("task_id") or ""),
-                          proof=str(candidate.get("proof") or ""),
-                      )
-                      accumulations.append(
-                          build_shadow_accumulation_report(
-                              [candidate],
-                              target_root=repo,
-                              approved_context_proof=candidate_context,
-                              kill_switch_state=SHADOW_CI_VALIDATION_KILL_SWITCH,
-                              artifact_mode="ci",
-                              external_anchor=candidate_context["external_anchor"],
-                              clone_parent=Path(clone_dir) / str(index),
-                          )
-                      )
-              else:
-                  accumulations.append(
-                      build_shadow_accumulation_report(
-                          [],
-                          target_root=repo,
-                          approved_context_proof=context,
-                          kill_switch_state=SHADOW_CI_VALIDATION_KILL_SWITCH,
-                          artifact_mode="ci",
-                          external_anchor=context["external_anchor"],
-                          clone_parent=Path(clone_dir),
-                      )
-                  )
-
-          payload = {
-              "record_type": "reconcile_shadow_accumulation_artifact",
-              "mode": "shadow",
-              "executed": False,
-              "mutated_live_repo": False,
-              "candidate_source": candidate_source,
-              "accumulations": accumulations,
-              "summary": {
-                  "candidate_count": len(candidates),
-                  "valid_for_shadow": context["valid_for_shadow"],
-                  "report_count": len(accumulations),
-                  "would_apply": sum(item["summary"]["would_apply"] for item in accumulations),
-                  "shadow_refused": sum(item["summary"]["shadow_refused"] for item in accumulations),
-                  "triage_required": any(
-                      item["summary"]["triage_required"] for item in accumulations
-                  ),
-              },
-          }
-          payload["evidence_classification"] = classify_shadow_accumulation_evidence(payload)
-          report_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-          before.assert_matches(snapshot_whole_tree(repo, require_tmp_root=False))
-          PY
-
-      - name: Capture reconcile shadow precision corpus
-        run: |
-          PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'
-          import json
-          import os
-          import tempfile
-          from pathlib import Path
-
-          from aegis_foundation.reconcile_shadow_precision import (
-              build_replayable_shadow_precision_corpus_artifact,
-          )
-          from aegis_foundation.taskmaster_toolchain import (
-              build_validated_taskmaster_ci_toolchain_baseline,
-              capture_taskmaster_toolchain_evidence,
-          )
-          from tests.meta_workflow_guard.reconcile_side_effect_oracle import snapshot_whole_tree
-
-          repo = Path(".").resolve()
-          report_dir = Path(os.environ["RUNNER_TEMP"]) / "aegis-shadow"
-          report_dir.mkdir(parents=True, exist_ok=True)
-          report_path = report_dir / "reconcile-shadow-precision-corpus.json"
-          before = snapshot_whole_tree(repo, require_tmp_root=False)
-          with tempfile.TemporaryDirectory(prefix="aegis-shadow-precision-") as work_dir:
-              payload = build_replayable_shadow_precision_corpus_artifact(
-                  labels_path=repo / "tests" / "fixtures" / "aegis" / "reconcile_shadow_precision_corpus.json",
-                  work_root=Path(work_dir),
-                  source_root=repo,
-                  validated_toolchain_evidence=build_validated_taskmaster_ci_toolchain_baseline(os.environ),
-                  current_toolchain_evidence=capture_taskmaster_toolchain_evidence(os.environ),
-              )
-          if not payload["precision_gate"]["passed"]:
-              raise SystemExit(json.dumps(payload["precision_gate"], sort_keys=True))
-          report_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-          before.assert_matches(snapshot_whole_tree(repo, require_tmp_root=False))
-          PY
+      - name: Sync locked project and test dependencies
+        run: uv sync --locked --all-groups
 
       - name: Run pytest
         run: |
           mkdir -p reports/ci
           set -o pipefail
-          # TM 193: -n auto runs the full suite across all runner cores (same tests, same
-          # coverage) to cut feedback time. --dist loadgroup keeps the few real-repo-mutating
-          # tests (xdist_group "guard_real_repo_worktracking") on one worker; the isolated git
-          # config (conftest.py) makes the rest parallel-safe.
-          PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -n auto --dist loadgroup | tee "reports/ci/pytest-python-${{ matrix.python-version }}.txt"
+          # Taskmaster-backed compatibility tests skip here and run in the conditional job.
+          PYTHONDONTWRITEBYTECODE=1 uv run --frozen --no-sync python -m pytest \
+            -n auto --dist loadgroup \
+            | tee "reports/ci/pytest-python-${{ matrix.python-version }}.txt"
 
       - name: Upload pytest artifacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         with:
           name: ci-pytest-python-${{ matrix.python-version }}
+          path: |
+            reports/ci/
+
+  legacy-taskmaster-compatibility:
+    name: Legacy Taskmaster compatibility
+    needs: classify-compatibility
+    if: needs.classify-compatibility.outputs.taskmaster == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      UV_PYTHON: "3.12"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.client_payload.merge_sha || github.sha }}
+          persist-credentials: false
+
+      - name: Bind repository-dispatch branch identity
+        if: github.event_name == 'repository_dispatch'
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          MERGE_SHA: ${{ github.event.client_payload.merge_sha }}
+        run: |
+          set -euo pipefail
+          [[ "$DEFAULT_BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]]
+          [[ "$MERGE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git switch -C "$DEFAULT_BRANCH" "$MERGE_SHA"
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.6"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Set up Node for Taskmaster CLI
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.0.0
+        with:
+          node-version: "22"
+
+      - name: Sync locked project and test dependencies
+        run: uv sync --locked --all-groups
+
+      - name: Provision pinned Taskmaster CLI
+        run: |
+          mkdir -p reports/ci
+          TASKMASTER_INSTALL_SPEC="$(uv run --frozen --no-sync python -m aegis_foundation.taskmaster_toolchain install-spec)"
+          npm install -g "$TASKMASTER_INSTALL_SPEC"
+          uv run --frozen --no-sync python -m aegis_foundation.taskmaster_toolchain \
+            capture --output reports/ci/taskmaster-toolchain.json
+          task-master --version
+
+      - name: Run Taskmaster health
+        run: uv run --frozen --no-sync python scripts/codex-task taskmaster health
+
+      - name: Capture reconcile shadow context proof
+        run: uv run --frozen --no-sync python scripts/aegis-ci-taskmaster-compatibility
+
+      - name: Capture reconcile shadow cascade validation
+        run: test -s reports/ci/reconcile-shadow-cascade-validation.json
+
+      - name: Capture post-merge reconcile shadow accumulation
+        run: test -s "${{ runner.temp }}/aegis-shadow/reconcile-shadow-accumulation.json"
+
+      - name: Capture reconcile shadow precision corpus
+        run: test -s "${{ runner.temp }}/aegis-shadow/reconcile-shadow-precision-corpus.json"
+
+      - name: Run legacy Taskmaster compatibility tests
+        run: |
+          PYTHONDONTWRITEBYTECODE=1 uv run --frozen --no-sync python -m pytest \
+            -n auto --dist loadgroup \
+            tests/meta_workflow_guard/test_aegis_reconcile_shadow_apply.py \
+            tests/meta_workflow_guard/test_aegis_reconcile_shadow_precision_corpus.py \
+            tests/meta_workflow_guard/test_aegis_reconcile_mutation_rollback_contract.py \
+            tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py
+
+      - name: Upload Taskmaster compatibility artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
+        with:
+          name: ci-legacy-taskmaster-compatibility
           path: |
             reports/ci/
             ${{ runner.temp }}/aegis-shadow/

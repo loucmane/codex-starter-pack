@@ -58,6 +58,19 @@ def _policy() -> dict[str, object]:
     return json.loads(POLICY_PATH.read_text(encoding="utf-8"))
 
 
+def _historical_replay_policy() -> dict[str, object]:
+    """Return the policy that governed the captured pre-Dependency-Review fixtures."""
+    policy = _policy()
+    merge = policy["merge"]
+    assert isinstance(merge, dict)
+    required = merge["required_workflows"]
+    assert isinstance(required, list)
+    merge["required_workflows"] = [
+        workflow for workflow in required if workflow != "Dependency Review"
+    ]
+    return policy
+
+
 def _workflow_run(
     name: str, *, status: str = "completed", conclusion: str = "success"
 ) -> dict[str, object]:
@@ -112,6 +125,8 @@ def test_source_policy_and_packaged_assets_are_valid_and_identical() -> None:
     policy = policy_module.validate_policy(_policy())
 
     assert policy["mode"] == "evidence-gated"
+    assert policy["merge"]["method"] == "merge"
+    assert "Dependency Review" in policy["merge"]["required_workflows"]
     assert policy["routine"]["allow_taskmaster_transitions"] is False
     assert all(
         value
@@ -171,7 +186,7 @@ def test_routine_exact_head_with_complete_evidence_is_allowed() -> None:
 def test_pr264_self_gating_replay_is_provisional_not_authorized() -> None:
     fixture = json.loads(PR264_FIXTURE_PATH.read_text(encoding="utf-8"))
 
-    result = policy_module.evaluate(_policy(), fixture["evidence"])
+    result = policy_module.evaluate(_historical_replay_policy(), fixture["evidence"])
 
     assert fixture["expected_decision"] == "provisional"
     assert result["decision"] == "provisional"
@@ -188,7 +203,7 @@ def test_pr264_self_gating_replay_is_provisional_not_authorized() -> None:
 def test_pr269_unstable_replay_is_provisional_not_authorized() -> None:
     fixture = json.loads(PR269_FIXTURE_PATH.read_text(encoding="utf-8"))
 
-    result = policy_module.evaluate(_policy(), fixture["evidence"])
+    result = policy_module.evaluate(_historical_replay_policy(), fixture["evidence"])
 
     assert fixture["replay_assumption"]["direct_telemetry"] is False
     assert fixture["replay_assumption"]["confidence"] == "medium"
@@ -208,9 +223,9 @@ def test_pr269_unstable_replay_is_provisional_not_authorized() -> None:
 def test_pr276_live_executor_replay_allows_only_the_verified_self_check() -> None:
     fixture = json.loads(PR276_FIXTURE_PATH.read_text(encoding="utf-8"))
 
-    evaluator = policy_module.evaluate(_policy(), fixture["evidence"])
+    evaluator = policy_module.evaluate(_historical_replay_policy(), fixture["evidence"])
     executor = policy_module.evaluate(
-        _policy(),
+        _historical_replay_policy(),
         fixture["evidence"],
         phase="executor",
         executor_run_id=fixture["executor_run_id"],
@@ -237,9 +252,9 @@ def test_pr278_workflow_run_executor_is_bound_outside_candidate_checks() -> None
     fixture = json.loads(PR278_FIXTURE_PATH.read_text(encoding="utf-8"))
     candidate_urls = [check["details_url"] for check in fixture["evidence"]["check_runs"]]
 
-    evaluator = policy_module.evaluate(_policy(), fixture["evidence"])
+    evaluator = policy_module.evaluate(_historical_replay_policy(), fixture["evidence"])
     executor = policy_module.evaluate(
-        _policy(),
+        _historical_replay_policy(),
         fixture["evidence"],
         phase="executor",
         executor_run_id=fixture["executor_run_id"],
@@ -266,7 +281,7 @@ def test_executor_clean_mergeability_still_requires_complete_check_inventory() -
     fixture["evidence"]["pull_request"]["mergeable_state"] = "clean"
 
     result = policy_module.evaluate(
-        _policy(),
+        _historical_replay_policy(),
         fixture["evidence"],
         phase="executor",
         executor_run_id=fixture["executor_run_id"],
@@ -370,7 +385,7 @@ def test_executor_self_exception_never_masks_other_status_evidence(
         evidence["executor_jobs_complete"] = False
 
     result = policy_module.evaluate(
-        _policy(),
+        _historical_replay_policy(),
         evidence,
         phase="executor",
         executor_run_id=fixture["executor_run_id"],
@@ -387,7 +402,7 @@ def test_completed_prior_candidate_executor_does_not_mask_current_trusted_execut
     prior_executor["conclusion"] = "failure"
 
     result = policy_module.evaluate(
-        _policy(),
+        _historical_replay_policy(),
         fixture["evidence"],
         phase="executor",
         executor_run_id=fixture["executor_run_id"],
@@ -402,7 +417,7 @@ def test_executor_self_exception_never_masks_an_attended_path() -> None:
     fixture["evidence"]["files"] = [{"filename": ".github/workflows/ci.yml", "status": "modified"}]
 
     result = policy_module.evaluate(
-        _policy(),
+        _historical_replay_policy(),
         fixture["evidence"],
         phase="executor",
         executor_run_id=fixture["executor_run_id"],
