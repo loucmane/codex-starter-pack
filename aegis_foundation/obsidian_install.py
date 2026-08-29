@@ -20,6 +20,7 @@ RUNTIME_MODULES = (
     "obsidian_reconcile_cli.py",
     "obsidian_reconciler.py",
     "obsidian_registry.py",
+    "obsidian_live_index.py",
     "obsidian_ledger_reader.py",
     "obsidian_vault.py",
     "work_authority.py",

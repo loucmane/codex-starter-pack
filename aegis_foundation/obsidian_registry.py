@@ -12,10 +12,19 @@ from typing import Any
 SCHEMA_VERSION = "1"
 MAX_REGISTRY_BYTES = 256 * 1024
 PROJECT_ID = re.compile(r"^[a-z][a-z0-9-]{0,63}$")
+VAULT_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
 
 class RegistryError(RuntimeError):
     """Raised when a reconciliation registry is ambiguous or unsafe."""
+
+
+@dataclass(frozen=True)
+class LiveIndexConfig:
+    obsidian_cli: Path
+    vault: str
+    probe_path: str
+    timeout_seconds: int = 15
 
 
 @dataclass(frozen=True)
@@ -29,6 +38,7 @@ class ProjectConfig:
     freshness_sla_seconds: int = 180
     min_interval_seconds: int = 10
     export_timeout_seconds: int = 30
+    live_index: LiveIndexConfig | None = None
 
 
 @dataclass(frozen=True)
@@ -61,6 +71,58 @@ def _integer(raw: Any, *, field: str, minimum: int, maximum: int) -> int:
     return raw
 
 
+def _live_index(raw: Any, *, project_id: str) -> LiveIndexConfig | None:
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise RegistryError(f"project {project_id} live_index must be an object")
+    allowed = {"obsidian_cli", "vault", "probe_path", "timeout_seconds"}
+    unknown = sorted(set(raw) - allowed)
+    if unknown:
+        raise RegistryError("unknown live_index fields: " + ", ".join(unknown))
+    missing = sorted({"obsidian_cli", "vault", "probe_path"} - set(raw))
+    if missing:
+        raise RegistryError("missing live_index fields: " + ", ".join(missing))
+
+    executable_raw = str(raw.get("obsidian_cli") or "")
+    executable = Path(executable_raw).expanduser()
+    if not executable.is_absolute():
+        raise RegistryError(
+            f"project {project_id} live_index obsidian_cli requires an absolute executable"
+        )
+    executable = executable.absolute()
+
+    vault = str(raw.get("vault") or "")
+    if not VAULT_ID.fullmatch(vault):
+        raise RegistryError(f"project {project_id} live_index vault is unsafe: {vault!r}")
+
+    probe_path = str(raw.get("probe_path") or "")
+    probe = Path(probe_path)
+    if (
+        not probe_path
+        or probe.is_absolute()
+        or probe_path != probe.as_posix()
+        or any(part in {"", ".", ".."} for part in probe.parts)
+        or probe.suffix.lower() != ".md"
+        or any(ord(character) < 32 or ord(character) == 127 for character in probe_path)
+    ):
+        raise RegistryError(
+            f"project {project_id} live_index probe_path must be a safe relative path ending in .md"
+        )
+
+    return LiveIndexConfig(
+        obsidian_cli=executable,
+        vault=vault,
+        probe_path=probe_path,
+        timeout_seconds=_integer(
+            raw.get("timeout_seconds", 15),
+            field=f"project {project_id} live_index timeout_seconds",
+            minimum=5,
+            maximum=60,
+        ),
+    )
+
+
 def _project(raw: Any, *, seen: set[str]) -> ProjectConfig:
     if not isinstance(raw, dict):
         raise RegistryError("every registry project must be an object")
@@ -74,6 +136,7 @@ def _project(raw: Any, *, seen: set[str]) -> ProjectConfig:
         "freshness_sla_seconds",
         "min_interval_seconds",
         "export_timeout_seconds",
+        "live_index",
     }
     unknown = sorted(set(raw) - allowed)
     if unknown:
@@ -140,6 +203,7 @@ def _project(raw: Any, *, seen: set[str]) -> ProjectConfig:
             minimum=5,
             maximum=120,
         ),
+        live_index=_live_index(raw.get("live_index"), project_id=project_id),
     )
 
 
@@ -174,6 +238,7 @@ def load_registry(path: str | Path) -> Registry:
 
 
 __all__ = [
+    "LiveIndexConfig",
     "ProjectConfig",
     "Registry",
     "RegistryError",

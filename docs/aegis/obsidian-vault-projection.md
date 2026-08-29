@@ -52,6 +52,7 @@ aegis vault build --target-dir . --output /safe/path/project-aegis-vault
 # Host-maintained freshness from an explicit project registry.
 aegis-obsidian-reconcile run --registry ~/.config/aegis/obsidian-projects.json
 aegis-obsidian-reconcile check --registry ~/.config/aegis/obsidian-projects.json
+aegis-obsidian-reconcile check --registry ~/.config/aegis/obsidian-projects.json --require-live-index
 ```
 
 The bead snapshot may be a JSON array, a `beads`/`issues`/`records` envelope, or a Beads JSONL
@@ -89,6 +90,26 @@ declares each enabled project with:
 - an explicit human-content policy;
 - freshness, debounce, and export-timeout bounds.
 
+An enabled project may also declare one strict `live_index` observer:
+
+```json
+{
+  "obsidian_cli": "/home/example/.local/bin/obsidian",
+  "vault": "main",
+  "probe_path": "GasCity/example/Aegis/Beads/example-1.md",
+  "timeout_seconds": 15
+}
+```
+
+This is deliberately not an arbitrary command hook. The reconciler derives only the supported
+`vault=<id> reload` and `vault=<id> read path=<managed-note>` invocations, executes the absolute
+binary directly without a shell, bounds time and output, and refreshes only after a changed
+publication has passed all filesystem gates. A byte-identical reconciliation performs no host
+application call. If Obsidian is closed or unreachable, the valid filesystem projection remains
+authoritative and the observer is recorded as unavailable. The explicit
+`check --require-live-index` gate is the stronger host-only proof that a running Obsidian process
+can read the configured managed note.
+
 The reconciler never starts a rig or database, discovers a store, or edits a repository. It reads
 whatever the declared host command can currently prove. It uses a non-blocking lock, retains the
 last valid output on failure, records last-success and last-error state with mode `0600`, and runs
@@ -96,7 +117,8 @@ all three vault gates after every changed publication. Because publication is an
 exchange, the hardened service grants write access to each registered output's existing parent,
 not the source repository or the rest of the home directory. The `check` surface re-exports
 sources and recomputes the digest, so its health signal is source freshness rather than “the timer
-ran.”
+ran.” Its default result remains filesystem-authoritative. Live host-application reachability is
+reported separately and becomes blocking only when `--require-live-index` is requested.
 
 The timer is intentionally not a per-edit hook. A one-minute coalescing window avoids turning a
 large atomic vault into a write-amplifying workflow database while giving the readiness doctor a

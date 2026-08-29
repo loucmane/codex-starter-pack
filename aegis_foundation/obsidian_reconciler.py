@@ -13,7 +13,7 @@ import subprocess
 import tempfile
 from typing import Any
 
-from aegis_foundation import obsidian_vault
+from aegis_foundation import obsidian_live_index, obsidian_vault
 from aegis_foundation.obsidian_ledger_reader import read_events
 from aegis_foundation.obsidian_registry import ProjectConfig, Registry
 
@@ -22,6 +22,7 @@ MAX_EXPORT_BYTES = 8 * 1024 * 1024
 BeadExporter = Callable[[tuple[str, ...], int], bytes]
 EventReader = Callable[[Path], list[dict[str, Any]]]
 Clock = Callable[[], datetime]
+LiveIndexRunner = obsidian_live_index.Runner
 
 
 class ReconcileError(RuntimeError):
@@ -191,6 +192,7 @@ def _reconcile_project(
     state_dir: Path,
     bead_exporter: BeadExporter,
     event_reader: EventReader,
+    live_index_runner: LiveIndexRunner,
     clock: Clock,
     force: bool,
 ) -> dict[str, Any]:
@@ -236,6 +238,22 @@ def _reconcile_project(
         if not all(gate["ok"] for gate in gates):
             problems = [problem for gate in gates for problem in gate.get("problems", [])]
             raise ReconcileError("projection gate failed: " + "; ".join(problems))
+        if project.live_index is None:
+            live_index = obsidian_live_index.not_run(
+                configured=False,
+                status="not-configured",
+            )
+        elif built["changed"]:
+            live_index = obsidian_live_index.observe(
+                project.live_index,
+                refresh=True,
+                runner=live_index_runner,
+            )
+        else:
+            live_index = obsidian_live_index.not_run(
+                configured=True,
+                status="not-run-no-change",
+            )
         bead_digest = hashlib.sha256(exported).hexdigest()
         _atomic_bytes(state_dir / f"{project.id}-beads.json", exported)
         success = {
@@ -245,6 +263,7 @@ def _reconcile_project(
             "vault_status": built["status"],
             "file_count": built["file_count"],
             "gate_phases": [gate["phase"] for gate in gates],
+            "live_index": live_index,
         }
         _atomic_json(
             state_path,
@@ -265,6 +284,7 @@ def _reconcile_project(
             "source_digest": snapshot["source_digest"],
             "output": project.output_dir.as_posix(),
             "file_count": built["file_count"],
+            "live_index": live_index,
         }
     except ReconcileError as exc:
         message = _redact_error(exc)
@@ -291,6 +311,7 @@ def reconcile_registry(
     state_dir: str | Path,
     bead_exporter: BeadExporter = export_beads,
     event_reader: EventReader = read_events,
+    live_index_runner: LiveIndexRunner = obsidian_live_index.run_command,
     clock: Clock = _now,
     force: bool = False,
 ) -> dict[str, Any]:
@@ -304,6 +325,7 @@ def reconcile_registry(
             state_dir=state,
             bead_exporter=bead_exporter,
             event_reader=event_reader,
+            live_index_runner=live_index_runner,
             clock=clock,
             force=force,
         )
@@ -325,14 +347,16 @@ def check_registry(
     state_dir: str | Path,
     bead_exporter: BeadExporter = export_beads,
     event_reader: EventReader = read_events,
+    live_index_runner: LiveIndexRunner = obsidian_live_index.run_command,
     clock: Clock = _now,
+    require_live_index: bool = False,
 ) -> dict[str, Any]:
     state = Path(state_dir).expanduser().resolve()
     checked: list[dict[str, Any]] = []
     for project in registry.projects:
         if not project.enabled:
             continue
-        problems: list[str] = []
+        filesystem_problems: list[str] = []
         state_payload = _read_state(state / f"{project.id}.json")
         last_success = state_payload.get("last_success")
         success_time = _parse_time(
@@ -340,7 +364,7 @@ def check_registry(
         )
         age = (clock() - success_time).total_seconds() if success_time is not None else None
         if age is None or age > project.freshness_sla_seconds:
-            problems.append("last successful reconciliation exceeds freshness SLA")
+            filesystem_problems.append("last successful reconciliation exceeds freshness SLA")
         try:
             snapshot, _exported = _snapshot(
                 project,
@@ -354,16 +378,53 @@ def check_registry(
                 expected_source_digest=snapshot["source_digest"],
                 expected_work_authority="beads",
             )
-            problems.extend(vault.get("problems", []))
+            filesystem_problems.extend(vault.get("problems", []))
             source_digest = snapshot["source_digest"]
         except (ReconcileError, obsidian_vault.VaultError, OSError) as exc:
-            problems.append(_redact_error(exc))
+            filesystem_problems.append(_redact_error(exc))
             source_digest = None
+        if require_live_index and not filesystem_problems:
+            if project.live_index is None:
+                live_index = obsidian_live_index.not_run(
+                    configured=False,
+                    status="not-configured",
+                )
+            else:
+                live_index = obsidian_live_index.observe(
+                    project.live_index,
+                    refresh=False,
+                    runner=live_index_runner,
+                )
+        elif require_live_index:
+            live_index = obsidian_live_index.not_run(
+                configured=project.live_index is not None,
+                status="skipped-filesystem-invalid",
+            )
+        else:
+            raw_success = last_success if isinstance(last_success, dict) else {}
+            saved_observation = raw_success.get("live_index")
+            live_index = (
+                saved_observation
+                if isinstance(saved_observation, dict)
+                else obsidian_live_index.not_run(
+                    configured=project.live_index is not None,
+                    status="not-yet-observed",
+                )
+            )
+        problems = list(filesystem_problems)
+        if require_live_index and live_index.get("status") != "confirmed":
+            problems.append(
+                "live Obsidian index is not confirmed: "
+                + str(live_index.get("status") or "unknown")
+            )
         checked.append(
             {
                 "id": project.id,
                 "ok": not problems,
                 "fresh": not problems,
+                "filesystem_ok": not filesystem_problems,
+                "live_index_required": require_live_index,
+                "live_index": live_index,
                 "age_seconds": age,
                 "source_digest": source_digest,
                 "problems": problems,
@@ -373,6 +434,7 @@ def check_registry(
         "schema_version": SCHEMA_VERSION,
         "ok": bool(checked) and all(item["ok"] for item in checked),
         "registry_digest": registry.digest,
+        "live_index_required": require_live_index,
         "projects": checked,
     }
 
