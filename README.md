@@ -17,6 +17,12 @@ owns passive evidence and gates, and Obsidian is a generated knowledge projectio
 second mutable ledger. See `docs/aegis/invocation-contract.md` and
 `docs/aegis/beads-first-authority-and-obsidian-gate.md` for the operating contract.
 
+This source lives in the **Gas City Operations** repository. Aegis Foundation remains the
+portable workflow product, Gas City remains the runtime, and Gas City Workflow is the
+project-context plugin. The compatibility and migration boundaries are defined in
+`docs/operations/repository-and-product-naming.md` and
+`docs/operations/gas-city-operations-workspace-migration.md`.
+
 For the read-only Codex Desktop + WSL + Gas City reboot doctor, stable user installation,
 Windows logon-bootstrap contract, and attended reboot drill, see
 `docs/operations/codex-wsl-reboot-readiness.md`. The same runbook covers the exact-key personal

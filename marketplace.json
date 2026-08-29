@@ -1,0 +1,20 @@
+{
+  "name": "gas-city-operations",
+  "interface": {
+    "displayName": "Gas City Operations"
+  },
+  "plugins": [
+    {
+      "name": "gas-city-workflow",
+      "source": {
+        "source": "local",
+        "path": "./plugins/gas-city-workflow"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

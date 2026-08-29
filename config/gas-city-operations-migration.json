@@ -1,0 +1,56 @@
+{
+  "schema": "gas-city-operations.migration.v1",
+  "identity": {
+    "repository_product": "Gas City Operations",
+    "portable_workflow_product": "Aegis Foundation",
+    "runtime_product": "Gas City",
+    "workflow_plugin": "Gas City Workflow"
+  },
+  "repository": {
+    "legacy_full_name": "loucmane/codex-starter-pack",
+    "canonical_full_name": "loucmane/gas-city-operations",
+    "legacy_url": "https://github.com/loucmane/codex-starter-pack.git",
+    "canonical_url": "https://github.com/loucmane/gas-city-operations.git",
+    "default_branch": "main"
+  },
+  "workspace": {
+    "legacy_root": "/home/loucmane/codex",
+    "canonical_root": "/home/loucmane/gas-city-ops",
+    "strategy": "fresh-clone",
+    "legacy_retirement": "separate-gate"
+  },
+  "compatibility": {
+    "branch_namespace": "codex/*",
+    "python_distribution": "aegis-foundation",
+    "python_packages": [
+      "aegis_foundation",
+      "aegis_mcp"
+    ],
+    "console_commands": [
+      "aegis",
+      "aegis-mcp-server"
+    ],
+    "historical_evidence_policy": "preserve-verbatim"
+  },
+  "superseding_prerequisites": [
+    "ga-vqm2",
+    "ga-yu82",
+    "ga-0szv"
+  ],
+  "historical_roots": [
+    ".serena/memories",
+    ".taskmaster",
+    "docs/aegis/evidence",
+    "docs/ai/work-tracking/archive",
+    "plans",
+    "reports",
+    "sessions"
+  ],
+  "self_reference_allowlist": [
+    "config/gas-city-operations-migration.json",
+    "docs/operations/gas-city-operations-workspace-migration.md",
+    "docs/operations/repository-and-product-naming.md",
+    "scripts/gas-city-operations-migration",
+    "tests/meta_workflow_guard/test_gas_city_operations_migration.py"
+  ]
+}

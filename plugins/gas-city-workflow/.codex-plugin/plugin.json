@@ -1,0 +1,31 @@
+{
+  "name": "gas-city-workflow",
+  "version": "0.1.0",
+  "description": "Beads-first Gas City project orientation and workflow routing for Codex and read-only reviewers.",
+  "author": {
+    "name": "Gas City maintainers"
+  },
+  "license": "MIT",
+  "keywords": [
+    "gas-city",
+    "beads",
+    "aegis",
+    "workflow",
+    "project-context"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Gas City Workflow",
+    "shortDescription": "Orient and work safely in Gas City projects",
+    "longDescription": "Gas City Workflow provides one small router skill and a deterministic read-only project-context capsule. It keeps Beads authoritative, preserves Aegis evidence, and applies the same workflow across Gas City, HPFetcher, Blog, and descriptor-based future projects without granting new permissions.",
+    "developerName": "Gas City maintainers",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read"
+    ],
+    "defaultPrompt": [
+      "Orient me in this Gas City project and show the next safe workflow step",
+      "Inspect the current bead, plan, session, and repository state without changing anything"
+    ]
+  }
+}

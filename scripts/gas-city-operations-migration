@@ -1,0 +1,247 @@
+#!/usr/bin/env python3
+"""Read-only inventory and cutover checks for the operations-repository rename."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+import sys
+from typing import Any, Iterable
+
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_MANIFEST = REPO_ROOT / "config" / "gas-city-operations-migration.json"
+SCHEMA = "gas-city-operations.inventory.v1"
+
+
+def _run_git(root: Path, *args: str) -> str:
+    completed = subprocess.run(
+        ["git", "-C", str(root), *args],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or completed.stdout.strip()
+        raise ValueError(f"git {' '.join(args)} failed for {root}: {detail}")
+    return completed.stdout.strip()
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _load_manifest(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("schema") != "gas-city-operations.migration.v1":
+        raise ValueError(f"unsupported migration manifest schema: {payload.get('schema')!r}")
+    return payload
+
+
+def _worktrees(root: Path) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    current: dict[str, Any] = {}
+    for line in _run_git(root, "worktree", "list", "--porcelain").splitlines() + [""]:
+        if not line:
+            if current:
+                records.append(current)
+                current = {}
+            continue
+        key, _, value = line.partition(" ")
+        if key in {"bare", "detached", "locked", "prunable"} and not value:
+            current[key] = True
+        else:
+            current[key] = value
+    return sorted(records, key=lambda item: str(item.get("worktree", "")))
+
+
+def _under(relative: str, roots: Iterable[str]) -> bool:
+    return any(relative == root or relative.startswith(f"{root}/") for root in roots)
+
+
+def _candidate_files(scan_root: Path) -> Iterable[Path]:
+    if scan_root.is_file():
+        yield scan_root
+        return
+    for path in sorted(scan_root.rglob("*")):
+        if not path.is_file() or path.is_symlink():
+            continue
+        relative = path.relative_to(scan_root).as_posix()
+        if _under(relative, (".git", ".venv", "node_modules", "__pycache__")):
+            continue
+        try:
+            if path.stat().st_size <= 2 * 1024 * 1024:
+                yield path
+        except OSError:
+            continue
+
+
+def _current_workflow_paths(scan_root: Path) -> tuple[str, ...]:
+    """Return contained targets that remain active inside historical collections."""
+
+    active: set[str] = set()
+    resolved_root = scan_root.resolve()
+    for pointer_name in ("plans/current", "sessions/current"):
+        pointer = scan_root / pointer_name
+        if not pointer.is_symlink():
+            continue
+        try:
+            target = pointer.resolve(strict=True)
+            relative = target.relative_to(resolved_root).as_posix()
+        except (OSError, ValueError):
+            continue
+        active.add(relative)
+    return tuple(sorted(active))
+
+
+def _references(
+    scan_root: Path,
+    tokens: tuple[str, ...],
+    historical_roots: tuple[str, ...],
+    allowlist: tuple[str, ...],
+) -> list[dict[str, Any]]:
+    findings: list[dict[str, Any]] = []
+    active_workflow_paths = _current_workflow_paths(scan_root) if scan_root.is_dir() else ()
+    for path in _candidate_files(scan_root):
+        relative = path.relative_to(scan_root).as_posix() if scan_root.is_dir() else path.name
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            for token in tokens:
+                if token not in line:
+                    continue
+                if relative in allowlist:
+                    classification = "migration-self-reference"
+                elif relative in active_workflow_paths:
+                    classification = "active"
+                elif _under(relative, historical_roots):
+                    classification = "historical"
+                else:
+                    classification = "active"
+                findings.append(
+                    {
+                        "classification": classification,
+                        "line": line_number,
+                        "path": relative,
+                        "token": token,
+                    }
+                )
+    return findings
+
+
+def inventory(args: argparse.Namespace) -> tuple[dict[str, Any], bool]:
+    manifest_path = args.manifest.resolve()
+    manifest = _load_manifest(manifest_path)
+    repository = args.repository.resolve()
+    scan_roots = [path.resolve() for path in (args.scan_root or [repository])]
+    old_root = Path(manifest["workspace"]["legacy_root"])
+    new_root = Path(manifest["workspace"]["canonical_root"])
+    legacy_name = manifest["repository"]["legacy_full_name"]
+    canonical_name = manifest["repository"]["canonical_full_name"]
+    tokens = (legacy_name, str(old_root))
+    references: list[dict[str, Any]] = []
+    for scan_root in scan_roots:
+        if not scan_root.exists():
+            raise ValueError(f"scan root does not exist: {scan_root}")
+        for item in _references(
+            scan_root,
+            tokens,
+            tuple(manifest["historical_roots"]),
+            tuple(manifest["self_reference_allowlist"]),
+        ):
+            item["scan_root"] = str(scan_root)
+            references.append(item)
+    references.sort(key=lambda item: (item["scan_root"], item["path"], item["line"], item["token"]))
+    origin = _run_git(repository, "remote", "get-url", "origin")
+    head = _run_git(repository, "rev-parse", "HEAD")
+    tree = _run_git(repository, "rev-parse", "HEAD^{tree}")
+    active = [item for item in references if item["classification"] == "active"]
+    phase_checks: dict[str, bool] = {
+        "repository_is_git_worktree": bool(_run_git(repository, "rev-parse", "--is-inside-work-tree") == "true"),
+        "legacy_root_preserved": old_root.exists(),
+    }
+    if args.phase == "pre-rename":
+        phase_checks.update(
+            {
+                "origin_uses_legacy_name": legacy_name in origin,
+                "canonical_clone_absent": not new_root.exists(),
+            }
+        )
+    elif args.phase == "post-rename":
+        phase_checks.update(
+            {
+                "origin_uses_canonical_name": canonical_name in origin,
+                "canonical_clone_present": new_root.is_dir(),
+                "active_legacy_references_absent": not active,
+            }
+        )
+    ok = all(phase_checks.values())
+    payload = {
+        "schema": SCHEMA,
+        "ok": ok,
+        "phase": args.phase,
+        "manifest": {"path": str(manifest_path), "sha256": _sha256(manifest_path)},
+        "repository": {
+            "root": str(repository),
+            "origin": origin,
+            "head": head,
+            "tree": tree,
+            "branch": _run_git(repository, "branch", "--show-current"),
+            "status_porcelain": _run_git(repository, "status", "--porcelain=v1"),
+            "worktrees": _worktrees(repository),
+        },
+        "workspace": {
+            "legacy_root": str(old_root),
+            "legacy_root_exists": old_root.exists(),
+            "canonical_root": str(new_root),
+            "canonical_root_exists": new_root.exists(),
+        },
+        "checks": phase_checks,
+        "references": {
+            "active": active,
+            "historical": [item for item in references if item["classification"] == "historical"],
+            "migration_self_reference": [
+                item for item in references if item["classification"] == "migration-self-reference"
+            ],
+        },
+    }
+    return payload, ok
+
+
+def parser() -> argparse.ArgumentParser:
+    result = argparse.ArgumentParser(description=__doc__)
+    result.add_argument("command", choices=("inventory",))
+    result.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
+    result.add_argument("--repository", type=Path, default=REPO_ROOT)
+    result.add_argument("--scan-root", type=Path, action="append")
+    result.add_argument("--phase", choices=("inventory", "pre-rename", "post-rename"), default="inventory")
+    result.add_argument("--output", type=Path, help="optional JSON output path")
+    return result
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parser().parse_args(argv)
+    try:
+        payload, ok = inventory(args)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(f"gas-city-operations-migration: REFUSED: {exc}", file=sys.stderr)
+        return 2
+    rendered = json.dumps(payload, indent=2, sort_keys=True) + "\n"
+    if args.output:
+        args.output.write_text(rendered, encoding="utf-8")
+    sys.stdout.write(rendered)
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

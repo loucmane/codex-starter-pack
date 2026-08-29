@@ -98,6 +98,17 @@ def test_build_parser_accepts_bead_native_wizard_kickoff() -> None:
     assert args.task is None
 
 
+def test_build_parser_accepts_source_closeout_reconcile() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+
+    args = parser.parse_args(["work-tracking", "reconcile"])
+
+    assert args.command == "work-tracking"
+    assert args.subcommand == "reconcile"
+    assert args.func is module.handle_work_tracking_reconcile
+
+
 def test_build_parser_accepts_migration_archive() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -909,6 +920,142 @@ def test_handle_work_tracking_archive_preserves_completed_bundle(monkeypatch, tm
     assert sync_entries[-1]["plan"] == plan.relative_to(repo).as_posix()
     assert sync_entries[-1]["plan_hash"] == module._compute_sha256(plan)
     assert sync_entries[-1]["tracker_hash"] == module._compute_sha256(archived / "TRACKER.md")
+
+
+def test_source_archive_recovers_after_move_without_duplicate_evidence(
+    monkeypatch, tmp_path
+) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    active_root = repo / "docs" / "ai" / "work-tracking" / "active"
+    active = active_root / "20300101-ga-test1-recovery-ACTIVE"
+    active.mkdir(parents=True)
+    active_reference = active.relative_to(repo).as_posix()
+    tracker = active / "TRACKER.md"
+    tracker.write_text(
+        f"""# Bead ga-test1 Tracker
+
+**Status**: ACTIVE
+
+## Progress Log
+- [S:test|W:ga-test1|H:test|E:{active_reference}/evidence.md] Verified evidence.
+
+## Plan Compliance Checklist
+- [x] plan-step-scope - Scope
+- [x] plan-step-implement - Implement
+- [x] plan-step-verify - Verify
+""",
+        encoding="utf-8",
+    )
+    for name, heading in (
+        ("CHANGELOG.md", "Changelog"),
+        ("FINDINGS.md", "Findings"),
+        ("DECISIONS.md", "Decisions"),
+        ("HANDOFF.md", "Handoff"),
+    ):
+        (active / name).write_text(f"# {heading}\n", encoding="utf-8")
+    (active / "evidence.md").write_text("proof\n", encoding="utf-8")
+
+    plans = repo / "plans"
+    plan = plans / "2030-01-01-ga-test1-recovery.md"
+    plan.parent.mkdir(parents=True)
+    plan.write_text(
+        f"""---
+bead_ids: [ga-test1]
+---
+
+| Step ID | Description | Evidence | Status |
+|---|---|---|---|
+| plan-step-scope | Scope | {active_reference}/DECISIONS.md | completed |
+| plan-step-implement | Implement | scripts/codex-task | completed |
+| plan-step-verify | Verify | {active_reference}/evidence.md | completed |
+""",
+        encoding="utf-8",
+    )
+    (plans / "current").symlink_to(plan.name)
+    session = repo / "sessions" / "2030" / "01" / "2030-01-01-001-ga-test1-recovery.md"
+    session.parent.mkdir(parents=True)
+    session.write_text(f"Bead ga-test1 evidence: {active_reference}/TRACKER.md\n", encoding="utf-8")
+    session_link = repo / "sessions" / "current"
+    session_link.parent.mkdir(parents=True, exist_ok=True)
+    session_link.symlink_to(session.relative_to(session_link.parent))
+
+    plan_state = repo / ".plan_state"
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "WORK_TRACKING_BASE", active_root)
+    monkeypatch.setattr(module, "PLAN_STATE_DIR", plan_state)
+    monkeypatch.setattr(module, "PLAN_SYNC_LOG", plan_state / "sync.log")
+    monkeypatch.setattr(module, "_is_uninstalled_source_checkout_for_archive", lambda: True)
+
+    original_checkpoint = module._source_closeout_checkpoint
+
+    def crash_after_move(phase: str) -> None:
+        if phase == "archive_moved":
+            raise RuntimeError("simulated crash after archive move")
+        original_checkpoint(phase)
+
+    monkeypatch.setattr(module, "_source_closeout_checkpoint", crash_after_move)
+    with pytest.raises(RuntimeError, match="simulated crash"):
+        module.handle_work_tracking_archive(
+            argparse.Namespace(folder=active.name, dry_run=False)
+        )
+
+    journal = plan_state / "source-closeout-transaction.json"
+    archived = (
+        repo
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "archive"
+        / "20300101-ga-test1-recovery-COMPLETED"
+    )
+    assert journal.is_file()
+    assert not active.exists()
+    assert archived.is_dir()
+
+    monkeypatch.setattr(module, "_source_closeout_checkpoint", original_checkpoint)
+    module.handle_work_tracking_reconcile(argparse.Namespace(dry_run=False))
+
+    assert not journal.exists()
+    tracker_text = (archived / "TRACKER.md").read_text(encoding="utf-8")
+    assert tracker_text.count("H:scripts/codex-task:work-tracking-archive") == 1
+    assert (archived / "CHANGELOG.md").read_text(encoding="utf-8").count(
+        "Archived active work-tracking folder"
+    ) == 1
+    archive_reference = archived.relative_to(repo).as_posix()
+    assert active_reference not in plan.read_text(encoding="utf-8")
+    assert archive_reference in plan.read_text(encoding="utf-8")
+
+    module.handle_work_tracking_archive(
+        argparse.Namespace(folder=active.name, dry_run=False)
+    )
+    assert (archived / "TRACKER.md").read_text(encoding="utf-8") == tracker_text
+    assert len(json.loads((plan_state / "sync.log").read_text(encoding="utf-8"))) == 1
+
+
+def test_bead_kickoff_refuses_pending_source_closeout(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    journal = tmp_path / ".plan_state" / "source-closeout-transaction.json"
+    journal.parent.mkdir(parents=True)
+    journal.write_text("{}\n", encoding="utf-8")
+    monkeypatch.setattr(module, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(module, "PLAN_STATE_DIR", journal.parent)
+    monkeypatch.setattr(module, "_is_uninstalled_source_checkout_for_archive", lambda: True)
+
+    with pytest.raises(module.TaskError, match="CLOSEOUT_PENDING.*work-tracking reconcile"):
+        module.handle_wizard_kickoff(
+            argparse.Namespace(
+                task=None,
+                bead="ga-next1",
+                slug="next",
+                title="Next work",
+                goal=["Continue safely"],
+                task_source=None,
+                handler_target=None,
+                force=False,
+                dry_run=False,
+            )
+        )
 
 
 def test_handle_work_tracking_archive_keeps_installed_target_behavior(monkeypatch, tmp_path) -> None:

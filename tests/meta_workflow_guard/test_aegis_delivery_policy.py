@@ -173,6 +173,7 @@ def test_witness_scope_accounts_for_delivery_authority_surfaces() -> None:
     assert ".codex/" in always_in_scope
     assert ".plan_state/" in always_in_scope
     assert "aegis.delivery-policy.json" in always_in_scope
+    assert {"config/", "plugins/", "marketplace.json"} <= always_in_scope
 
 
 def test_routine_exact_head_with_complete_evidence_is_allowed() -> None:

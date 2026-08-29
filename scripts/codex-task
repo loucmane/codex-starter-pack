@@ -109,6 +109,15 @@ PRE_COMMIT_INSTALL_COMMAND = ".venv/bin/pre-commit install"
 PLAN_CURRENT = REPO_STRUCTURE.current_plan_link
 PLAN_STATE_DIR = REPO_STRUCTURE.plan_state_dir
 PLAN_SYNC_LOG = REPO_STRUCTURE.plan_sync_log
+SOURCE_CLOSEOUT_JOURNAL_NAME = "source-closeout-transaction.json"
+SOURCE_CLOSEOUT_JOURNAL_SCHEMA = "aegis.source-closeout-transaction.v1"
+SOURCE_CLOSEOUT_PHASES = (
+    "prepared",
+    "bundle_annotated",
+    "archive_moved",
+    "references_rewritten",
+    "plan_synced",
+)
 COMPACTION_HISTORY_PATH = REPO_STRUCTURE.plan_state_dir / "compaction-history.jsonl"
 PLAN_REQUIRED_STEPS = ("plan-step-scope", "plan-step-implement", "plan-step-verify")
 PLAN_STATUS_COMPLETE = {"completed", "done"}
@@ -1708,6 +1717,11 @@ def _handle_bead_wizard_kickoff(args: argparse.Namespace) -> None:
 
 
 def handle_wizard_kickoff(args: argparse.Namespace) -> None:
+    if _is_uninstalled_source_checkout_for_archive() and _source_closeout_journal_path().exists():
+        raise TaskError(
+            "Source lifecycle is CLOSEOUT_PENDING; run "
+            "`python3 scripts/codex-task work-tracking reconcile` before kickoff"
+        )
     if getattr(args, "bead", None):
         if getattr(args, "task", None):
             raise TaskError("Choose exactly one work identity: --task or --bead")
@@ -2381,7 +2395,334 @@ def _rewrite_archived_work_tracking_references(folder: Path, target_path: Path) 
     return current_plan if plan_referenced_active_folder else None
 
 
-def handle_work_tracking_archive(args: argparse.Namespace) -> None:
+def _source_closeout_journal_path() -> Path:
+    return PLAN_STATE_DIR / SOURCE_CLOSEOUT_JOURNAL_NAME
+
+
+def _atomic_write_json(path: Path, payload: Mapping[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2, sort_keys=True)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        directory_descriptor = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_descriptor)
+        finally:
+            os.close(directory_descriptor)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
+def _source_closeout_checkpoint(phase: str) -> None:
+    """Test seam for crash-recovery proofs; production execution is a no-op."""
+
+    del phase
+
+
+def _durable_unlink(path: Path) -> None:
+    path.unlink()
+    directory_descriptor = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(directory_descriptor)
+    finally:
+        os.close(directory_descriptor)
+
+
+def _contained_source_closeout_path(value: object, label: str) -> Path:
+    if not isinstance(value, str) or not value or "\\" in value:
+        raise TaskError(f"Source closeout {label} path is invalid")
+    relative = Path(value)
+    if relative.is_absolute() or relative.as_posix() != value or ".." in relative.parts:
+        raise TaskError(f"Source closeout {label} path is not contained")
+    candidate = (REPO_ROOT / relative).resolve(strict=False)
+    if not candidate.is_relative_to(REPO_ROOT.resolve()):
+        raise TaskError(f"Source closeout {label} path escapes the repository")
+    return candidate
+
+
+def _load_source_closeout_transaction() -> Optional[Dict[str, object]]:
+    path = _source_closeout_journal_path()
+    if not path.exists():
+        return None
+    if not path.is_file() or path.is_symlink():
+        raise TaskError("Source closeout journal must be a regular file")
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise TaskError(f"Source closeout journal is invalid JSON: {exc}") from exc
+    if not isinstance(payload, dict) or payload.get("schema") != SOURCE_CLOSEOUT_JOURNAL_SCHEMA:
+        raise TaskError("Source closeout journal schema is invalid")
+    transaction_id = payload.get("transaction_id")
+    if not isinstance(transaction_id, str) or not re.fullmatch(r"[0-9a-f]{64}", transaction_id):
+        raise TaskError("Source closeout transaction ID is invalid")
+    if payload.get("phase") not in SOURCE_CLOSEOUT_PHASES:
+        raise TaskError("Source closeout journal phase is invalid")
+    work = payload.get("work")
+    if not isinstance(work, dict) or work.get("kind") not in {"task", "bead"}:
+        raise TaskError("Source closeout journal work identity is invalid")
+    work_id = work.get("id")
+    pattern = r"\d+" if work.get("kind") == "task" else BEAD_ID_PATTERN.pattern
+    if not isinstance(work_id, str) or not re.fullmatch(pattern, work_id):
+        raise TaskError("Source closeout journal work ID is invalid")
+    paths = payload.get("paths")
+    if not isinstance(paths, dict) or set(paths) != {"active", "archive", "plan", "session"}:
+        raise TaskError("Source closeout journal paths are invalid")
+    for label in ("active", "archive", "plan", "session"):
+        _contained_source_closeout_path(paths[label], label)
+    timestamps = payload.get("timestamps")
+    required_timestamps = {"created_at", "date", "display", "tracker"}
+    if not isinstance(timestamps, dict) or set(timestamps) != required_timestamps:
+        raise TaskError("Source closeout journal timestamps are invalid")
+    if not all(isinstance(timestamps[key], str) and timestamps[key] for key in required_timestamps):
+        raise TaskError("Source closeout journal timestamp value is invalid")
+    return payload
+
+
+def _work_identity_from_active_folder(folder: Path) -> Tuple[str, str]:
+    match = re.match(
+        r"^\d{8}-(?:task-?(?P<task>\d+)|(?P<bead>[a-z][a-z0-9]*-[a-z0-9]+))(?:-|$)",
+        folder.name,
+        re.IGNORECASE,
+    )
+    if match is None:
+        raise TaskError(f"Could not derive exactly one work identity from {folder.name}")
+    if match.group("task"):
+        return "task", match.group("task")
+    return "bead", match.group("bead").lower()
+
+
+def _create_source_closeout_transaction(folder: Path, now: datetime) -> Dict[str, object]:
+    current_plan = _resolve_current_repo_document(PLANS_CURRENT_REL)
+    current_session = _resolve_current_repo_document(SESSIONS_CURRENT_REL)
+    if current_plan is None or current_session is None:
+        raise TaskError("Source closeout requires current plan and session pointers")
+    work_kind, work_id = _work_identity_from_active_folder(folder)
+    archive = WORK_TRACKING_BASE.parent / "archive" / folder.name.replace("-ACTIVE", "-COMPLETED")
+    paths = {
+        "active": folder.relative_to(REPO_ROOT).as_posix(),
+        "archive": archive.relative_to(REPO_ROOT).as_posix(),
+        "plan": current_plan.relative_to(REPO_ROOT).as_posix(),
+        "session": current_session.relative_to(REPO_ROOT).as_posix(),
+    }
+    identity = json.dumps(
+        {"schema": SOURCE_CLOSEOUT_JOURNAL_SCHEMA, "work": [work_kind, work_id], "paths": paths},
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    payload: Dict[str, object] = {
+        "schema": SOURCE_CLOSEOUT_JOURNAL_SCHEMA,
+        "transaction_id": hashlib.sha256(identity.encode("utf-8")).hexdigest(),
+        "phase": "prepared",
+        "work": {"kind": work_kind, "id": work_id},
+        "paths": paths,
+        "timestamps": {
+            "created_at": now.isoformat(),
+            "date": now.date().isoformat(),
+            "display": now.strftime("%Y-%m-%d %H:%M %Z"),
+            "tracker": now.strftime("%Y-%m-%d %H:%M"),
+        },
+    }
+    _atomic_write_json(_source_closeout_journal_path(), payload)
+    return payload
+
+
+def _set_source_closeout_phase(transaction: Dict[str, object], phase: str) -> None:
+    transaction["phase"] = phase
+    _atomic_write_json(_source_closeout_journal_path(), transaction)
+
+
+def _append_unique_line(path: Path, line: str) -> None:
+    if not path.exists():
+        return
+    lines = _load_file_lines(path)
+    if line not in lines:
+        lines.append(line)
+        _write_file_lines(path, lines)
+
+
+def _annotate_source_closeout_bundle(
+    folder: Path,
+    transaction: Mapping[str, object],
+) -> None:
+    work = transaction["work"]
+    timestamps = transaction["timestamps"]
+    assert isinstance(work, dict) and isinstance(timestamps, dict)
+    work_id = str(work["id"])
+    transaction_id = str(transaction["transaction_id"])
+    tracker_timestamp = str(timestamps["tracker"])
+    date_value = str(timestamps["date"])
+    display = str(timestamps["display"])
+    tracker_path = folder / "TRACKER.md"
+    if tracker_path.exists():
+        lines = _load_file_lines(tracker_path)
+        archive_entry = (
+            f"- **{tracker_timestamp}** — [S:{date_value.replace('-', '')}|W:{work_id}|"
+            f"H:scripts/codex-task:work-tracking-archive|E:{tracker_path.relative_to(REPO_ROOT).as_posix()}] "
+            f"Archived the completed work-tracking bundle through the supported helper "
+            f"(transaction {transaction_id})"
+        )
+        if archive_entry not in lines:
+            if any(line.strip() == PROGRESS_HEADING_TRACKER for line in lines):
+                lines = _insert_progress_entry(lines, PROGRESS_HEADING_TRACKER, archive_entry)
+            else:
+                lines.extend(["", PROGRESS_HEADING_TRACKER, archive_entry])
+        memory_match = next(
+            (
+                re.search(r"E:(\.serena/memories/[^\]]+)\]", line)
+                for line in lines
+                if "serena/memory" in line.lower()
+            ),
+            None,
+        )
+        if memory_match is not None:
+            memory_entry = (
+                f"- **{tracker_timestamp}** — [S:{date_value.replace('-', '')}|W:{work_id}|"
+                f"H:serena/memory:archive-reference|E:{memory_match.group(1)}] "
+                f"Preserved continuity during closeout transaction {transaction_id}"
+            )
+            if memory_entry not in lines:
+                lines = _insert_progress_entry(lines, PROGRESS_HEADING_TRACKER, memory_entry)
+        if not _replace_line_with_prefix(lines, "**Status**:", "**Status**: COMPLETED"):
+            lines.insert(3, "**Status**: COMPLETED")
+        if not _replace_line_with_prefix(lines, "**Last Updated**:", f"**Last Updated**: {date_value}"):
+            lines.insert(4, f"**Last Updated**: {date_value}")
+        _write_file_lines(tracker_path, lines)
+
+    _append_unique_line(folder / "CHANGELOG.md", f"- {display} — Archived active work-tracking folder.")
+    _append_unique_line(
+        folder / "FINDINGS.md",
+        f"- {date_value} — Archive preconditions were satisfied and the completed bundle was preserved.",
+    )
+    _append_unique_line(
+        folder / "DECISIONS.md",
+        f"- {date_value} — Archived through the supported archive helper; no evidence was deleted.",
+    )
+    _append_unique_line(
+        folder / "HANDOFF.md",
+        f"- Archived on {display} — Folder moved to archive and tracker marked COMPLETED.",
+    )
+
+
+def _plan_sync_contains_current_hashes(plan: Path, tracker: Path) -> bool:
+    plan_hash = _compute_sha256(plan)
+    tracker_hash = _compute_sha256(tracker)
+    relative_plan = plan.relative_to(REPO_ROOT).as_posix()
+    return any(
+        entry.get("plan") == relative_plan
+        and entry.get("plan_hash") == plan_hash
+        and entry.get("tracker_hash") == tracker_hash
+        for entry in _load_plan_sync_entries()
+    )
+
+
+def _verify_source_closeout_terminal(transaction: Mapping[str, object]) -> None:
+    paths = transaction["paths"]
+    assert isinstance(paths, dict)
+    active = _contained_source_closeout_path(paths["active"], "active")
+    archive = _contained_source_closeout_path(paths["archive"], "archive")
+    plan = _contained_source_closeout_path(paths["plan"], "plan")
+    session = _contained_source_closeout_path(paths["session"], "session")
+    if active.exists() or not archive.is_dir() or archive.is_symlink():
+        raise TaskError("Source closeout terminal folder state is inconsistent")
+    tracker = archive / "TRACKER.md"
+    if not tracker.is_file() or tracker.is_symlink():
+        raise TaskError("Source closeout terminal tracker is missing")
+    tracker_text = tracker.read_text(encoding="utf-8")
+    if not re.search(r"^\*\*Status\*\*:\s*COMPLETED\s*$", tracker_text, re.MULTILINE):
+        raise TaskError("Source closeout terminal tracker is not COMPLETED")
+    active_reference = Path(str(paths["active"])).as_posix()
+    archive_reference = Path(str(paths["archive"])).as_posix()
+    for label, path in (("plan", plan), ("session", session), ("tracker", tracker)):
+        text = path.read_text(encoding="utf-8")
+        if active_reference in text:
+            raise TaskError(f"Source closeout terminal {label} retains ACTIVE reference")
+        if archive_reference not in text:
+            raise TaskError(f"Source closeout terminal {label} is missing archive reference")
+    if not _plan_sync_contains_current_hashes(plan, tracker):
+        raise TaskError("Source closeout terminal plan sync evidence is missing")
+
+
+def _execute_source_closeout(transaction: Dict[str, object]) -> Path:
+    paths = transaction["paths"]
+    assert isinstance(paths, dict)
+    active = _contained_source_closeout_path(paths["active"], "active")
+    archive = _contained_source_closeout_path(paths["archive"], "archive")
+    phase = str(transaction["phase"])
+
+    if SOURCE_CLOSEOUT_PHASES.index(phase) < SOURCE_CLOSEOUT_PHASES.index("bundle_annotated"):
+        if not active.is_dir() or active.is_symlink() or archive.exists():
+            raise TaskError("Source closeout annotation state drifted")
+        _annotate_source_closeout_bundle(active, transaction)
+        _source_closeout_checkpoint("bundle_annotated")
+        _set_source_closeout_phase(transaction, "bundle_annotated")
+        phase = "bundle_annotated"
+
+    if SOURCE_CLOSEOUT_PHASES.index(phase) < SOURCE_CLOSEOUT_PHASES.index("archive_moved"):
+        archive.parent.mkdir(parents=True, exist_ok=True)
+        if active.is_dir() and not archive.exists():
+            os.replace(active, archive)
+        elif not archive.is_dir() or active.exists():
+            raise TaskError("Source closeout move state is ambiguous")
+        _source_closeout_checkpoint("archive_moved")
+        _set_source_closeout_phase(transaction, "archive_moved")
+        phase = "archive_moved"
+
+    if SOURCE_CLOSEOUT_PHASES.index(phase) < SOURCE_CLOSEOUT_PHASES.index("references_rewritten"):
+        rewritten_plan = _rewrite_archived_work_tracking_references(active, archive)
+        expected_plan = _contained_source_closeout_path(paths["plan"], "plan")
+        if rewritten_plan is not None and rewritten_plan != expected_plan:
+            raise TaskError("Source closeout rewrote an unexpected plan")
+        _source_closeout_checkpoint("references_rewritten")
+        _set_source_closeout_phase(transaction, "references_rewritten")
+        phase = "references_rewritten"
+
+    if SOURCE_CLOSEOUT_PHASES.index(phase) < SOURCE_CLOSEOUT_PHASES.index("plan_synced"):
+        plan = _contained_source_closeout_path(paths["plan"], "plan")
+        tracker = archive / "TRACKER.md"
+        if not _plan_sync_contains_current_hashes(plan, tracker):
+            handle_plan_sync(
+                argparse.Namespace(
+                    plan=plan.relative_to(REPO_ROOT).as_posix(),
+                    tracker=tracker.relative_to(REPO_ROOT).as_posix(),
+                    dry_run=False,
+                )
+            )
+        _source_closeout_checkpoint("plan_synced")
+        _set_source_closeout_phase(transaction, "plan_synced")
+
+    _verify_source_closeout_terminal(transaction)
+    _source_closeout_checkpoint("terminal_verified")
+    _durable_unlink(_source_closeout_journal_path())
+    return archive
+
+
+def _completed_source_archive_for_folder(folder_name: str) -> Path:
+    return WORK_TRACKING_BASE.parent / "archive" / folder_name.replace("-ACTIVE", "-COMPLETED")
+
+
+def handle_work_tracking_reconcile(args: argparse.Namespace) -> None:
+    transaction = _load_source_closeout_transaction()
+    if transaction is None:
+        print("No pending source closeout transaction; repository lifecycle is IDLE or ACTIVE.")
+        return
+    if args.dry_run:
+        print(
+            f"Would reconcile source closeout transaction {transaction['transaction_id']} "
+            f"from phase {transaction['phase']}"
+        )
+        return
+    archive = _execute_source_closeout(transaction)
+    print(f"Reconciled source closeout to {archive.relative_to(REPO_ROOT)}")
+
+
+def _handle_legacy_work_tracking_archive(args: argparse.Namespace) -> None:
     folder = _resolve_active_work_tracking(args.folder)
     now = datetime.now().astimezone()
     iso_today = now.date().isoformat()
@@ -2479,12 +2820,84 @@ def handle_work_tracking_archive(args: argparse.Namespace) -> None:
     print(f"Archived work-tracking folder to {target_path.relative_to(REPO_ROOT)}")
 
 
+def handle_work_tracking_archive(args: argparse.Namespace) -> None:
+    if not _is_uninstalled_source_checkout_for_archive():
+        _handle_legacy_work_tracking_archive(args)
+        return
+
+    transaction = _load_source_closeout_transaction()
+    if transaction is not None:
+        if args.folder:
+            paths = transaction["paths"]
+            assert isinstance(paths, dict)
+            if Path(str(paths["active"])).name != args.folder:
+                raise TaskError(
+                    "Requested folder does not match the pending source closeout transaction"
+                )
+        if args.dry_run:
+            print(
+                f"Would reconcile source closeout transaction {transaction['transaction_id']} "
+                f"from phase {transaction['phase']}"
+            )
+            return
+        archive = _execute_source_closeout(transaction)
+        print(f"Archived work-tracking folder to {archive.relative_to(REPO_ROOT)}")
+        return
+
+    try:
+        folder = _resolve_active_work_tracking(args.folder)
+    except TaskError:
+        if not args.folder:
+            raise
+        archive = _completed_source_archive_for_folder(args.folder)
+        if not archive.is_dir() or archive.is_symlink():
+            raise
+        tracker = archive / "TRACKER.md"
+        if not tracker.is_file() or not re.search(
+            r"^\*\*Status\*\*:\s*COMPLETED\s*$",
+            tracker.read_text(encoding="utf-8"),
+            re.MULTILINE,
+        ):
+            raise TaskError("Existing source archive is not a verified completed bundle")
+        current_plan = _resolve_current_repo_document(PLANS_CURRENT_REL)
+        current_session = _resolve_current_repo_document(SESSIONS_CURRENT_REL)
+        if current_plan is None or current_session is None:
+            raise TaskError("Completed source closeout has no current plan/session pointers")
+        verification = {
+            "paths": {
+                "active": (WORK_TRACKING_BASE / args.folder).relative_to(REPO_ROOT).as_posix(),
+                "archive": archive.relative_to(REPO_ROOT).as_posix(),
+                "plan": current_plan.relative_to(REPO_ROOT).as_posix(),
+                "session": current_session.relative_to(REPO_ROOT).as_posix(),
+            }
+        }
+        _verify_source_closeout_terminal(verification)
+        print(f"Source closeout already completed at {archive.relative_to(REPO_ROOT)}")
+        return
+
+    now = datetime.now().astimezone()
+    if args.dry_run:
+        print(f"Would start transactional source closeout for {folder.relative_to(REPO_ROOT)}")
+        return
+    transaction = _create_source_closeout_transaction(folder, now)
+    archive = _execute_source_closeout(transaction)
+    print(f"Archived work-tracking folder to {archive.relative_to(REPO_ROOT)}")
+
+
 
 def handle_work_tracking_audit(args: argparse.Namespace) -> None:
     today = datetime.now().date().isoformat()
     today_prefix = today.replace('-', '')
     issues: List[str] = []
     warnings: List[str] = []
+
+    if _is_uninstalled_source_checkout_for_archive():
+        transaction = _load_source_closeout_transaction()
+        if transaction is not None:
+            issues.append(
+                "Source lifecycle is CLOSEOUT_PENDING at phase "
+                f"{transaction['phase']}; run `python3 scripts/codex-task work-tracking reconcile`"
+            )
 
     if not WORK_TRACKING_BASE.exists():
         issues.append("Active work-tracking directory missing")
@@ -18087,6 +18500,12 @@ def build_parser() -> argparse.ArgumentParser:
     work_archive = work_sub.add_parser("archive", help="Archive the current active work-tracking folder")
     work_archive.add_argument("--folder", help="Specific ACTIVE folder relative name")
     work_archive.set_defaults(func=handle_work_tracking_archive)
+
+    work_reconcile = work_sub.add_parser(
+        "reconcile",
+        help="Resume and verify an interrupted transactional source closeout",
+    )
+    work_reconcile.set_defaults(func=handle_work_tracking_reconcile)
 
     work_update = work_sub.add_parser("update", help="Append entry to work-tracking progress log")
     work_update.add_argument("--work", required=True, help="W field value")
