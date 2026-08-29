@@ -62,7 +62,7 @@ POST_MERGE_CI_ENV = {
     "GITHUB_RUN_ID": "123",
     "GITHUB_RUN_ATTEMPT": "1",
     "GITHUB_WORKFLOW": "reconcile-apply",
-    "GITHUB_REPOSITORY": "loucmane/codex-starter-pack",
+    "GITHUB_REPOSITORY": "loucmane/gas-city-operations",
     "GITHUB_SHA": "a" * 40,
     "GITHUB_EVENT_NAME": "push",
     "GITHUB_REF": "refs/heads/main",

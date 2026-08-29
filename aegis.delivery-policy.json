@@ -1,18 +1,18 @@
 {
   "$schema": "./schemas/aegis/delivery-policy.schema.json",
   "schema_version": "1.0.0",
-  "policy_id": "aegis-source-evidence-gated-v1",
+  "policy_id": "gas-city-operations-evidence-gated-v1",
   "mode": "evidence-gated",
   "repository": {
-    "full_name": "loucmane/codex-starter-pack",
+    "full_name": "loucmane/gas-city-operations",
     "default_branch": "main",
     "task_branch_pattern": "^(?:codex/[a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*-[a-z0-9-]+|feat/task-[0-9]+-[a-z0-9-]+)$"
   },
   "authority": {
     "status": "active",
     "issued_by": "project-owner",
-    "source": "Gas City bead ga-zbmk owner authorization for the beads-first Aegis 2.0 foundation",
-    "issued_at": "2026-08-27T12:00:00Z",
+    "source": "Gas City bead ga-ejrm attended repository identity cutover authorization",
+    "issued_at": "2026-08-29T21:08:26Z",
     "expires_on": [
       "explicit-owner-revocation",
       "repository-identity-change",

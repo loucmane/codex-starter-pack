@@ -25,14 +25,14 @@ Before PyPI/TestPyPI publication, or for private-only installs, use the private 
 Claude:
 
 ```bash
-uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@main \
+uvx --from git+ssh://git@github.com/loucmane/gas-city-operations.git@main \
   aegis mcp register claude --source-mode private-github --github-ref main
 ```
 
 Codex:
 
 ```bash
-uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@main \
+uvx --from git+ssh://git@github.com/loucmane/gas-city-operations.git@main \
   aegis mcp register codex --source-mode private-github --github-ref main
 ```
 

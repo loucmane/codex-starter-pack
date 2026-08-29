@@ -23,7 +23,7 @@ layout (`<city-parent>/home`), matching the canonical supervisor unit instead of
 From an ordinary WSL terminal:
 
 ```bash
-cd /home/loucmane/codex
+cd /home/loucmane/gas-city-ops
 python3 scripts/codex-wsl-readiness
 ```
 
@@ -37,7 +37,7 @@ python3 scripts/codex-wsl-readiness --observer host-wsl
 For machine-readable evidence:
 
 ```bash
-cd /home/loucmane/codex
+cd /home/loucmane/gas-city-ops
 python3 scripts/codex-wsl-readiness --json
 ```
 

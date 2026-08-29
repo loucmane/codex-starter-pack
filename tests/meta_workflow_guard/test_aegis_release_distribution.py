@@ -110,7 +110,9 @@ def test_public_package_metadata_contract_is_release_ready() -> None:
     assert "Programming Language :: Python :: 3.12" in project["classifiers"]
     assert "Programming Language :: Python :: 3.13" in project["classifiers"]
     assert "Programming Language :: Python :: 3.14" in project["classifiers"]
-    assert project["urls"]["Repository"].endswith("codex-starter-pack")
+    assert project["urls"]["Repository"] == (
+        "https://github.com/loucmane/gas-city-operations"
+    )
 
     scripts = project["scripts"]
     assert scripts["aegis"] == "aegis_foundation.cli:main"

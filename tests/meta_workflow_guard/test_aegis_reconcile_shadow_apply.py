@@ -1171,7 +1171,7 @@ def test_build_ci_shadow_context_proof_uses_stable_github_run_fields() -> None:
         "GITHUB_RUN_ID": "123",
         "GITHUB_RUN_ATTEMPT": "2",
         "GITHUB_WORKFLOW": "CI",
-        "GITHUB_REPOSITORY": "loucmane/codex-starter-pack",
+        "GITHUB_REPOSITORY": "loucmane/gas-city-operations",
         "GITHUB_SHA": "abc",
     }
 
@@ -1309,7 +1309,7 @@ def _github_env() -> dict[str, str]:
         "GITHUB_RUN_ID": "123",
         "GITHUB_RUN_ATTEMPT": "1",
         "GITHUB_WORKFLOW": "CI",
-        "GITHUB_REPOSITORY": "loucmane/codex-starter-pack",
+        "GITHUB_REPOSITORY": "loucmane/gas-city-operations",
         "GITHUB_SHA": "abc",
         "RUNNER_OS": "Linux",
         "RUNNER_ARCH": "X64",

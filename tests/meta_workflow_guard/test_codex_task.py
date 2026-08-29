@@ -1227,6 +1227,112 @@ def test_handle_sessions_continue_reuses_active_work_tracking_and_plan(monkeypat
     assert (plan_state_dir / "sync.log").exists()
 
 
+def test_handle_sessions_continue_reuses_bead_work_without_taskmaster(
+    monkeypatch, tmp_path
+) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    sessions_dir = repo / "sessions"
+    plans_dir = repo / "plans"
+    active_dir = repo / "docs" / "ai" / "work-tracking" / "active"
+    plan_state_dir = repo / ".plan_state"
+    sessions_dir.mkdir(parents=True)
+    plans_dir.mkdir(parents=True)
+    active_dir.mkdir(parents=True)
+
+    old_session = sessions_dir / "2026" / "04" / "2026-04-23-001-ga-k9sd-reboot-hardening.md"
+    old_session.parent.mkdir(parents=True)
+    old_session.write_text("---\nsession_id: 2026-04-23-001\n---\n", encoding="utf-8")
+    (sessions_dir / "current").symlink_to(
+        Path("2026/04/2026-04-23-001-ga-k9sd-reboot-hardening.md")
+    )
+    (sessions_dir / "state.json").write_text(
+        '{"current":"2026-04-23-001-ga-k9sd-reboot-hardening.md","paused":[],"updated_at":"2026-04-23T10:00:00+02:00"}\n',
+        encoding="utf-8",
+    )
+
+    plan_file = plans_dir / "2026-04-23-ga-k9sd-reboot-hardening.md"
+    plan_file.write_text(
+        "\n".join(
+            [
+                "# Plan",
+                "",
+                "| Step ID | Description | Evidence | Status |",
+                "| --- | --- | --- | --- |",
+                "| plan-step-scope | Scope | evidence | completed |",
+                "| plan-step-implement | Implement | evidence | pending |",
+                "| plan-step-verify | Verify | evidence | pending |",
+                "| plan-step-emergency | Optional | evidence | n/a |",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (plans_dir / "current").symlink_to(plan_file.name)
+
+    active_folder = active_dir / "20260423-ga-k9sd-reboot-hardening-ACTIVE"
+    active_folder.mkdir()
+    tracker = active_folder / "TRACKER.md"
+    tracker.write_text(
+        "\n".join(
+            [
+                "# Bead ga-k9sd Reboot Hardening Tracker",
+                "",
+                "## Progress Log",
+                "",
+                "## Plan Compliance Checklist",
+                "- [x] plan-step-scope",
+                "- [ ] plan-step-implement",
+                "- [ ] plan-step-verify",
+                "- [ ] plan-step-emergency",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "SESSIONS_DIR", sessions_dir)
+    monkeypatch.setattr(module, "PLANS_DIR", plans_dir)
+    monkeypatch.setattr(module, "WORK_TRACKING_BASE", active_dir)
+    monkeypatch.setattr(module, "WORK_TRACKING_ACTIVE_REL", "docs/ai/work-tracking/active")
+    monkeypatch.setattr(module, "PLAN_CURRENT", plans_dir / "current")
+    monkeypatch.setattr(module, "PLAN_STATE_DIR", plan_state_dir)
+    monkeypatch.setattr(module, "PLAN_SYNC_LOG", plan_state_dir / "sync.log")
+    monkeypatch.setattr(module, "SESSION_STATE_PATH", sessions_dir / "state.json")
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    monkeypatch.setattr(
+        module, "_source_checkout_branch", lambda: "codex/ga-k9sd-reboot-hardening"
+    )
+
+    module.handle_sessions_continue(
+        argparse.Namespace(
+            task=None,
+            bead="ga-k9sd",
+            slug="reboot-hardening",
+            title=None,
+            work=None,
+            folder=None,
+            plan=None,
+            task_source="Primary bead ga-k9sd",
+            dry_run=False,
+        )
+    )
+
+    new_session = sessions_dir / "2026" / "04" / "2026-04-24-001-ga-k9sd-reboot-hardening.md"
+    assert new_session.exists()
+    assert (sessions_dir / "current").resolve() == new_session
+    assert (plans_dir / "current").resolve() == plan_file
+    assert list(active_dir.iterdir()) == [active_folder]
+    assert not (repo / ".taskmaster").exists()
+    session_text = new_session.read_text(encoding="utf-8")
+    assert "sessions continue --bead ga-k9sd" in session_text
+    assert "without Taskmaster mutation" in session_text
+    tracker_text = tracker.read_text(encoding="utf-8")
+    assert "Created a fresh daily bead `ga-k9sd` continuation session" in tracker_text
+    assert (plan_state_dir / "sync.log").exists()
+
+
 def test_handle_sessions_continue_reuses_completed_source_archive(monkeypatch, tmp_path) -> None:
     module = load_task_module()
     repo = tmp_path

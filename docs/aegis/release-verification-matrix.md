@@ -26,7 +26,7 @@ Every release candidate must prove:
 
 - packaged assets are used when no `--source-root` or `AEGIS_SOURCE_ROOT` is supplied
 - source checkout assets are used only when explicitly requested
-- local wheel invocation works without `/home/loucmane/codex`
+- local wheel invocation works without `/home/loucmane/gas-city-ops`
 - `uvx --from aegis-foundation==0.1.0` works for CLI snippets after publication
 - `pipx run --spec aegis-foundation==0.1.0` works for CLI snippets after publication
 - `aegis-mcp-server --describe-config` reports `asset_origin=package` from installed packages

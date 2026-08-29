@@ -904,5 +904,35 @@
     "plan_hash": "45dc1b85a6fa3c9785f8f9d3545c22c57b94c66d1fd3a1ada13f04c77f9044fc",
     "tracker_hash": "275334890df847de6c6c09677407afb732976147cfa76b2622e51a4bd22bde50",
     "synced_at": "2026-08-29T23:49:07.506290+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-ejrm-workflow-foundation.md",
+    "plan_hash": "45dc1b85a6fa3c9785f8f9d3545c22c57b94c66d1fd3a1ada13f04c77f9044fc",
+    "tracker_hash": "275334890df847de6c6c09677407afb732976147cfa76b2622e51a4bd22bde50",
+    "synced_at": "2026-08-30T00:16:26.844279+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-ejrm-workflow-foundation.md",
+    "plan_hash": "45dc1b85a6fa3c9785f8f9d3545c22c57b94c66d1fd3a1ada13f04c77f9044fc",
+    "tracker_hash": "21dee9f5afdb2c9cb444ffc591f9d4c5908552b05bf1b213668907ac3e726a4f",
+    "synced_at": "2026-08-30T00:20:29.914782+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-ejrm-workflow-foundation.md",
+    "plan_hash": "45dc1b85a6fa3c9785f8f9d3545c22c57b94c66d1fd3a1ada13f04c77f9044fc",
+    "tracker_hash": "21dee9f5afdb2c9cb444ffc591f9d4c5908552b05bf1b213668907ac3e726a4f",
+    "synced_at": "2026-08-30T00:20:51.199444+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-ejrm-workflow-foundation.md",
+    "plan_hash": "45dc1b85a6fa3c9785f8f9d3545c22c57b94c66d1fd3a1ada13f04c77f9044fc",
+    "tracker_hash": "79e22f1d991e3cf7e641fc1c6eee1456bb58a78fc3f21f2bb5a0aa2652c57d3a",
+    "synced_at": "2026-08-30T00:22:07.208233+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-ejrm-workflow-foundation.md",
+    "plan_hash": "45dc1b85a6fa3c9785f8f9d3545c22c57b94c66d1fd3a1ada13f04c77f9044fc",
+    "tracker_hash": "e61963863f347ffda25114ac694c8cd05e1700ad668557063e618a1d19f3ab71",
+    "synced_at": "2026-08-30T00:28:37.438033+02:00"
   }
 ]

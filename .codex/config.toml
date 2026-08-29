@@ -14,7 +14,7 @@ type = "stdio"
 command = "python3"
 args = ["scripts/aegis-mcp-server"]
 
-[projects."/home/loucmane/codex"]
+[projects."/home/loucmane/gas-city-ops"]
 trust_level = "trusted"
 
 [projects."/tmp/aegis-task133-codex-live-1780220128/shop-webapp"]

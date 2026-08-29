@@ -24,7 +24,7 @@ Use this module before deep-work tasks to confirm the Codex runtime matches expe
 - Record unavailable tools explicitly in the plan so expectations stay clear.
 
 ## 3. Filesystem & Workspace
-- Confirm current working directory (expect `/home/loucmane/codex`).
+- Confirm current working directory (expect `/home/loucmane/gas-city-ops`).
 - Verify required folders exist: `templates/`, `.codex/`, `scripts/`, any task-specific directories.
 - If you need write access to new paths, note the request in the plan.
 - If the repo uses non-default workflow roots, inspect `[repo_structure]` in `.codex/config.toml` before running guard/task helpers.

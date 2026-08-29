@@ -19,21 +19,21 @@ When Aegis is distributed from the private GitHub repository instead of PyPI/Tes
 Claude:
 
 ```bash
-uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@main \
+uvx --from git+ssh://git@github.com/loucmane/gas-city-operations.git@main \
   aegis mcp register claude --source-mode private-github --github-ref main
 ```
 
 Codex:
 
 ```bash
-uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@main \
+uvx --from git+ssh://git@github.com/loucmane/gas-city-operations.git@main \
   aegis mcp register codex --source-mode private-github --github-ref main
 ```
 
 The registered MCP server command is:
 
 ```bash
-uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@main \
+uvx --from git+ssh://git@github.com/loucmane/gas-city-operations.git@main \
   aegis-mcp-server --default-target-dir . --transport stdio
 ```
 
@@ -77,7 +77,7 @@ Codex:
 codex mcp add --env UV_CACHE_DIR=.aegis/uv-cache --env UV_TOOL_DIR=.aegis/uv-tools aegis -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio
 ```
 
-The registered server command uses package assets by default. It must not depend on `/home/loucmane/codex` or any local source checkout.
+The registered server command uses package assets by default. It must not depend on `/home/loucmane/gas-city-ops` or any local source checkout.
 
 ## Generate Commands
 
@@ -176,11 +176,11 @@ aegis mcp generate-registration --client claude --scope user --source-mode priva
 aegis mcp generate-registration --client codex --source-mode private-github --github-ref main
 ```
 
-Private GitHub mode defaults to `git+ssh://git@github.com/loucmane/codex-starter-pack.git`. You can also pass an explicit SSH remote:
+Private GitHub mode defaults to `git+ssh://git@github.com/loucmane/gas-city-operations.git`. You can also pass an explicit SSH remote:
 
 ```bash
 aegis mcp generate-registration --client claude --source-mode private-github \
-  --github-url git@github.com:loucmane/codex-starter-pack.git \
+  --github-url git@github.com:loucmane/gas-city-operations.git \
   --github-ref main
 ```
 

@@ -44,10 +44,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/loucmane/codex-starter-pack"
-Repository = "https://github.com/loucmane/codex-starter-pack"
-Documentation = "https://github.com/loucmane/codex-starter-pack/tree/main/docs/aegis"
-Issues = "https://github.com/loucmane/codex-starter-pack/issues"
+Homepage = "https://github.com/loucmane/gas-city-operations"
+Repository = "https://github.com/loucmane/gas-city-operations"
+Documentation = "https://github.com/loucmane/gas-city-operations/tree/main/docs/aegis"
+Issues = "https://github.com/loucmane/gas-city-operations/issues"
 
 [project.scripts]
 aegis = "aegis_foundation.cli:main"
