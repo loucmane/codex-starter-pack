@@ -6,3 +6,4 @@
 ## Progress Log
 
 - **2026-08-29 21:10** — [S:20260829|W:ga-ejrm-workflow-foundation|H:workflow-foundation-implementation|E:scripts/_source_workflow_state.py;scripts/codex-task;plugins/gas-city-workflow;scripts/gas-city-operations-migration] Implemented crash-safe closeout reconciliation, the versioned project-context plugin, and the read-only two-stage naming migration auditor.
+- **2026-08-29 21:36** — [S:20260829|W:ga-ejrm-workflow-foundation|H:aegis-witness-scope|E:PR:308;run:33271233790;.aegis/brief.json;pytest:110-pass;witness:pass] Extended the repository witness scope to account for the versioned config, plugins, and marketplace surfaces after hosted CI correctly rejected ten previously unknown paths.

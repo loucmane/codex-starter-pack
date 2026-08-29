@@ -134,7 +134,14 @@ def test_bead_branch_convention_maps_scope_in_ci(repo: Path) -> None:
 def test_repository_brief_accounts_project_workflow_surfaces() -> None:
     brief = json.loads((REPO_ROOT / ".aegis" / "brief.json").read_text(encoding="utf-8"))
     always_in_scope = set(brief["witness"]["always_in_scope"])
-    assert {"templates/", ".mcp.json", "README.md"} <= always_in_scope
+    assert {
+        "templates/",
+        "config/",
+        "plugins/",
+        "marketplace.json",
+        ".mcp.json",
+        "README.md",
+    } <= always_in_scope
 
 
 def test_out_of_scope_file_fails_diff_accounting(repo: Path) -> None:
