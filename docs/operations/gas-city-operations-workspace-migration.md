@@ -36,6 +36,23 @@ not rewritten or reused as a success.
    `git worktree list --porcelain` inventories.
 4. `scripts/gas-city-operations-migration inventory` has captured exact heads,
    trees, remotes, worktrees, and active/historical legacy consumers.
+
+For the source checkout, use the tracked-only inventory so disposable caches,
+untracked build products, and preserved linked worktrees cannot masquerade as
+active migration consumers:
+
+```bash
+SOURCE_WORKTREE=/home/loucmane/codex/worktrees/<exact-clean-worktree>
+scripts/gas-city-operations-migration inventory \
+  --repository "$SOURCE_WORKTREE" \
+  --scan-root "$SOURCE_WORKTREE" \
+  --phase pre-rename \
+  --tracked-only
+```
+
+Filesystem inventory remains available for an explicitly named external file
+or root. It prunes nested Git metadata, virtual environments, package caches,
+and generated tool/cache directories at every depth.
 5. A single attended authorization names the GitHub rename, exact source head,
    fresh-clone destination, allowed active-consumer updates, and stop rules.
 
@@ -51,9 +68,10 @@ not rewritten or reused as a success.
 5. Update active repository URLs and absolute-path consumers one at a time.
    Do not rewrite archived plans, sessions, reports, receipts, Taskmaster
    history, or other retained evidence.
-6. Run the auditor in `post-rename` mode. It must report no unallowlisted active
-   legacy consumer, the canonical origin, the canonical clone, and the intact
-   legacy root.
+6. Run the auditor in tracked-only `post-rename` mode from the fresh canonical
+   clone. It must report no unallowlisted active legacy consumer, the canonical
+   origin, the canonical clone, and the intact legacy root. Scan explicitly
+   registered external consumers separately in filesystem mode.
 7. Verify Aegis package/MCP startup, Gas City Workflow context resolution,
    Beads/readiness/guard/closeout behavior, CI, and Obsidian publication from
    the new clone before declaring it canonical.

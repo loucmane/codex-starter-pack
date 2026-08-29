@@ -48,6 +48,7 @@ emergency_bypass: false
 - 2026-08-29 - Bead `ga-ejrm` kickoff created through the bead-native source workflow.
 - 2026-08-29 - Scope completed and implementation expanded to the lifecycle transaction,
   versioned Gas City Workflow plugin, and two-stage Gas City Operations naming migration.
+- 2026-08-29 - `aegis log` updated `plan-step-implement` to `in-progress` with evidence `scripts/_source_workflow_state.py`.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)
@@ -71,7 +72,7 @@ emergency_bypass: false
 - No bypass authorized.
 
 <!-- AEGIS:BEGIN generated-sweh-projection -->
-<!-- AEGIS:projection-state {"event_count": 7, "last_event_id": "4dced3b04d83441c97f4cdffdd83b395", "schema": "legacy-shadow-sweh-projection-v1"} -->
+<!-- AEGIS:projection-state {"event_count": 9, "last_event_id": "da2cac36660546edbaf4e3123cd0be9f", "schema": "legacy-shadow-sweh-projection-v1"} -->
 
 ## Generated S:W:H:E Projection
 
@@ -84,5 +85,7 @@ _Generated from the passive Aegis ledger. Human-authored content outside this bl
 - [S:unknown W:codex/ga-ejrm-workflow-foundation H:witness E:ledger:5f440613b05...] Delivery witness FAIL recorded at 48cee7e06; report: .aegis/reports/witness-report.json.
 - [S:codex-ga-ejrm-20260829 W:codex/ga-ejrm-workflow-foundation H:verify E:ledger:4a98ccb6048...] codex:tests verification recorded as pass at 6775adeed.
 - [S:unknown W:codex/ga-ejrm-workflow-foundation H:witness E:ledger:4dced3b04d8...] Delivery witness PASS recorded at 6775adeed; report: .aegis/reports/witness-report.json.
+- [S:codex-ga-ejrm-20260829 W:codex/ga-ejrm-workflow-foundation H:verify E:ledger:6acae340410...] codex:tests verification recorded as pass at 61e637b2f.
+- [S:unknown W:codex/ga-ejrm-workflow-foundation H:witness E:ledger:da2cac36660...] Delivery witness PASS recorded at 61e637b2f; report: .aegis/reports/witness-report.json.
 
 <!-- AEGIS:END generated-sweh-projection -->

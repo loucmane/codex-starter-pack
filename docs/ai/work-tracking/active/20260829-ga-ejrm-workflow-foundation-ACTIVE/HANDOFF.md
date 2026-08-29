@@ -19,3 +19,4 @@
 ## Progress Log
 
 - **2026-08-29 21:31** — [S:20260829|W:ga-ejrm-workflow-foundation|H:pytest-and-live-context|E:pytest:1394-pass-21-skip;invocation:8-pass;plugin-live:gas-city,hpfetcher,blog;guard:pass;drift:zero;readiness:READY] Verified the source foundation broadly, including isolated package invocation and live read-only project context with permissions unchanged.
+- **2026-08-29 22:54 CEST** - [S:20260829|W:ga-ejrm-workflow-foundation|H:codex:workflow-foundation-recovery|E:scripts/_source_workflow_state.py] Added fail-closed atomic current-work recovery for active uninstalled source checkouts and verified idempotent bead-native logging.

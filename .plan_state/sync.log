@@ -874,5 +874,17 @@
     "plan_hash": "3b2c87e8c0a368797d9a6fab33d94bdbf18f73c9470cbbe5ac3c588e5a2ac52d",
     "tracker_hash": "cc1a76b82653536481faff41dab35bdd7d14eabd92a5da27ed1aa93b45416f48",
     "synced_at": "2026-08-29T22:28:32.220166+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-ejrm-workflow-foundation.md",
+    "plan_hash": "43d3af55af9ba75f0482bfbd08f48a4a7d9ac3782629710ef9478250c6124360",
+    "tracker_hash": "cc1a76b82653536481faff41dab35bdd7d14eabd92a5da27ed1aa93b45416f48",
+    "synced_at": "2026-08-29T22:46:38.679534+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-ejrm-workflow-foundation.md",
+    "plan_hash": "eded1a997cfa9eba01ab01ecb5a6132bad0f17472af5b2f6ba13034a8fee4d01",
+    "tracker_hash": "313053939933da6c588ac2cdcec0ccc6a9a08204e88b406638883028e4ab7688",
+    "synced_at": "2026-08-29T22:58:03.135144+02:00"
   }
 ]
