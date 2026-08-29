@@ -108,6 +108,14 @@ valid subtree and records a bounded error in the user-private state directory. R
 installed `check` command, which re-derives the current source digest; an old success timestamp by
 itself can never hide stale beads.
 
+The passive ledger uses SQLite WAL mode while agent hooks are active. The hardened reconciler keeps
+`ProtectHome=read-only`: it never grants the timer write access to the evidence store merely so
+SQLite can coordinate a reader. Instead, it copies only the regular database and WAL files into a
+private writable temporary directory, proves the source pair remained byte-stable across the copy,
+and lets SQLite rebuild transient `-shm` state there. The snapshot is size-bounded and retry-bounded;
+symlinks, non-regular components, oversized input, or a continuously changing pair fail closed while
+the last good vault remains intact.
+
 Adding HPFetcher, Blog, or a new project is a registry change plus a deterministic unit refresh—not
 a second service or a copied script. The refresh extends the unit's write allowlist only to the new
 output's existing parent. The timer remains one host-side controller and each project retains a

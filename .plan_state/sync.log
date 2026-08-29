@@ -898,5 +898,11 @@
     "plan_hash": "6bbae72bbf001e15d239dfa070ac151dc947cb611a5f07d6c703c46491f1b6d7",
     "tracker_hash": "39601728381448d0a3d27bbf0f2e094a00482eb8e40441ad129cc39004af3afb",
     "synced_at": "2026-08-29T23:29:26.235853+02:00"
+  },
+  {
+    "plan": "plans/2026-08-29-ga-ejrm-workflow-foundation.md",
+    "plan_hash": "45dc1b85a6fa3c9785f8f9d3545c22c57b94c66d1fd3a1ada13f04c77f9044fc",
+    "tracker_hash": "275334890df847de6c6c09677407afb732976147cfa76b2622e51a4bd22bde50",
+    "synced_at": "2026-08-29T23:49:07.506290+02:00"
   }
 ]
