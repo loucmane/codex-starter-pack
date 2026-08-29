@@ -13,9 +13,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PLUGIN = REPO_ROOT / "plugins" / "gas-city-workflow"
 CONTEXT_SCRIPT = PLUGIN / "scripts" / "project_context.py"
-PLUGIN_VALIDATOR = Path(
-    "/mnt/c/Users/smoki/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py"
-)
+PLUGIN_VALIDATOR = REPO_ROOT / "scripts" / "validate_codex_plugin.py"
 
 
 def _load_context_module():

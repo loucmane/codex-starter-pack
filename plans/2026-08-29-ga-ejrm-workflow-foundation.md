@@ -71,7 +71,7 @@ emergency_bypass: false
 - No bypass authorized.
 
 <!-- AEGIS:BEGIN generated-sweh-projection -->
-<!-- AEGIS:projection-state {"event_count": 5, "last_event_id": "5f440613b053428cbdda1d7230c50045", "schema": "legacy-shadow-sweh-projection-v1"} -->
+<!-- AEGIS:projection-state {"event_count": 7, "last_event_id": "4dced3b04d83441c97f4cdffdd83b395", "schema": "legacy-shadow-sweh-projection-v1"} -->
 
 ## Generated S:W:H:E Projection
 
@@ -82,5 +82,7 @@ _Generated from the passive Aegis ledger. Human-authored content outside this bl
 - [S:02b8396d-4342-4720-87bd-61045504170d W:main H:session E:ledger:144264708a4...] Session began via startup.
 - [S:unknown W:codex/ga-ejrm-witness-fix H:witness E:ledger:5cc03307509...] Delivery witness FAIL recorded at fba7ff62f; report: .aegis/reports/witness-report.json.
 - [S:unknown W:codex/ga-ejrm-workflow-foundation H:witness E:ledger:5f440613b05...] Delivery witness FAIL recorded at 48cee7e06; report: .aegis/reports/witness-report.json.
+- [S:codex-ga-ejrm-20260829 W:codex/ga-ejrm-workflow-foundation H:verify E:ledger:4a98ccb6048...] codex:tests verification recorded as pass at 6775adeed.
+- [S:unknown W:codex/ga-ejrm-workflow-foundation H:witness E:ledger:4dced3b04d8...] Delivery witness PASS recorded at 6775adeed; report: .aegis/reports/witness-report.json.
 
 <!-- AEGIS:END generated-sweh-projection -->

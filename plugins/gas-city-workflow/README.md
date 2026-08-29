@@ -11,10 +11,13 @@ Version `0.1.0` packages the common cold-start workflow without copying project 
 Validate from the repository root:
 
 ```bash
-python3 /path/to/plugin-creator/scripts/validate_plugin.py plugins/gas-city-workflow
+python3 scripts/validate_codex_plugin.py plugins/gas-city-workflow
 python3 plugins/gas-city-workflow/scripts/project_context.py \
   --root /home/loucmane/dev/blog --check
 ```
+
+The bundled validator is CI-portable and enforces the stable manifest and skill-frontmatter
+contract. The Codex `plugin-creator` validator remains an additional development-time check.
 
 Installing or updating the plugin is a separate client-level action. The package itself contains no hooks, MCP server, app connector, or permission mutation.
 
