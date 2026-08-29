@@ -10,3 +10,4 @@
 
 ## Progress Log
 - **2026-08-29 22:54 CEST** - [S:20260829|W:ga-ejrm-workflow-foundation|H:codex:workflow-foundation-recovery|E:scripts/_source_workflow_state.py] Added fail-closed atomic current-work recovery for active uninstalled source checkouts and verified idempotent bead-native logging.
+- **2026-08-30 00:20** — [S:20260830|W:ga-ejrm-workflow-foundation|H:cutover-ci-fix|E:test_aegis_release_distribution.py;scripts/codex-task;pytest:23-pass-2-skip] Corrected the canonical repository URL contract and added tested bead-native daily session continuation, then dogfooded it for ga-ejrm.
