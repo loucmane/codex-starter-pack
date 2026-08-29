@@ -10,3 +10,4 @@
   pinned Taskmaster compatibility passes.
 - 2026-08-28 23:35 CEST — Passed readiness, plan sync, S:W:H:E guard, strict
   drift check, and active work-tracking audit.
+- 2026-08-29 17:04 CEST — Archived active work-tracking folder.

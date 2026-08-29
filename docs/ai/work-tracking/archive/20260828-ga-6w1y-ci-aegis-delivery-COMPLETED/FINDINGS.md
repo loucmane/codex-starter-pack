@@ -5,3 +5,4 @@
 - 2026-08-28 — Most workflows lack timeouts and concurrency cancellation; guard/delivery triggers duplicate work; external actions are tag-pinned rather than immutable full SHAs; witness permissions are implicit.
 - 2026-08-28 — Repository action policy allows all actions without SHA enforcement, while Dependabot security updates, secret scanning, and push protection are disabled. Repository-setting changes must remain separate explicit external gates if the source workflow cannot enforce them directly.
 - 2026-08-28 — Recent hosted CI median duration is 419 seconds. Optimization must preserve the exact-head guard, full Python coverage, and evidence artifacts rather than merely suppressing checks.
+- 2026-08-29 — Archive preconditions were satisfied and the completed bundle was preserved.
