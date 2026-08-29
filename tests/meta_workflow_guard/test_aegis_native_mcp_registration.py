@@ -117,7 +117,7 @@ def test_claude_project_and_codex_registration_commands_match_native_syntax() ->
                 source_mode="github",
                 github_ref="v0.1.0",
             ),
-            "git+https://github.com/loucmane/codex-starter-pack.git@v0.1.0",
+            "git+https://github.com/loucmane/gas-city-operations.git@v0.1.0",
         ),
         (
             mcp_registration.RegistrationRequest(
@@ -125,16 +125,16 @@ def test_claude_project_and_codex_registration_commands_match_native_syntax() ->
                 source_mode="private-github",
                 github_ref="main",
             ),
-            "git+ssh://git@github.com/loucmane/codex-starter-pack.git@main",
+            "git+ssh://git@github.com/loucmane/gas-city-operations.git@main",
         ),
         (
             mcp_registration.RegistrationRequest(
                 client="codex",
                 source_mode="private-github",
-                github_url="git@github.com:loucmane/codex-starter-pack.git",
+                github_url="git@github.com:loucmane/gas-city-operations.git",
                 github_ref="task-134",
             ),
-            "git+ssh://git@github.com/loucmane/codex-starter-pack.git@task-134",
+            "git+ssh://git@github.com/loucmane/gas-city-operations.git@task-134",
         ),
         (
             mcp_registration.RegistrationRequest(client="claude", source_mode="package"),
@@ -162,11 +162,11 @@ def test_private_github_registration_command_uses_native_auth_source() -> None:
         )
     )
 
-    assert payload["package_spec"] == "git+ssh://git@github.com/loucmane/codex-starter-pack.git@main"
+    assert payload["package_spec"] == "git+ssh://git@github.com/loucmane/gas-city-operations.git@main"
     assert payload["rendered_command"] == (
         "codex mcp add --env UV_CACHE_DIR=.aegis/uv-cache "
         "--env UV_TOOL_DIR=.aegis/uv-tools aegis -- uvx --from "
-        "git+ssh://git@github.com/loucmane/codex-starter-pack.git@main "
+        "git+ssh://git@github.com/loucmane/gas-city-operations.git@main "
         "aegis-mcp-server --default-target-dir . --transport stdio"
     )
     assert "private-github-requires-native-git-auth" in payload["safety_notes"]
@@ -377,7 +377,7 @@ def test_verify_registration_output_passes_for_private_github_source() -> None:
             "command": "uvx",
             "args": [
                 "--from",
-                "git+ssh://git@github.com/loucmane/codex-starter-pack.git@main",
+                "git+ssh://git@github.com/loucmane/gas-city-operations.git@main",
                 "aegis-mcp-server",
                 "--default-target-dir",
                 ".",
@@ -439,7 +439,7 @@ def test_package_cli_generates_private_github_registration_json(
 
     assert result == 0
     payload = json.loads(capsys.readouterr().out)
-    assert payload["package_spec"] == "git+ssh://git@github.com/loucmane/codex-starter-pack.git@main"
+    assert payload["package_spec"] == "git+ssh://git@github.com/loucmane/gas-city-operations.git@main"
     assert payload["rendered_command"].startswith("claude mcp add --scope user aegis -e")
     assert "private-github-requires-native-git-auth" in payload["safety_notes"]
 
@@ -549,7 +549,7 @@ def test_repo_wrapper_generates_private_github_registration_json() -> None:
 
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
-    assert payload["package_spec"] == "git+ssh://git@github.com/loucmane/codex-starter-pack.git@main"
+    assert payload["package_spec"] == "git+ssh://git@github.com/loucmane/gas-city-operations.git@main"
 
 
 def test_repo_wrapper_smoke_registration_with_missing_clients_returns_structured_skip(tmp_path: Path) -> None:

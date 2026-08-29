@@ -9,7 +9,7 @@ personality = "pragmatic"
 
 [sandbox_workspace_write]
 network_access = true
-writable_roots = ["/home/loucmane/codex", "/tmp"]
+writable_roots = ["/home/loucmane/gas-city-ops", "/tmp"]
 exclude_tmpdir_env_var = false
 exclude_slash_tmp = false
 

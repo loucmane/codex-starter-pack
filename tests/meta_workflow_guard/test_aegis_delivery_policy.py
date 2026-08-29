@@ -61,6 +61,9 @@ def _policy() -> dict[str, object]:
 def _historical_replay_policy() -> dict[str, object]:
     """Return the policy that governed the captured pre-Dependency-Review fixtures."""
     policy = _policy()
+    repository = policy["repository"]
+    assert isinstance(repository, dict)
+    repository["full_name"] = "loucmane/" + "codex-starter-pack"
     merge = policy["merge"]
     assert isinstance(merge, dict)
     required = merge["required_workflows"]
@@ -93,7 +96,7 @@ def _evidence(*, files: list[dict[str, object]] | None = None) -> dict[str, obje
     policy = _policy()
     required = policy["merge"]["required_workflows"]  # type: ignore[index]
     return {
-        "repository": "loucmane/codex-starter-pack",
+        "repository": "loucmane/gas-city-operations",
         "expected_head_sha": HEAD_SHA,
         "current_default_sha": BASE_SHA,
         "pull_request": {
@@ -104,7 +107,7 @@ def _evidence(*, files: list[dict[str, object]] | None = None) -> dict[str, obje
             "head": {
                 "ref": "feat/task-247-routine-change",
                 "sha": HEAD_SHA,
-                "repo": {"full_name": "loucmane/codex-starter-pack"},
+                "repo": {"full_name": "loucmane/gas-city-operations"},
             },
             "mergeable": True,
             "mergeable_state": "clean",

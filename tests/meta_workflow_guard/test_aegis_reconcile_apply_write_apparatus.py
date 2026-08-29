@@ -62,7 +62,7 @@ POST_MERGE_CI_ENV = {
     "GITHUB_EVENT_NAME": "push",
     "GITHUB_REF": "refs/heads/main",
     "GITHUB_REF_NAME": "main",
-    "GITHUB_REPOSITORY": "loucmane/codex-starter-pack",
+    "GITHUB_REPOSITORY": "loucmane/gas-city-operations",
     "GITHUB_RUN_ID": "153",
     "GITHUB_RUN_ATTEMPT": "1",
     "GITHUB_SHA": "abc123",

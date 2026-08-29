@@ -24,17 +24,17 @@ explicitly retain Taskmaster authority. The lower-level `inspect`, `plan-install
 The private GitHub adoption commands are the pre-publication/private counterpart to the public package path:
 
 ```bash
-uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@main \
+uvx --from git+ssh://git@github.com/loucmane/gas-city-operations.git@main \
   aegis mcp register claude --source-mode private-github --github-ref main
 
-uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@main \
+uvx --from git+ssh://git@github.com/loucmane/gas-city-operations.git@main \
   aegis mcp register codex --source-mode private-github --github-ref main
 ```
 
 Those commands register a native MCP server that also runs from the private GitHub source:
 
 ```bash
-uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@main \
+uvx --from git+ssh://git@github.com/loucmane/gas-city-operations.git@main \
   aegis-mcp-server --default-target-dir . --transport stdio
 ```
 
