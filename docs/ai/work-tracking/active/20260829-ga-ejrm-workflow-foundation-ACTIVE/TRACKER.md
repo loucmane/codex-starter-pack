@@ -28,6 +28,7 @@
 - **2026-08-30 00:20** — [S:20260830|W:ga-ejrm-workflow-foundation|H:plans/current|E:plans/2026-08-29-ga-ejrm-workflow-foundation.md] Reused the existing bead `ga-ejrm` plan for continuation
 - **2026-08-30 00:20** — [S:20260830|W:ga-ejrm-workflow-foundation|H:sessions/state.json|E:sessions/state.json] Repointed session state to the bead `ga-ejrm` continuation session
 - **2026-08-30 00:22** — [S:20260830|W:ga-ejrm-workflow-foundation|H:cutover-ci-and-bead-continuation|E:pytest:360-pass-2-skip;guard:pass;readiness:READY;PR:310] Verified the canonical repository URL contract and bead-native daily continuation across codex-task, guard, source-closeout, release, and migration suites.
+- **2026-08-30 00:28** — [S:20260830|W:ga-ejrm-workflow-foundation|H:packaged-script-parity|E:sha256:47764697f7429251fc5930e0049b912396c68b6d1da8a2cf08c33133e205080c;pytest:369-pass-2-skip;run:33278444734] Synchronized the bead-native continuation implementation into the packaged codex-task asset after Python 3.14 correctly detected byte drift.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
