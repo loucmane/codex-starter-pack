@@ -982,5 +982,17 @@
     "plan_hash": "5a277989f7dc696114fcdb5fe9e2dcc13ae12fc4fd0c05872ea7b02c3bd7eb7c",
     "tracker_hash": "7879ca54ca039b2d89fb694244cf926abf1266e62c16f6e6d5b862750f4a3577",
     "synced_at": "2026-08-30T11:16:59.159742+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-2mfo-workflow-identity-cache.md",
+    "plan_hash": "5a277989f7dc696114fcdb5fe9e2dcc13ae12fc4fd0c05872ea7b02c3bd7eb7c",
+    "tracker_hash": "7879ca54ca039b2d89fb694244cf926abf1266e62c16f6e6d5b862750f4a3577",
+    "synced_at": "2026-08-30T11:21:54.670496+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-2mfo-workflow-identity-cache.md",
+    "plan_hash": "5a277989f7dc696114fcdb5fe9e2dcc13ae12fc4fd0c05872ea7b02c3bd7eb7c",
+    "tracker_hash": "7879ca54ca039b2d89fb694244cf926abf1266e62c16f6e6d5b862750f4a3577",
+    "synced_at": "2026-08-30T11:22:23.420240+02:00"
   }
 ]

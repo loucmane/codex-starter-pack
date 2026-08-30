@@ -174,6 +174,7 @@ def test_witness_scope_accounts_for_delivery_authority_surfaces() -> None:
     assert ".codex/" in always_in_scope
     assert ".plan_state/" in always_in_scope
     assert "aegis.delivery-policy.json" in always_in_scope
+    assert ".gas-city-workflow.json" in always_in_scope
     assert {"config/", "plugins/", ".agents/plugins/"} <= always_in_scope
 
 
