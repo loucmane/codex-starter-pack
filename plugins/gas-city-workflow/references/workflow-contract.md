@@ -40,6 +40,12 @@ scaffold state blocks instead of being guessed away. Existing unscaffolded workt
 fast-forwarded when clean and ancestor-related; once scaffolded, their task branch is never moved
 by lifecycle replay.
 
+Projects whose canonical checkout is deliberately dirty or parked on a long-lived branch may
+declare a validated `base_ref` in the registry or local descriptor. `begin` resolves the immutable
+starting commit from that ref instead of canonical `HEAD`, without checking out, cleaning, or
+otherwise mutating the canonical workspace. Refresh a remote-tracking ref before `begin` when the
+task explicitly requires the newest remote default branch.
+
 ## Workspace placement
 
 The Git common directory is the source of truth for the canonical checkout. By default, linked worktrees must be direct children of a sibling `<canonical-name>-worktrees` directory. For example, `/home/loucmane/gas-city-ops` uses `/home/loucmane/gas-city-ops-worktrees`.

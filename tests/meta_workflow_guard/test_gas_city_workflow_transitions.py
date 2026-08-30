@@ -284,6 +284,31 @@ def test_begin_safely_fast_forwards_clean_precreated_worktree(tmp_path: Path) ->
     assert (worktree / "new-base.txt").read_text(encoding="utf-8") == "new base\n"
 
 
+def test_begin_uses_registered_base_ref_without_touching_canonical_checkout(
+    tmp_path: Path,
+) -> None:
+    root, registry = _fixture_project(tmp_path, descriptor=False)
+    base = _run(root, "git", "rev-parse", "HEAD").stdout.strip()
+    _run(root, "git", "update-ref", "refs/remotes/origin/main", base)
+    (root / "parked.txt").write_text("dirty canonical state\n", encoding="utf-8")
+    payload = json.loads(registry.read_text(encoding="utf-8"))
+    payload["projects"][0]["base_ref"] = "refs/remotes/origin/main"
+    registry.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+    result = begin(
+        root,
+        "ga-test",
+        slug="fixture",
+        goals=[],
+        registry=registry,
+        dry_run=True,
+        runner=FixtureRunner(_bead()),
+    )
+
+    assert result["spec"]["base_commit"] == base
+    assert (root / "parked.txt").read_text(encoding="utf-8") == "dirty canonical state\n"
+
+
 def test_ready_replay_keeps_original_base_after_canonical_checkout_advances(
     tmp_path: Path,
 ) -> None:
