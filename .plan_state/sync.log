@@ -1198,5 +1198,11 @@
     "plan_hash": "d360de5ebdcc20425ee543ab6ab01bf671ab95ff9483ce8a5b5f327f52b2b22b",
     "tracker_hash": "59776b72c710fdb2dd0ebd1f1eb29054e70b0b332bcdeeecad339c8adf93c618",
     "synced_at": "2026-08-30T17:36:09.922622+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-k0ry-evidence-workflow-v1.md",
+    "plan_hash": "696e74618ae3535714e893bbb100408346063d6aaa323c83ba6516146335d58e",
+    "tracker_hash": "dd7d155f70da336be42ed90113793ab345ac9d6ce1fadbaeccf4614e7e5f700f",
+    "synced_at": "2026-08-30T18:26:31.790674+02:00"
   }
 ]

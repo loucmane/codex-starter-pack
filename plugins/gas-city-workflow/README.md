@@ -1,6 +1,6 @@
 # Gas City Workflow plugin
 
-Version `0.4.1` packages the common lifecycle and frozen report-only evidence reviews without
+Version `0.4.2` packages the common lifecycle and frozen report-only evidence reviews without
 copying project state into prompts or widening permissions.
 
 - `skills/gas-city-workflow/SKILL.md` is the small routing skill.
@@ -12,6 +12,8 @@ copying project state into prompts or widening permissions.
 - `adapters/` keeps Codex execution and Fable read-only review on the same contract.
 - `skills/gas-city-evidence-workflow/` and `scripts/evidence/` provide the generic shadow-review
   contract while projects retain their own builders, prompts, rubrics, and report schemas.
+- `scripts/codex_hook_trust.py` owns the bounded Codex JSON-RPC hook-trust transaction separately
+  from the provider/agent installer.
 
 The context capsule derives the canonical checkout from Git common-directory truth. Linked worktrees must be direct children of the reported `workspace.worktree_root`; source work from arbitrary or preserved legacy roots fails closed.
 
@@ -51,12 +53,19 @@ and zero running agent sessions. On a fresh install it atomically installs the p
 agent files; on an append-forward repair it requires those installed bytes to remain exact. In
 both modes it transactionally ensures the exact work directory is trusted in the attended Codex
 `config.toml`, using an owned marker block while preserving all unrelated bytes and the original
-file mode. The transaction records mode-0600 backups, validates the resolved provider, agent,
-prompt, and trust readback, reloads only when Gas City configuration changed, preserves the
-controller epoch, and restores every mutated surface byte-exact on failure. Conflicting entries,
-canonical-path aliases, malformed TOML, and managed-block drift fail closed. Installation does
-not authorize routing, rig resume, or evidence dispatch; a fresh managed reviewer session remains
-the required proof that interactive startup reaches its instructions without a trust prompt.
+file mode. It also verifies the byte-exact Gas City hook manifest under that root, lists the four
+resolved hooks through Codex's app-server API, and upserts only those four runtime hashes through
+one version-bound `config/batchWrite`. It then re-lists the hooks and requires every one to be
+trusted. Arbitrary, extra, modified, differently sourced, or differently commanded hooks remain
+blocked; the hook-trust bypass flag is never used. The transaction records mode-0600 before/after
+evidence, validates the resolved provider, agent, prompt, project trust, and hook trust, reloads
+only when Gas City configuration changed, preserves the controller epoch, and restores every
+mutated surface byte-exact on failure. Conflicting entries, canonical-path aliases, malformed
+TOML, unrelated nonblank config-byte or semantic changes, and managed-block drift fail closed.
+Codex may normalize an adjacent blank separator while inserting its own tables; the exact prior
+file is still preserved for rollback. Installation does not
+authorize routing, rig resume, or evidence dispatch; a fresh managed reviewer session remains the
+required proof that startup reaches its instructions without a prompt.
 
 Validate from the repository root:
 

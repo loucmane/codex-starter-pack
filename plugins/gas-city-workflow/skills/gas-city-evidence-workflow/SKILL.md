@@ -18,6 +18,9 @@ creating a profile, request, authorization envelope, or controller event.
    logic in this plugin.
 3. Create a fresh external run root, freeze request, and current authorization envelope. Use
    only `mode=shadow`; an authoritative mode is a hard error.
+   Before dispatch, the reviewer installer must prove both exact project trust and exact trust for
+   the four reviewed Gas City hooks in this root. Never bypass hook review or trust a hash that was
+   not returned for the byte-verified canonical hook manifest.
 4. Freeze once with `freeze_evidence_run.py --request ... --profile ... --manifest ...`.
 5. Run `validate_evidence_run.py` between freeze and bundle construction.
 6. Run project-owned builders into exact fresh bundle directories. Audit every lane with

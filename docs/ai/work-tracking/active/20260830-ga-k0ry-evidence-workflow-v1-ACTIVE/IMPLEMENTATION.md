@@ -65,5 +65,23 @@ rewriting old evidence and without widening a worker sandbox. Legacy non-repair 
 valid and must omit the new field. Focused coverage proves cross-root repair, predecessor digest
 drift refusal, and backward-compatible validation of run 001.
 
+## Pilot-discovered Codex hook trust repair
+
+Run 004 proved project trust alone is insufficient for unattended reviewer startup: Codex also
+requires explicit trust for each project hook hash. The worker stopped at the review prompt before
+claim, bundle access, report creation, or subject mutation, and the immutable run plus stop evidence
+remain preserved.
+
+The append-forward repair keeps the provider/agent install separate from a dedicated
+`codex_hook_trust.py` transaction. It binds the canonical hook manifest byte-for-byte, validates
+exactly four resolved project hooks through `hooks/list`, obtains the user-config version through
+`config/read`, and writes only those four current hashes through one optimistic
+`config/batchWrite`. It immediately re-lists and requires `trusted`, rejects changed commands,
+sources, identities, extras, load diagnostics, or unrelated nonblank/semantic config changes, and
+retains the installer's exact backup/rollback boundary. A disposable copy of the real Codex config
+proved untrusted-to-trusted migration and byte-idempotent reapplication; 56 focused workflow tests,
+Ruff, plugin validation, and diff checks pass. The live migration remains a separate gate.
+
 ## Progress Log
 - **2026-08-30 16:03 CEST** - [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:plugins/gas-city-workflow/scripts/install_evidence_reviewer.py|E:bead:ga-25cw;tests:23-passed;install-plan:0bb089972880127b0e8b619fd35813945b69d9a990c1fef2030d0af7e3b05660] Attached blocking bead ga-25cw to the active ga-k0ry context, implemented a generic no-project-access evidence reviewer plus transactional installer and rollback, and matched the validated live candidate hashes without mutating Gas City.
+- **2026-08-30 18:24 CEST** - [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:codex:hooks/list+config/batchWrite|E:manifest:55e21a9d981805afb62da110b022bc847f7ad2b9a62bada45de95dbdfa472410;tests:56-passed] Replaced interactive hook memory with an exact, modular, supported-API trust transaction and proved it twice against a disposable copy of the real configuration.

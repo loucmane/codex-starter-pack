@@ -14,7 +14,20 @@ import sys
 import tomllib
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from codex_hook_trust import (  # noqa: E402 - direct-script sibling module.
+    DEFAULT_CODEX,
+    EVIDENCE_HOOKS_SHA256,
+    InstallError,
+    _expected_hook_keys,
+    _hook_manifest,
+    trust_codex_hooks,
+)
 
 SCHEMA = "gas-city-workflow.evidence-reviewer-install.v1"
 OPERATOR_PATH = "/home/loucmane/gascity/bin:/usr/local/bin:/usr/bin:/bin"
@@ -34,15 +47,9 @@ worklog_access = "classified-vault"
 """
 
 
-class InstallError(RuntimeError):
-    """Raised when the bounded install cannot be proven safe."""
-
-
 class Runner:
     def run(self, argv: Sequence[str], *, env: dict[str, str] | None = None) -> str:
-        result = subprocess.run(
-            list(argv), check=False, capture_output=True, text=True, env=env
-        )
+        result = subprocess.run(list(argv), check=False, capture_output=True, text=True, env=env)
         if result.returncode != 0:
             detail = (result.stderr or result.stdout).strip()
             raise InstallError(
@@ -269,7 +276,16 @@ def _status(runner: Runner, gc: Path, city: Path) -> dict[str, Any]:
 def _validate_resolved(runner: Runner, gc: Path, city: Path) -> dict[str, Any]:
     runner.run([str(gc), "start", str(city), "--dry-run"], env=_env())
     raw = runner.run(
-        [str(gc), "--city", str(city), "config", "explain", "--provider", "codex-evidence", "--json"],
+        [
+            str(gc),
+            "--city",
+            str(city),
+            "config",
+            "explain",
+            "--provider",
+            "codex-evidence",
+            "--json",
+        ],
         env=_env(),
     )
     try:
@@ -319,21 +335,24 @@ def install(
     gc: Path,
     *,
     apply: bool,
+    codex: Path | None = None,
     codex_config: Path | None = None,
     evidence_root: Path | None = None,
     runner: Runner | None = None,
+    hook_truster: Callable[[Path, Path, Path], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     runner = runner or Runner()
+    hook_truster = hook_truster or trust_codex_hooks
     city = city.resolve()
     gc = gc.resolve()
     if city != DEFAULT_CITY:
         raise InstallError(f"unsupported city root: {city}")
     if gc != DEFAULT_GC or not gc.is_file():
         raise InstallError(f"unsupported gc binary: {gc}")
-    codex_config, codex_mode = _validate_codex_config_path(
-        codex_config or DEFAULT_CODEX_CONFIG
-    )
+    codex_config, codex_mode = _validate_codex_config_path(codex_config or DEFAULT_CODEX_CONFIG)
+    codex = codex or DEFAULT_CODEX
     evidence_root = _validate_evidence_root(evidence_root or DEFAULT_EVIDENCE_ROOT)
+    hooks_path = _hook_manifest(evidence_root)
     city_toml = city / "city.toml"
     agent_dir = city / AGENT_RELATIVE
     if not agent_dir.parent.is_dir() or agent_dir.parent.is_symlink():
@@ -343,6 +362,7 @@ def install(
         "agent.toml": agent_dir / "agent.toml",
         "prompt.template.md": agent_dir / "prompt.template.md",
         "codex-config.toml": codex_config,
+        "codex-hooks.json": hooks_path,
     }
     assets = {
         "provider.toml": _asset("provider.toml"),
@@ -362,9 +382,12 @@ def install(
         "before_city_sha256": _sha256(before),
         "after_city_sha256": _sha256(expected_city),
         "before_codex_config_sha256": _sha256(codex_before),
-        "after_codex_config_sha256": _sha256(expected_codex),
+        "after_project_trust_codex_config_sha256": _sha256(expected_codex),
+        "after_codex_config_sha256": None,
         "codex_config_mode": f"{codex_mode:04o}",
         "evidence_root": evidence_root.as_posix(),
+        "evidence_hooks_sha256": EVIDENCE_HOOKS_SHA256,
+        "expected_hook_keys": _expected_hook_keys(hooks_path),
         "agent_state": state,
         "operation": "install" if state == "absent" else "trust-repair",
         "city_changed": expected_city != before,
@@ -402,14 +425,29 @@ def install(
         if expected_codex != codex_before:
             _atomic_write(codex_config, expected_codex, codex_mode)
             codex_mutated = True
+        # From this point the hook transaction may write config even when project trust
+        # was already exact, so every later failure must restore the captured bytes.
+        codex_mutated = True
+        hook_trust = hook_truster(codex, codex_config, evidence_root)
         provider = _validate_resolved(runner, gc, city)
         _validate_codex_trust(codex_config, evidence_root)
+        codex_after = _read_regular(codex_config)
+        if stat.S_IMODE(codex_config.stat().st_mode) != codex_mode:
+            raise InstallError("Codex hook trust write changed config mode")
         if city_mutated or agent_created:
             runner.run([str(gc), "--city", str(city), "reload"], env=_env())
         post = _status(runner, gc, city)
         if post["controller"]["pid"] != pre["controller"]["pid"]:
             raise InstallError("controller epoch changed during config-only install")
-        result = {**plan, "status": "pass", "evidence": evidence.as_posix(), "provider": provider}
+        _atomic_write(evidence / "codex-config.toml.after", codex_after, 0o600)
+        result = {
+            **plan,
+            "status": "pass",
+            "evidence": evidence.as_posix(),
+            "provider": provider,
+            "hook_trust": hook_trust,
+            "after_codex_config_sha256": _sha256(codex_after),
+        }
         _atomic_write(
             evidence / "result.json",
             (json.dumps(result, indent=2, sort_keys=True) + "\n").encode(),
@@ -451,6 +489,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--city", default=str(DEFAULT_CITY))
     parser.add_argument("--gc", default=str(DEFAULT_GC))
+    parser.add_argument("--codex", default=str(DEFAULT_CODEX))
     parser.add_argument("--codex-config", default=str(DEFAULT_CODEX_CONFIG))
     parser.add_argument("--evidence-root", default=str(DEFAULT_EVIDENCE_ROOT))
     parser.add_argument("--apply", action="store_true")
@@ -464,6 +503,7 @@ def main(argv: list[str] | None = None) -> int:
             Path(args.city),
             Path(args.gc),
             apply=args.apply,
+            codex=Path(args.codex),
             codex_config=Path(args.codex_config),
             evidence_root=Path(args.evidence_root),
         )
