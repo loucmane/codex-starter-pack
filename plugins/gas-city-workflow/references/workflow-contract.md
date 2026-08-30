@@ -7,7 +7,7 @@
 3. Aegis plans, sessions, trackers, and S:W:H:E records are evidence and readiness controls, not a second task ledger.
 4. Operator authorization remains separate for lifecycle, signing, publication, privileged mutation, deployment, and destructive actions.
 
-The plugin adds no shell allowlists, writable roots, groups, capabilities, MCP write methods, or service access. Its context command only reads files and runs read-only Git queries.
+The plugin adds no shell allowlists, writable roots, groups, capabilities, MCP write methods, or service access. Its context command only reads files and runs read-only Git queries. Its lifecycle command uses only the caller's existing repository and ledger authority; it never treats successful orientation or a bead status as authority for routing, rig lifecycle, signing, publication, privileged mutation, or deployment.
 
 ## Cold start
 
@@ -18,6 +18,27 @@ python3 <PLUGIN_ROOT>/scripts/project_context.py --root /absolute/project/root
 ```
 
 The result binds repository identity, exact rig, canonical checkout, approved linked-worktree root, branch/head/cleanliness, current plan/session pointers, ACTIVE trackers, adapter instructions, and literal Beads read commands. Stop if the root is not an exact Git worktree root, registry/descriptor identity is ambiguous, the current worktree is outside the approved root, or authority is not `beads`.
+
+## Lifecycle transitions
+
+Run `workflow.py begin --root <canonical-root> --bead <id>` instead of remembering the
+worktree/kickoff/claim/readiness sequence. The transition journal lives under the repository's Git
+common directory at `.git/gas-city-workflow/transactions/<bead>.json`, outside individual linked
+worktrees. It binds the exact project, rig, branch, worktree, and starting commit and advances only
+through `planned → worktree-created → scaffolded → claimed → ready`.
+
+- `begin` creates or safely adopts the exact derived worktree and starts the evidence workflow.
+- `resume` derives the active bead from `sessions/state.json` when `--bead` is omitted and verifies
+  or completes the same transaction.
+- `recover` is the explicit operator-facing synonym for append-forward recovery after a proven
+  pre-mutation failure or complete rollback.
+- `checkpoint`, `verify`, `publish`, and `finish` run their bounded checks and append results to
+  the same transition journal.
+
+The journal is evidence, not authority. A partial or contradictory filesystem, Git, bead, or
+scaffold state blocks instead of being guessed away. Existing unscaffolded worktrees can only be
+fast-forwarded when clean and ancestor-related; once scaffolded, their task branch is never moved
+by lifecycle replay.
 
 ## Workspace placement
 

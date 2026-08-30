@@ -128,7 +128,7 @@ def test_plugin_manifest_and_router_skill_validate() -> None:
     assert result.returncode == 0, result.stdout + result.stderr
     manifest = json.loads((PLUGIN / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
     assert manifest["name"] == "gas-city-workflow"
-    assert manifest["version"] == "0.1.1"
+    assert manifest["version"].startswith("0.2.0+codex.")
     assert manifest["interface"]["capabilities"] == ["Read"]
     assert not (PLUGIN / ".mcp.json").exists()
     assert not (PLUGIN / "hooks").exists()
@@ -206,6 +206,10 @@ def test_context_capsule_supports_three_registered_projects_without_mutation(
             "enforced": True,
         }
         assert context["workflow"]["authority"] == "beads"
+        assert context["plugin_version"] == module.PLUGIN_VERSION
+        assert context["workflow"]["lifecycle_entrypoint"].endswith("/scripts/workflow.py")
+        assert context["workflow"]["commands"]["begin"][-1] == "<bead-id>"
+        assert context["workflow"]["commands"]["resume"][-1] == root.as_posix()
         assert context["workflow"]["commands"]["ready"][3:6] == [
             "--rig",
             project_id,
@@ -230,8 +234,55 @@ def test_future_project_onboards_with_local_descriptor(tmp_path: Path) -> None:
     assert context["workflow"]["rig"] == "future-project"
     assert context["workflow"]["active_trackers"] == ["20300101-future-project-ACTIVE"]
     assert context["workspace"]["canonical_root"] == root.as_posix()
-    assert context["workspace"]["worktree_root"] == (tmp_path / "future-project-worktrees").as_posix()
+    assert (
+        context["workspace"]["worktree_root"] == (tmp_path / "future-project-worktrees").as_posix()
+    )
     assert context["workspace"]["location"] == "canonical"
+    assert context["git"]["origin_status"] == "unconfigured"
+
+
+@pytest.mark.parametrize(
+    "remote",
+    (
+        "git@github.com:fixture/future-project.git",
+        "https://github.com/fixture/future-project",
+        "ssh://git@github.com/fixture/future-project.git",
+    ),
+)
+def test_project_identity_matches_supported_origin_shapes(tmp_path: Path, remote: str) -> None:
+    module = _load_context_module()
+    root = tmp_path / "future-project"
+    _init_project(root, "future-project", descriptor=True)
+    subprocess.run(
+        ["git", "remote", "add", "origin", remote],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    registry = _write_registry(tmp_path / "projects.json", [])
+
+    context = module.build_context(root, registry)
+
+    assert context["git"]["origin_repository"] == "fixture/future-project"
+    assert context["git"]["origin_status"] == "exact"
+
+
+def test_project_identity_blocks_declared_repository_origin_mismatch(tmp_path: Path) -> None:
+    module = _load_context_module()
+    root = tmp_path / "future-project"
+    _init_project(root, "future-project", descriptor=True)
+    subprocess.run(
+        ["git", "remote", "add", "origin", "git@github.com:fixture/renamed-project.git"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    registry = _write_registry(tmp_path / "projects.json", [])
+
+    with pytest.raises(module.ContextError, match="disagrees with origin"):
+        module.build_context(root, registry)
 
 
 def test_descriptor_only_linked_worktree_uses_sibling_root_and_blocks_legacy_root(
@@ -287,9 +338,9 @@ def test_registry_can_override_the_derived_worktree_root(tmp_path: Path) -> None
 
 def test_gas_city_operations_identity_and_workspace_policy_are_registered() -> None:
     descriptor = json.loads((REPO_ROOT / ".gas-city-workflow.json").read_text(encoding="utf-8"))
-    registry = json.loads(
-        (PLUGIN / "config" / "projects.json").read_text(encoding="utf-8")
-    )["projects"]
+    registry = json.loads((PLUGIN / "config" / "projects.json").read_text(encoding="utf-8"))[
+        "projects"
+    ]
     registered = next(project for project in registry if project["id"] == "gas-city-operations")
 
     assert descriptor == {
@@ -302,9 +353,9 @@ def test_gas_city_operations_identity_and_workspace_policy_are_registered() -> N
     }
     assert registered["root"] == "/home/loucmane/gas-city-ops"
     assert registered["worktree_root"] == "/home/loucmane/gas-city-ops-worktrees"
-    assert {key: value for key, value in registered.items() if key not in {"root", "worktree_root"}} == {
-        key: value for key, value in descriptor.items() if key != "schema"
-    }
+    assert {
+        key: value for key, value in registered.items() if key not in {"root", "worktree_root"}
+    } == {key: value for key, value in descriptor.items() if key != "schema"}
 
 
 def test_descriptor_and_registry_disagreement_fails_closed(tmp_path: Path) -> None:

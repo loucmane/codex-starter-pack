@@ -1036,5 +1036,53 @@
     "plan_hash": "1fd2614c4d935462428a081ff83e8a202588be093d7c0ae1ccf451af5b3b305f",
     "tracker_hash": "abbce0255a233bf79858cfa259ea252f04e5f2114a42258084cdd378e800b359",
     "synced_at": "2026-08-30T12:24:11.938814+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-iebz-workflow-transitions.md",
+    "plan_hash": "3044edac5811de000cc017a4ed55b1bad1decf2a2412b0b62a508de6547952c4",
+    "tracker_hash": "6515c42cb6386d9a6d74cff111cf99f5ee282d6df89a4a8e120f2403077d4936",
+    "synced_at": "2026-08-30T12:40:58.744277+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-iebz-workflow-transitions.md",
+    "plan_hash": "0dcc078f20d753c9d02b85575727aad4ee6e1e961068ebdf0ab4ef40bf40fc0c",
+    "tracker_hash": "34f254633197acc6fa33027702cece05529db2f515002231f36f5693370aff03",
+    "synced_at": "2026-08-30T12:43:11.103692+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-iebz-workflow-transitions.md",
+    "plan_hash": "472a33caa5da376297caf8f3ec95505670b47018829bc4af35d4d4856416db23",
+    "tracker_hash": "5ca68d5a5809ebe79af11dcacbe89d22190a91818cfd9b7db3250224cf3b55fa",
+    "synced_at": "2026-08-30T13:02:41.195475+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-iebz-workflow-transitions.md",
+    "plan_hash": "34f098d79d8ca37703536bdfd3db98c372568a0b0ee4f6d2cbc20362775f2841",
+    "tracker_hash": "ba7cb8d78c67955b2264ac36b09166bc2a76d4d85b0b1df383946a93603adc90",
+    "synced_at": "2026-08-30T13:08:08.297927+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-iebz-workflow-transitions.md",
+    "plan_hash": "34f098d79d8ca37703536bdfd3db98c372568a0b0ee4f6d2cbc20362775f2841",
+    "tracker_hash": "ba7cb8d78c67955b2264ac36b09166bc2a76d4d85b0b1df383946a93603adc90",
+    "synced_at": "2026-08-30T13:09:12.329586+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-iebz-workflow-transitions.md",
+    "plan_hash": "34f098d79d8ca37703536bdfd3db98c372568a0b0ee4f6d2cbc20362775f2841",
+    "tracker_hash": "44d792222b8b85860622dc7ae7777bbb3f7d5f8504b3e4194fe6010efd7123db",
+    "synced_at": "2026-08-30T13:10:25.577690+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-iebz-workflow-transitions.md",
+    "plan_hash": "34f098d79d8ca37703536bdfd3db98c372568a0b0ee4f6d2cbc20362775f2841",
+    "tracker_hash": "44d792222b8b85860622dc7ae7777bbb3f7d5f8504b3e4194fe6010efd7123db",
+    "synced_at": "2026-08-30T13:13:22.198215+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-iebz-workflow-transitions.md",
+    "plan_hash": "34f098d79d8ca37703536bdfd3db98c372568a0b0ee4f6d2cbc20362775f2841",
+    "tracker_hash": "7e4f7124d76944077d021fef93d1948b288c21277ade9f3ccce5ffc445876be8",
+    "synced_at": "2026-08-30T13:15:12.045995+02:00"
   }
 ]

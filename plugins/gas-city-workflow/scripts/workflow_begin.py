@@ -1,0 +1,387 @@
+#!/usr/bin/env python3
+"""Transactional begin/resume implementation for Gas City workflow worktrees."""
+
+from __future__ import annotations
+
+import json
+import sys
+from dataclasses import replace
+from pathlib import Path
+from typing import Any, Mapping, Sequence
+
+from project_context import DEFAULT_REGISTRY, build_context
+from workflow_common import (
+    PHASES,
+    BeginSpec,
+    CommandRunner,
+    WorkflowError,
+    advance_journal,
+    atomic_write_json,
+    derive_begin_spec,
+    initialize_journal,
+    journal_path,
+    load_bead,
+    load_journal,
+    managed_environment,
+    require_journal_spec,
+    result_payload,
+    run_readiness,
+    workflow_runtime_root,
+)
+
+
+def _phase_at_least(journal: Mapping[str, Any], phase: str) -> bool:
+    return PHASES.index(str(journal["phase"])) >= PHASES.index(phase)
+
+
+def _worktree_records(runner: CommandRunner, canonical: Path) -> list[dict[str, str]]:
+    result = runner.run(["git", "-C", str(canonical), "worktree", "list", "--porcelain"])
+    records: list[dict[str, str]] = []
+    current: dict[str, str] = {}
+    for line in result.stdout.splitlines() + [""]:
+        if not line:
+            if current:
+                records.append(current)
+                current = {}
+            continue
+        key, _, value = line.partition(" ")
+        if key in {"worktree", "HEAD", "branch"}:
+            current[key] = value
+    return records
+
+
+def _matching_worktree(
+    runner: CommandRunner,
+    spec: BeginSpec,
+) -> dict[str, str] | None:
+    expected_branch = f"refs/heads/{spec.branch}"
+    matches = [
+        item
+        for item in _worktree_records(runner, Path(spec.canonical_root))
+        if item.get("worktree") == spec.worktree or item.get("branch") == expected_branch
+    ]
+    if not matches:
+        return None
+    if len(matches) != 1:
+        raise WorkflowError("branch/worktree identity resolves to multiple Git worktrees")
+    record = matches[0]
+    if record.get("worktree") != spec.worktree or record.get("branch") != expected_branch:
+        raise WorkflowError("existing branch/worktree pair disagrees with the derived target")
+    return record
+
+
+def _ensure_worktree(
+    runner: CommandRunner,
+    spec: BeginSpec,
+    journal: dict[str, Any],
+    path: Path,
+) -> None:
+    existing = _matching_worktree(runner, spec)
+    target = Path(spec.worktree)
+    if existing is None:
+        if target.exists():
+            raise WorkflowError(f"derived worktree path already exists outside Git: {target}")
+        branch_exists = (
+            runner.run(
+                [
+                    "git",
+                    "-C",
+                    spec.canonical_root,
+                    "show-ref",
+                    "--verify",
+                    "--quiet",
+                    f"refs/heads/{spec.branch}",
+                ],
+                check=False,
+            ).returncode
+            == 0
+        )
+        if branch_exists:
+            if not _phase_at_least(journal, "worktree-created"):
+                raise WorkflowError("derived branch exists without a matching journal/worktree")
+            runner.run(
+                [
+                    "git",
+                    "-C",
+                    spec.canonical_root,
+                    "worktree",
+                    "add",
+                    spec.worktree,
+                    spec.branch,
+                ]
+            )
+        else:
+            runner.run(
+                [
+                    "git",
+                    "-C",
+                    spec.canonical_root,
+                    "worktree",
+                    "add",
+                    "-b",
+                    spec.branch,
+                    spec.worktree,
+                    spec.base_commit,
+                ]
+            )
+        existing = _matching_worktree(runner, spec)
+    if existing is None or not target.is_dir():
+        raise WorkflowError("Git did not materialize the derived worktree")
+    if existing.get("HEAD") != spec.base_commit and not _phase_at_least(journal, "scaffolded"):
+        status = runner.run(["git", "-C", spec.worktree, "status", "--porcelain=v1"]).stdout.strip()
+        ancestor = runner.run(
+            [
+                "git",
+                "-C",
+                spec.canonical_root,
+                "merge-base",
+                "--is-ancestor",
+                str(existing.get("HEAD") or ""),
+                spec.base_commit,
+            ],
+            check=False,
+        )
+        if status or ancestor.returncode != 0:
+            raise WorkflowError(
+                "existing unscaffolded worktree cannot be safely fast-forwarded to the "
+                "canonical base"
+            )
+        runner.run(["git", "-C", spec.worktree, "merge", "--ff-only", spec.base_commit])
+        existing = _matching_worktree(runner, spec)
+        if existing is None or existing.get("HEAD") != spec.base_commit:
+            raise WorkflowError("worktree fast-forward did not reach the canonical base")
+    if not _phase_at_least(journal, "worktree-created"):
+        advance_journal(journal, "worktree-created")
+        atomic_write_json(path, journal)
+
+
+def _active_dirs(root: Path) -> list[Path]:
+    active_root = root / "docs" / "ai" / "work-tracking" / "active"
+    if not active_root.is_dir():
+        return []
+    return sorted(
+        item for item in active_root.iterdir() if item.is_dir() and item.name.endswith("-ACTIVE")
+    )
+
+
+def _scaffold_state(root: Path, spec: BeginSpec) -> str:
+    active = _active_dirs(root)
+    matching = [item for item in active if f"-{spec.bead_id}-" in item.name]
+    session_state = root / "sessions" / "state.json"
+    session_bead = None
+    if session_state.is_file():
+        try:
+            payload = json.loads(session_state.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise WorkflowError("sessions/state.json is invalid JSON") from exc
+        task = payload.get("task") if isinstance(payload, dict) else None
+        if isinstance(task, dict):
+            session_bead = task.get("id")
+    if session_bead is None:
+        current_session = root / "sessions" / "current"
+        if current_session.is_symlink():
+            try:
+                session_text = current_session.resolve(strict=True).read_text(encoding="utf-8")
+            except OSError as exc:
+                raise WorkflowError("sessions/current is broken") from exc
+            if f"**Bead**: `{spec.bead_id}`" in session_text:
+                session_bead = spec.bead_id
+    plan = root / "plans" / "current"
+    plan_text = ""
+    if plan.is_symlink():
+        try:
+            plan_text = plan.resolve(strict=True).read_text(encoding="utf-8")
+        except OSError as exc:
+            raise WorkflowError("plans/current is broken") from exc
+    exact = (
+        len(active) == 1
+        and len(matching) == 1
+        and session_bead == spec.bead_id
+        and f"bead_ids: [{spec.bead_id}]" in plan_text
+        and f"branch_policy: {spec.branch}" in plan_text
+    )
+    if exact:
+        return "exact"
+    if active or session_bead == spec.bead_id or f"bead_ids: [{spec.bead_id}]" in plan_text:
+        raise WorkflowError("partial or mismatched workflow scaffold requires explicit diagnosis")
+    return "absent"
+
+
+def _kickoff_command(
+    spec: BeginSpec,
+    goals: Sequence[str],
+    registry: Path,
+) -> tuple[list[str], Path]:
+    target = Path(spec.worktree)
+    goal_args = [part for goal in goals for part in ("--goal", goal)]
+    source_task = target / "scripts" / "codex-task"
+    if source_task.is_file() and not (target / ".aegis" / "foundation-manifest.json").is_file():
+        return (
+            [
+                sys.executable,
+                str(source_task),
+                "wizard",
+                "kickoff",
+                "--bead",
+                spec.bead_id,
+                "--slug",
+                spec.slug,
+                "--title",
+                spec.title,
+                "--task-source",
+                f"Gas City bead {spec.bead_id}",
+                "--handler-target",
+                "plugins/gas-city-workflow",
+                *goal_args,
+            ],
+            target,
+        )
+    runtime_root = workflow_runtime_root(registry)
+    canonical_task = runtime_root / "scripts" / "codex-task"
+    return (
+        [
+            sys.executable,
+            str(canonical_task),
+            "aegis",
+            "kickoff",
+            "--target-dir",
+            str(target),
+            "--bead",
+            spec.bead_id,
+            "--slug",
+            spec.slug,
+            "--title",
+            spec.title,
+            "--no-create-branch",
+            *goal_args,
+        ],
+        runtime_root,
+    )
+
+
+def _ensure_scaffold(
+    runner: CommandRunner,
+    spec: BeginSpec,
+    journal: dict[str, Any],
+    path: Path,
+    goals: Sequence[str],
+    registry: Path,
+) -> None:
+    target = Path(spec.worktree)
+    if _scaffold_state(target, spec) == "absent":
+        argv, cwd = _kickoff_command(spec, goals, registry)
+        runner.run(argv, cwd=cwd)
+    if _scaffold_state(target, spec) != "exact":
+        raise WorkflowError("workflow kickoff did not create the exact expected scaffold")
+    if not _phase_at_least(journal, "scaffolded"):
+        advance_journal(journal, "scaffolded")
+        atomic_write_json(path, journal)
+
+
+def _ensure_claim(
+    runner: CommandRunner,
+    spec: BeginSpec,
+    journal: dict[str, Any],
+    path: Path,
+    registry: Path,
+) -> dict[str, Any]:
+    context = build_context(Path(spec.worktree), registry)
+    bead = load_bead(runner, context, spec.bead_id)
+    if bead.get("status") == "open":
+        workflow = context["workflow"]
+        runner.run(
+            [
+                str(workflow["gc"]),
+                "--city",
+                str(workflow["city"]),
+                "--rig",
+                str(workflow["rig"]),
+                "bd",
+                "update",
+                spec.bead_id,
+                "--claim",
+            ],
+            env=managed_environment(),
+        )
+        bead = load_bead(runner, context, spec.bead_id)
+    if bead.get("status") != "in_progress":
+        raise WorkflowError("bead claim did not produce in_progress state")
+    if not _phase_at_least(journal, "claimed"):
+        advance_journal(journal, "claimed")
+        atomic_write_json(path, journal)
+    return bead
+
+
+def begin(
+    root: Path,
+    bead_id: str,
+    *,
+    slug: str | None,
+    goals: Sequence[str],
+    registry: Path = DEFAULT_REGISTRY,
+    dry_run: bool = False,
+    runner: CommandRunner | None = None,
+) -> dict[str, Any]:
+    runner = runner or CommandRunner()
+    spec, _, bead = derive_begin_spec(runner, root, bead_id, slug=slug, registry=registry)
+    path = journal_path(runner, spec)
+    journal = load_journal(path)
+    if journal is None:
+        journal = initialize_journal(spec)
+    else:
+        stored_base = journal.get("spec", {}).get("base_commit")
+        if not isinstance(stored_base, str) or not stored_base:
+            raise WorkflowError("transition journal base commit is invalid")
+        spec = replace(spec, base_commit=stored_base)
+        require_journal_spec(journal, spec)
+    if dry_run:
+        return result_payload(
+            "begin",
+            "planned",
+            spec=spec.payload(),
+            phase=journal["phase"],
+            journal=path.as_posix(),
+            bead_status=bead.get("status"),
+        )
+
+    atomic_write_json(path, journal)
+    _ensure_worktree(runner, spec, journal, path)
+    _ensure_scaffold(runner, spec, journal, path, goals, registry)
+    bead = _ensure_claim(runner, spec, journal, path, registry)
+    readiness = run_readiness(runner, Path(spec.worktree))
+    if "STATE: READY" not in readiness:
+        raise WorkflowError("readiness command succeeded without a READY state")
+    if not _phase_at_least(journal, "ready"):
+        advance_journal(journal, "ready")
+        atomic_write_json(path, journal)
+    context = build_context(Path(spec.worktree), registry)
+    return result_payload(
+        "begin",
+        "ready",
+        spec=spec.payload(),
+        phase=journal["phase"],
+        journal=path.as_posix(),
+        bead_status=bead.get("status"),
+        readiness="READY",
+        context=context,
+    )
+
+
+def resume(
+    root: Path,
+    bead_id: str,
+    *,
+    slug: str | None,
+    goals: Sequence[str],
+    registry: Path = DEFAULT_REGISTRY,
+    runner: CommandRunner | None = None,
+) -> dict[str, Any]:
+    return begin(
+        root,
+        bead_id,
+        slug=slug,
+        goals=goals,
+        registry=registry,
+        dry_run=False,
+        runner=runner,
+    )
