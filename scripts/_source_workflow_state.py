@@ -11,7 +11,7 @@ import tomllib
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Mapping
 
 SOURCE_MARKERS = (
     Path("schemas/aegis/foundation-manifest.schema.json"),
@@ -814,3 +814,188 @@ def recover_source_current_work(
     if written != expected:
         raise SourceWorkflowStateError("source current-work atomic write readback mismatch")
     return expected
+
+
+def retire_recovered_source_current_work(
+    root: Path,
+    transaction: Mapping[str, object],
+) -> bool:
+    """Durably retire only the recovered source envelope bound to ``transaction``.
+
+    An absent envelope is an idempotent no-op. Any installed, malformed, tampered,
+    or differently scoped envelope is preserved and refused for manual review.
+    """
+
+    root = root.resolve()
+    if not is_uninstalled_aegis_source_checkout(root):
+        raise SourceWorkflowStateError(
+            "source current-work retirement requires an uninstalled source checkout"
+        )
+
+    current_path = root / CURRENT_WORK_RELATIVE
+    if not current_path.exists() and not current_path.is_symlink():
+        return False
+
+    cursor = root
+    for part in CURRENT_WORK_RELATIVE.parent.parts:
+        cursor /= part
+        if cursor.is_symlink():
+            raise SourceWorkflowStateError(
+                "source current-work state directory contains a symlink"
+            )
+    if current_path.is_symlink() or not current_path.is_file():
+        raise SourceWorkflowStateError("source current-work state must be a regular file")
+    try:
+        payload = json.loads(current_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise SourceWorkflowStateError(
+            f"source current-work state is invalid JSON: {exc}"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise SourceWorkflowStateError("source current-work state must be a JSON object")
+
+    work = transaction.get("work")
+    paths = transaction.get("paths")
+    if not isinstance(work, Mapping) or not isinstance(paths, Mapping):
+        raise SourceWorkflowStateError("source closeout retirement binding is invalid")
+    work_kind = work.get("kind")
+    work_id = work.get("id")
+    if work_kind not in {"task", "bead"} or not isinstance(work_id, str):
+        raise SourceWorkflowStateError("source closeout retirement work identity is invalid")
+    expected_path_keys = {"active", "archive", "plan", "session"}
+    if set(paths) != expected_path_keys or not all(
+        isinstance(paths.get(key), str) and paths.get(key) for key in expected_path_keys
+    ):
+        raise SourceWorkflowStateError("source closeout retirement paths are invalid")
+
+    expected_top_keys = {
+        "schema_version",
+        "mode",
+        "status",
+        "task",
+        "branch",
+        "paths",
+        "integrations",
+        "created_at",
+        "updated_at",
+        "recovery",
+    }
+    if work_kind == "bead":
+        expected_top_keys.add("authority")
+    if set(payload) != expected_top_keys:
+        raise SourceWorkflowStateError("source current-work recovered shape is invalid")
+    if not isinstance(payload.get("schema_version"), str) or not payload["schema_version"]:
+        raise SourceWorkflowStateError("source current-work schema version is invalid")
+    if payload.get("mode") != work_kind or payload.get("status") != "in-progress":
+        raise SourceWorkflowStateError(
+            "source current-work state does not match the closeout work identity"
+        )
+
+    task = payload.get("task")
+    expected_task_keys = {"id", "slug", "title", "status"}
+    if work_kind == "bead":
+        expected_task_keys.add("source")
+    if not isinstance(task, dict) or set(task) != expected_task_keys:
+        raise SourceWorkflowStateError("source current-work task shape is invalid")
+    if task.get("id") != work_id or task.get("status") != "in-progress":
+        raise SourceWorkflowStateError(
+            "source current-work task does not match the closeout work identity"
+        )
+    if not isinstance(task.get("slug"), str) or not task["slug"]:
+        raise SourceWorkflowStateError("source current-work task slug is invalid")
+    if not isinstance(task.get("title"), str) or not task["title"]:
+        raise SourceWorkflowStateError("source current-work task title is invalid")
+    if work_kind == "bead" and task.get("source") != "gas-city-bead":
+        raise SourceWorkflowStateError("source current-work bead source is invalid")
+
+    branch = payload.get("branch")
+    if not isinstance(branch, dict) or set(branch) != {
+        "before",
+        "current",
+        "action",
+        "created",
+    }:
+        raise SourceWorkflowStateError("source current-work branch shape is invalid")
+    if (
+        not isinstance(branch.get("before"), str)
+        or branch.get("before") != branch.get("current")
+        or branch.get("action") != "recovered_source_checkout"
+        or branch.get("created") is not False
+    ):
+        raise SourceWorkflowStateError("source current-work branch recovery is invalid")
+
+    current_paths = payload.get("paths")
+    if not isinstance(current_paths, dict) or set(current_paths) != {
+        "session",
+        "session_current",
+        "plan",
+        "plan_current",
+        "work_tracking",
+        "reports",
+        "workflow_templates",
+    }:
+        raise SourceWorkflowStateError("source current-work paths shape is invalid")
+    if (
+        current_paths.get("session") != paths["session"]
+        or current_paths.get("plan") != paths["plan"]
+        or current_paths.get("work_tracking") != paths["active"]
+        or current_paths.get("session_current") != SESSIONS_CURRENT_RELATIVE.as_posix()
+        or current_paths.get("plan_current") != PLANS_CURRENT_RELATIVE.as_posix()
+        or current_paths.get("workflow_templates") != ".aegis/templates/workflow"
+        or current_paths.get("reports")
+        != f"{paths['active']}/reports/{task['slug']}"
+    ):
+        raise SourceWorkflowStateError(
+            "source current-work paths do not match the closeout transaction"
+        )
+
+    if work_kind == "bead":
+        if payload.get("authority") != {
+            "kind": "gas-city-bead",
+            "id": work_id,
+            "mutable": True,
+        }:
+            raise SourceWorkflowStateError(
+                "source current-work authority does not match the closeout work identity"
+            )
+
+    recovery = payload.get("recovery")
+    if not isinstance(recovery, dict) or set(recovery) != {
+        "kind",
+        "fingerprint",
+        "recovered_at",
+    }:
+        raise SourceWorkflowStateError("source current-work recovery metadata is invalid")
+    if recovery.get("kind") != "tracked-source-lifecycle":
+        raise SourceWorkflowStateError("source current-work was not recovered from tracked state")
+    fingerprint = recovery.get("fingerprint")
+    if not isinstance(fingerprint, str) or not re.fullmatch(r"[0-9a-f]{64}", fingerprint):
+        raise SourceWorkflowStateError("source current-work recovery fingerprint is invalid")
+    recovered_at = recovery.get("recovered_at")
+    if (
+        not isinstance(recovered_at, str)
+        or not recovered_at
+        or payload.get("created_at") != recovered_at
+        or payload.get("updated_at") != recovered_at
+    ):
+        raise SourceWorkflowStateError("source current-work recovery timestamps are invalid")
+    core = {
+        key: value
+        for key, value in payload.items()
+        if key not in {"created_at", "updated_at", "recovery"}
+    }
+    expected_fingerprint = hashlib.sha256(
+        json.dumps(core, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    if fingerprint != expected_fingerprint:
+        raise SourceWorkflowStateError("source current-work recovery fingerprint mismatch")
+
+    current_path.unlink()
+    directory_descriptor = os.open(current_path.parent, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(directory_descriptor)
+    finally:
+        os.close(directory_descriptor)
+    if current_path.exists() or current_path.is_symlink():
+        raise SourceWorkflowStateError("source current-work durable retirement failed")
+    return True

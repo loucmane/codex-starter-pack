@@ -20,6 +20,7 @@ from scripts._source_workflow_state import (
     derive_completed_source_work,
     derive_source_lifecycle,
     recover_source_current_work,
+    retire_recovered_source_current_work,
 )
 from scripts import _aegis_installer
 
@@ -499,6 +500,68 @@ def test_source_current_work_recovery_refuses_branch_policy_drift_without_write(
         )
 
     assert not (root / ".aegis" / "state" / "current-work.json").exists()
+
+
+def test_recovered_source_current_work_retires_only_for_matching_closeout(
+    tmp_path: Path,
+) -> None:
+    root, _ = _init_bead_source_repo(tmp_path)
+    active = _activate_bead_source_state(root)
+    branch = "codex/ga-test1-source-closeout"
+    recovered = recover_source_current_work(root, branch, schema_version="fixture-v1")
+    current_path = root / ".aegis" / "state" / "current-work.json"
+    plan = (root / "plans" / "current").resolve().relative_to(root).as_posix()
+    session = (root / "sessions" / "current").resolve().relative_to(root).as_posix()
+    transaction = {
+        "work": {"kind": "bead", "id": "ga-test1"},
+        "paths": {
+            "active": active.relative_to(root).as_posix(),
+            "archive": "docs/ai/work-tracking/archive/20300101-ga-test1-source-closeout-COMPLETED",
+            "plan": plan,
+            "session": session,
+        },
+    }
+
+    mismatched = json.loads(json.dumps(transaction))
+    mismatched["work"]["id"] = "ga-other1"
+    with pytest.raises(SourceWorkflowStateError, match="does not match"):
+        retire_recovered_source_current_work(root, mismatched)
+    assert json.loads(current_path.read_text(encoding="utf-8")) == recovered
+
+    assert retire_recovered_source_current_work(root, transaction) is True
+    assert not current_path.exists()
+    assert retire_recovered_source_current_work(root, transaction) is False
+
+
+def test_recovered_source_current_work_retirement_refuses_tamper_and_installed_state(
+    tmp_path: Path,
+) -> None:
+    root, _ = _init_bead_source_repo(tmp_path)
+    active = _activate_bead_source_state(root)
+    branch = "codex/ga-test1-source-closeout"
+    recover_source_current_work(root, branch, schema_version="fixture-v1")
+    current_path = root / ".aegis" / "state" / "current-work.json"
+    transaction = {
+        "work": {"kind": "bead", "id": "ga-test1"},
+        "paths": {
+            "active": active.relative_to(root).as_posix(),
+            "archive": "docs/ai/work-tracking/archive/20300101-ga-test1-source-closeout-COMPLETED",
+            "plan": (root / "plans" / "current").resolve().relative_to(root).as_posix(),
+            "session": (root / "sessions" / "current").resolve().relative_to(root).as_posix(),
+        },
+    }
+    tampered = json.loads(current_path.read_text(encoding="utf-8"))
+    tampered["task"]["title"] = "Tampered title"
+    current_path.write_text(json.dumps(tampered), encoding="utf-8")
+
+    with pytest.raises(SourceWorkflowStateError, match="fingerprint mismatch"):
+        retire_recovered_source_current_work(root, transaction)
+    assert current_path.exists()
+
+    _write(root / ".aegis" / "foundation-manifest.json", "{}\n")
+    with pytest.raises(SourceWorkflowStateError, match="uninstalled source checkout"):
+        retire_recovered_source_current_work(root, transaction)
+    assert current_path.exists()
 
 
 def test_aegis_log_recovers_source_current_work_once_and_uses_bead_context(
