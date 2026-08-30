@@ -1,6 +1,7 @@
 # Gas City Workflow plugin
 
-Version `0.2.0` packages the common lifecycle without copying project state into prompts or widening permissions.
+Version `0.3.0` packages the common lifecycle and frozen report-only evidence reviews without
+copying project state into prompts or widening permissions.
 
 - `skills/gas-city-workflow/SKILL.md` is the small routing skill.
 - `scripts/project_context.py` emits the live read-only context capsule.
@@ -9,6 +10,8 @@ Version `0.2.0` packages the common lifecycle without copying project state into
 - `config/projects.json` binds established canonical roots and exceptional worktree-root overrides.
 - `.gas-city-workflow.json` descriptors onboard future projects without changing plugin code.
 - `adapters/` keeps Codex execution and Fable read-only review on the same contract.
+- `skills/gas-city-evidence-workflow/` and `scripts/evidence/` provide the generic shadow-review
+  contract while projects retain their own builders, prompts, rubrics, and report schemas.
 
 The context capsule derives the canonical checkout from Git common-directory truth. Linked worktrees must be direct children of the reported `workspace.worktree_root`; source work from arbitrary or preserved legacy roots fails closed.
 
@@ -28,6 +31,11 @@ journal. `resume` and `recover` replay the same transition from live state; comp
 verified rather than repeated. The remaining commands record meaningful lifecycle checkpoints in
 the same journal. None of them grants routing, rig lifecycle, signing, publication, privileged
 mutation, or deployment authority.
+
+The evidence workflow similarly cannot grant dispatch or calculate a domain verdict. It binds
+tracked project assets and external inputs, audits blind bundles and exact report directories,
+validates evidence-only reports, and enforces seal/readback/dispatch/release ordering. Only
+`mode=shadow` exists in v1. See `references/evidence-profile-contract.md`.
 
 Validate from the repository root:
 
