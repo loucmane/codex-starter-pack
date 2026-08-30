@@ -1,12 +1,14 @@
 # Gas City Workflow plugin
 
-Version `0.1.0` packages the common cold-start workflow without copying project state into prompts or widening permissions.
+Version `0.1.1` packages the common cold-start workflow without copying project state into prompts or widening permissions.
 
 - `skills/gas-city-workflow/SKILL.md` is the small routing skill.
 - `scripts/project_context.py` emits the live read-only context capsule.
-- `config/projects.json` binds the three established projects.
+- `config/projects.json` binds established canonical roots and exceptional worktree-root overrides.
 - `.gas-city-workflow.json` descriptors onboard future projects without changing plugin code.
 - `adapters/` keeps Codex execution and Fable read-only review on the same contract.
+
+The context capsule derives the canonical checkout from Git common-directory truth. Linked worktrees must be direct children of the reported `workspace.worktree_root`; source work from arbitrary or preserved legacy roots fails closed.
 
 Validate from the repository root:
 

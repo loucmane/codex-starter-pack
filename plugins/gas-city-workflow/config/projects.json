@@ -2,6 +2,15 @@
   "schema": "gas-city-workflow.project-registry.v1",
   "projects": [
     {
+      "id": "gas-city-operations",
+      "root": "/home/loucmane/gas-city-ops",
+      "worktree_root": "/home/loucmane/gas-city-ops-worktrees",
+      "repository": "loucmane/gas-city-operations",
+      "rig": "gascity",
+      "workflow_authority": "beads",
+      "workflow_profile": "beads-with-aegis-evidence"
+    },
+    {
       "id": "gas-city",
       "root": "/home/loucmane/gascity/city/rigs/gascity",
       "repository": "loucmane/gascity",

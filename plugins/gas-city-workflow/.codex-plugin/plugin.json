@@ -1,6 +1,6 @@
 {
   "name": "gas-city-workflow",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Beads-first Gas City project orientation and workflow routing for Codex and read-only reviewers.",
   "author": {
     "name": "Gas City maintainers"

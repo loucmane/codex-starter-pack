@@ -17,7 +17,7 @@ DESCRIPTOR_NAME = ".gas-city-workflow.json"
 REGISTRY_SCHEMA = "gas-city-workflow.project-registry.v1"
 DESCRIPTOR_SCHEMA = "gas-city-workflow.project.v1"
 CONTEXT_SCHEMA = "gas-city-workflow.project-context.v1"
-PLUGIN_VERSION = "0.1.0"
+PLUGIN_VERSION = "0.1.1"
 CITY = "/home/loucmane/gascity/city"
 GC = "/home/loucmane/gascity/bin/gc"
 BD = "/home/loucmane/gascity/bin/bd"
@@ -41,7 +41,7 @@ def _read_json_object(path: Path, label: str) -> dict[str, Any]:
     return payload
 
 
-def _validate_project(project: dict[str, Any], *, allow_root: bool) -> dict[str, str]:
+def _validate_project(project: dict[str, Any], *, allow_root: bool) -> dict[str, Any]:
     expected = {
         "id",
         "repository",
@@ -49,10 +49,12 @@ def _validate_project(project: dict[str, Any], *, allow_root: bool) -> dict[str,
         "workflow_authority",
         "workflow_profile",
     }
+    optional = {"worktree_root"} if allow_root else set()
     if allow_root:
         expected.add("root")
-    if set(project) != expected:
-        raise ContextError(f"project keys must be exactly {sorted(expected)}")
+    if not expected.issubset(project) or not set(project).issubset(expected | optional):
+        allowed = sorted(expected | optional)
+        raise ContextError(f"project keys must contain {sorted(expected)} and only {allowed}")
     project_id = project.get("id")
     rig = project.get("rig")
     repository = project.get("repository")
@@ -70,15 +72,20 @@ def _validate_project(project: dict[str, Any], *, allow_root: bool) -> dict[str,
         "beads-with-frozen-legacy-evidence",
     }:
         raise ContextError("workflow_profile is invalid")
-    result = {key: str(value) for key, value in project.items()}
+    result: dict[str, Any] = {key: str(value) for key, value in project.items()}
     if allow_root:
         root_value = project.get("root")
         if not isinstance(root_value, str) or not Path(root_value).is_absolute():
             raise ContextError("registered project root must be absolute")
+        worktree_root = project.get("worktree_root")
+        if worktree_root is not None and (
+            not isinstance(worktree_root, str) or not Path(worktree_root).is_absolute()
+        ):
+            raise ContextError("registered project worktree_root must be absolute")
     return result
 
 
-def _load_registry(path: Path) -> list[dict[str, str]]:
+def _load_registry(path: Path) -> list[dict[str, Any]]:
     payload = _read_json_object(path, "project registry")
     if set(payload) != {"schema", "projects"} or payload.get("schema") != REGISTRY_SCHEMA:
         raise ContextError("project registry schema is invalid")
@@ -96,6 +103,13 @@ def _load_registry(path: Path) -> list[dict[str, str]]:
     ids = [project["id"] for project in validated]
     if len(set(roots)) != len(roots) or len(set(ids)) != len(ids):
         raise ContextError("project registry roots and ids must be unique")
+    worktree_roots = [
+        project["worktree_root"]
+        for project in validated
+        if "worktree_root" in project
+    ]
+    if len(set(worktree_roots)) != len(worktree_roots):
+        raise ContextError("project registry worktree roots must be unique")
     return validated
 
 
@@ -122,7 +136,28 @@ def _resolve_git_root(requested: Path) -> Path:
     return root
 
 
-def _resolve_project(root: Path, registry_path: Path) -> tuple[dict[str, str], str]:
+def _canonical_git_root(root: Path) -> Path:
+    code, common_dir = _git(root, "rev-parse", "--path-format=absolute", "--git-common-dir")
+    if code != 0 or not common_dir:
+        raise ContextError("could not resolve the Git common directory")
+    resolved = Path(common_dir).resolve()
+    if resolved.name != ".git" or not resolved.is_dir():
+        raise ContextError(f"Git common directory is not a normal checkout: {resolved}")
+    canonical = resolved.parent.resolve()
+    if not canonical.is_dir():
+        raise ContextError(f"canonical Git checkout is not a directory: {canonical}")
+    return canonical
+
+
+def _default_worktree_root(canonical_root: Path) -> Path:
+    return canonical_root.with_name(f"{canonical_root.name}-worktrees")
+
+
+def _resolve_project(
+    root: Path,
+    canonical_root: Path,
+    registry_path: Path,
+) -> tuple[dict[str, str], str, dict[str, Any] | None]:
     descriptor_path = root / DESCRIPTOR_NAME
     descriptor: dict[str, str] | None = None
     if descriptor_path.exists():
@@ -131,26 +166,85 @@ def _resolve_project(root: Path, registry_path: Path) -> tuple[dict[str, str], s
             raise ContextError("project descriptor schema is invalid")
         descriptor = _validate_project(payload, allow_root=False)
 
+    registry = _load_registry(registry_path)
     registered = next(
         (
             project
-            for project in _load_registry(registry_path)
-            if Path(project["root"]).resolve() == root
+            for project in registry
+            if Path(project["root"]).resolve() == canonical_root
         ),
         None,
     )
+    if registered is None and descriptor is not None:
+        registered = next(
+            (project for project in registry if project["id"] == descriptor["id"]),
+            None,
+        )
     if descriptor is not None and registered is not None:
-        comparable = {key: value for key, value in registered.items() if key != "root"}
+        comparable = {
+            key: value
+            for key, value in registered.items()
+            if key not in {"root", "worktree_root"}
+        }
         if descriptor != comparable:
             raise ContextError("project descriptor disagrees with the central registry")
-        return descriptor, "descriptor+registry"
+        return descriptor, "descriptor+registry", registered
     if descriptor is not None:
-        return descriptor, "descriptor"
+        return descriptor, "descriptor", None
     if registered is not None:
-        return {key: value for key, value in registered.items() if key != "root"}, "registry"
+        return (
+            {
+                key: value
+                for key, value in registered.items()
+                if key not in {"root", "worktree_root"}
+            },
+            "registry",
+            registered,
+        )
     raise ContextError(
         f"project is not registered and has no {DESCRIPTOR_NAME}; onboard it before work"
     )
+
+
+def _workspace_context(
+    root: Path,
+    canonical_root: Path,
+    registered: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if registered is not None:
+        expected_canonical = Path(registered["root"]).resolve()
+        if canonical_root != expected_canonical:
+            raise ContextError(
+                "canonical Git checkout disagrees with the central registry: "
+                f"expected {expected_canonical}, observed {canonical_root}"
+            )
+        configured = registered.get("worktree_root")
+        worktree_root = (
+            Path(configured).resolve()
+            if isinstance(configured, str)
+            else _default_worktree_root(canonical_root)
+        )
+        policy_source = "registry" if configured is not None else "derived"
+    else:
+        worktree_root = _default_worktree_root(canonical_root)
+        policy_source = "derived"
+
+    if root == canonical_root:
+        location = "canonical"
+    elif root.parent == worktree_root:
+        location = "linked-worktree"
+    else:
+        raise ContextError(
+            "linked worktree is outside the approved worktree root: "
+            f"expected a direct child of {worktree_root}, observed {root}"
+        )
+    return {
+        "canonical_root": canonical_root.as_posix(),
+        "worktree_root": worktree_root.as_posix(),
+        "location": location,
+        "policy_source": policy_source,
+        "enforced": True,
+    }
 
 
 def _pointer_target(root: Path, relative: str) -> str | None:
@@ -169,7 +263,13 @@ def _pointer_target(root: Path, relative: str) -> str | None:
 
 def build_context(root: Path, registry_path: Path) -> dict[str, Any]:
     root = _resolve_git_root(root)
-    project, identity_source = _resolve_project(root, registry_path.resolve())
+    canonical_root = _canonical_git_root(root)
+    project, identity_source, registered = _resolve_project(
+        root,
+        canonical_root,
+        registry_path.resolve(),
+    )
+    workspace = _workspace_context(root, canonical_root, registered)
     branch_code, branch = _git(root, "branch", "--show-current")
     head_code, head = _git(root, "rev-parse", "HEAD")
     status_code, status = _git(root, "status", "--porcelain=v1")
@@ -202,6 +302,7 @@ def build_context(root: Path, registry_path: Path) -> dict[str, Any]:
             "root": root.as_posix(),
             "identity_source": identity_source,
         },
+        "workspace": workspace,
         "git": {
             "branch": branch or None,
             "head": head,
@@ -259,7 +360,10 @@ def main(argv: list[str] | None = None) -> int:
         print(
             "gas-city-workflow: PASS "
             f"project={project['id']} rig={project['rig']} "
-            f"authority={project['workflow_authority']} permissions=unchanged"
+            f"authority={project['workflow_authority']} permissions=unchanged "
+            f"identity_source={project['identity_source']} "
+            f"canonical_root={context['workspace']['canonical_root']} "
+            f"worktree_root={context['workspace']['worktree_root']}"
         )
     else:
         print(json.dumps(context, indent=2, sort_keys=True))
