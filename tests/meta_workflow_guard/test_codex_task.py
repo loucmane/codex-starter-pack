@@ -98,6 +98,65 @@ def test_build_parser_accepts_bead_native_wizard_kickoff() -> None:
     assert args.task is None
 
 
+def test_build_parser_accepts_same_repository_source_closeout_target() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+
+    archive = parser.parse_args(
+        [
+            "work-tracking",
+            "archive",
+            "--folder",
+            "20260830-ga-test1-closeout-ACTIVE",
+            "--target-dir",
+            "/tmp/aegis-linked-worktree",
+        ]
+    )
+    reconcile = parser.parse_args(
+        [
+            "work-tracking",
+            "reconcile",
+            "--target-dir",
+            "/tmp/aegis-linked-worktree",
+        ]
+    )
+
+    assert archive.target_dir == "/tmp/aegis-linked-worktree"
+    assert reconcile.target_dir == "/tmp/aegis-linked-worktree"
+
+
+def test_source_closeout_target_is_restricted_to_same_repository_worktree(
+    monkeypatch, tmp_path
+) -> None:
+    module = load_task_module()
+    target = tmp_path / "linked-worktree"
+    target.mkdir()
+    _write_repo_config(target)
+
+    def top_level(command, **_kwargs):
+        assert command[:4] == ["git", "-C", str(target), "rev-parse"]
+        return FakeCompletedProcess(returncode=0, stdout=f"{target}\n")
+
+    monkeypatch.setattr(module.subprocess, "run", top_level)
+    monkeypatch.setattr(
+        module,
+        "_git_common_dir",
+        lambda root: Path("/git/common-a") if root == target else Path("/git/common-b"),
+    )
+    with pytest.raises(module.TaskError, match="another worktree of this repository"):
+        module._configure_source_closeout_target(str(target))
+
+    monkeypatch.setattr(module, "_git_common_dir", lambda _root: Path("/git/common"))
+    module._configure_source_closeout_target(str(target))
+
+    assert module.REPO_ROOT == target
+    assert module.WORK_TRACKING_BASE == target / "docs/ai/work-tracking/active"
+    assert module.PLAN_STATE_DIR == target / ".plan_state"
+    assert module.SOURCE_WORKFLOW_HELPER_OVERRIDE == (
+        module.COMMAND_SOURCE_ROOT / "scripts/_source_workflow_state.py"
+    )
+
+
 def test_build_parser_accepts_source_closeout_reconcile() -> None:
     module = load_task_module()
     parser = module.build_parser()
