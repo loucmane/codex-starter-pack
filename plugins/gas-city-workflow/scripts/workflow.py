@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from project_context import DEFAULT_REGISTRY, build_context
+from workflow_attach import attach
 from workflow_begin import begin, resume, run_profile_readiness
 from workflow_common import (
     CommandRunner,
@@ -276,6 +277,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         command.add_argument("--goal", action="append", default=[])
         if name == "begin":
             command.add_argument("--dry-run", action="store_true")
+    attach_command = subparsers.add_parser("attach")
+    attach_command.add_argument("--root", default=".")
+    attach_command.add_argument("--bead", required=True)
     for name in ("checkpoint", "verify", "publish"):
         command = subparsers.add_parser(name)
         command.add_argument("--root", default=".")
@@ -311,6 +315,8 @@ def main(argv: list[str] | None = None) -> int:
                 runner=runner,
             )
             payload["action"] = args.command
+        elif args.command == "attach":
+            payload = attach(root, args.bead, runner)
         elif args.command == "checkpoint":
             payload = _checkpoint(root, runner)
         elif args.command == "verify":

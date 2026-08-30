@@ -26,6 +26,7 @@
 - **2026-08-30 14:53 CEST** - [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:pytest|E:tests/meta_workflow_guard] Proved packaged-script parity, 272 focused lifecycle/evidence tests, and the complete repository suite with 2,322 passed and 21 explicitly skipped; the isolated network-restricted editable-install failure passed when rerun with normal dependency access
 - **2026-08-30 15:15 CEST** - [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:hpfetcher-profile+frozen-run|E:commit:7ee1f35a9260a27090720197b4487164b427df54;run:hpf-nqzf-batch13-shadow-20260830-001] Signed and froze the tracked HPFetcher profile and two key-blind batch13 bundles; pre-dispatch validation passed and the frozen manifest recorded the complete authoritative batch plus runtime-only authentic corpus
 - **2026-08-30 15:15 CEST** - [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:append-forward-confinement|E:plugins/gas-city-workflow/scripts/evidence/freeze_evidence_run.py;tests/meta_workflow_guard/test_gas_city_evidence_workflow.py] The pre-dispatch sandbox census proved run 001's report roots were outside the HPFetcher worker's managed write roots; preserved run 001 unchanged and added a digest-bound absolute predecessor-manifest repair path so run 002 can relocate under the existing least-privilege worktree root without copying evidence or widening permissions; 5 focused tests passed
+- **2026-08-30 16:03 CEST** - [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:plugins/gas-city-workflow/scripts/install_evidence_reviewer.py|E:bead:ga-25cw;tests:23-passed;install-plan:0bb089972880127b0e8b619fd35813945b69d9a990c1fef2030d0af7e3b05660] Attached blocking bead ga-25cw to the active ga-k0ry context, implemented a generic no-project-access evidence reviewer plus transactional installer and rollback, and matched the validated live candidate hashes without mutating Gas City.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
@@ -37,3 +38,7 @@
 
 ## Dependencies & Notes
 - Session log: sessions/current
+
+## Attached Blocking Beads
+
+- `ga-25cw` — Make blind evidence reviewer isolation durable

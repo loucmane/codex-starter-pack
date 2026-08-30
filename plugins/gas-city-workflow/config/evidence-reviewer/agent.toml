@@ -1,0 +1,6 @@
+description = "Report-only reviewer for sealed evidence bundles"
+scope = "rig"
+provider = "codex-evidence"
+work_dir = "/home/loucmane/gascity/evidence-runs"
+option_defaults = { model = "gpt-5.6-sol", effort = "xhigh", permission_mode = "fail-fast", worklog_access = "isolated-workspace" }
+max_active_sessions = 1

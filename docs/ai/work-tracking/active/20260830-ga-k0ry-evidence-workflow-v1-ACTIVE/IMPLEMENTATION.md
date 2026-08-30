@@ -64,3 +64,6 @@ allows a repair to move to an already-approved output root without copying, relo
 rewriting old evidence and without widening a worker sandbox. Legacy non-repair manifests remain
 valid and must omit the new field. Focused coverage proves cross-root repair, predecessor digest
 drift refusal, and backward-compatible validation of run 001.
+
+## Progress Log
+- **2026-08-30 16:03 CEST** - [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:plugins/gas-city-workflow/scripts/install_evidence_reviewer.py|E:bead:ga-25cw;tests:23-passed;install-plan:0bb089972880127b0e8b619fd35813945b69d9a990c1fef2030d0af7e3b05660] Attached blocking bead ga-25cw to the active ga-k0ry context, implemented a generic no-project-access evidence reviewer plus transactional installer and rollback, and matched the validated live candidate hashes without mutating Gas City.

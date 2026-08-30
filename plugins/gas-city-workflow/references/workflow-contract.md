@@ -32,6 +32,11 @@ through `planned → worktree-created → scaffolded → claimed → ready`.
   or completes the same transaction.
 - `recover` is the explicit operator-facing synonym for append-forward recovery after a proven
   pre-mutation failure or complete rollback.
+- `attach` adds one already-declared blocking dependency to the current source-work context. It
+  keeps the primary Aegis session, tracker, and branch, records the dependency separately under
+  `attached_bead_ids` while preserving the one-item authoritative `bead_ids` field,
+  claims the dependency idempotently, and journals the attachment. It refuses unrelated beads;
+  do not open a second Aegis context while the parent source change is still active.
 - `checkpoint`, `verify`, `publish`, and `finish` run their bounded checks and append results to
   the same transition journal.
 

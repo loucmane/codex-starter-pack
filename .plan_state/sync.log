@@ -1150,5 +1150,17 @@
     "plan_hash": "98194146c7ba91ee174f9f293c63e5b5ec54abab79f75b87113e1a5220173f45",
     "tracker_hash": "7953eae8b4dde96ceda9ab79d251e7829ae27dce8f8a33e1f99e30659f08ff02",
     "synced_at": "2026-08-30T15:17:40.889929+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-k0ry-evidence-workflow-v1.md",
+    "plan_hash": "f1a0225f10a7536e233d05be8336857ad09f2b126075e8dea18fa233f1bf2479",
+    "tracker_hash": "804823b05b863f38ace261647be0333684c608101d8157a0ccc26c94626c5d0c",
+    "synced_at": "2026-08-30T16:03:59.290074+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-k0ry-evidence-workflow-v1.md",
+    "plan_hash": "f1a0225f10a7536e233d05be8336857ad09f2b126075e8dea18fa233f1bf2479",
+    "tracker_hash": "804823b05b863f38ace261647be0333684c608101d8157a0ccc26c94626c5d0c",
+    "synced_at": "2026-08-30T16:04:13.390446+02:00"
   }
 ]

@@ -18,11 +18,13 @@ import workflow as workflow_module  # noqa: E402
 from scripts import _aegis_installer as aegis_installer  # noqa: E402
 from aegis_foundation.gate.render import next_command  # noqa: E402
 from workflow import _verify, parse_args  # noqa: E402
+from workflow_attach import attach  # noqa: E402
 from workflow_begin import _kickoff_command, begin  # noqa: E402
 from workflow_common import (  # noqa: E402
     BeginSpec,
     CommandRunner,
     WorkflowError,
+    plan_bead_ids,
     record_lifecycle_event,
 )
 
@@ -55,6 +57,29 @@ class FixtureRunner(CommandRunner):
             return subprocess.CompletedProcess(args, 0, "Plan and tracker are synchronized.\n", "")
         if "work-tracking" in args and "audit" in args:
             return subprocess.CompletedProcess(args, 0, "Audit passed: no issues found.\n", "")
+        return super().run(args, cwd=cwd, env=env, check=check)
+
+
+class MultiBeadRunner(FixtureRunner):
+    def __init__(self, beads: dict[str, dict[str, object]], primary: str) -> None:
+        super().__init__(beads[primary])
+        self.beads = beads
+
+    def run(self, argv, *, cwd=None, env=None, check=True):
+        args = list(argv)
+        if args and args[0].endswith("/gc") and "bd" in args:
+            if "show" in args:
+                bead_id = args[args.index("show") + 1]
+                self.calls.append(args)
+                return subprocess.CompletedProcess(
+                    args, 0, json.dumps([self.beads[bead_id]]), ""
+                )
+            if "update" in args and "--claim" in args:
+                bead_id = args[args.index("update") + 1]
+                self.calls.append(args)
+                self.beads[bead_id]["status"] = "in_progress"
+                self.beads[bead_id]["assignee"] = "fixture"
+                return subprocess.CompletedProcess(args, 0, "claimed\n", "")
         return super().run(args, cwd=cwd, env=env, check=check)
 
 
@@ -446,6 +471,74 @@ def test_lifecycle_events_append_to_the_bound_journal(tmp_path: Path) -> None:
     _write(worktree / ".aegis" / "foundation-manifest.json", "{}\n")
     installed_verify = _verify(worktree, runner)
     assert "aegis-strict" in installed_verify["checks"]
+
+
+def test_attach_adds_only_declared_blocker_to_current_context_and_replays(
+    tmp_path: Path,
+) -> None:
+    root, registry = _fixture_project(tmp_path)
+    beads = {
+        "ga-test": _bead(),
+        "ga-fix": {
+            "id": "ga-fix",
+            "title": "Fix blocking workflow boundary",
+            "status": "open",
+            "dependencies": [],
+        },
+    }
+    runner = MultiBeadRunner(beads, "ga-test")
+    started = begin(
+        root,
+        "ga-test",
+        slug="fixture",
+        goals=[],
+        registry=registry,
+        runner=runner,
+    )
+    worktree = Path(started["spec"]["worktree"])
+    beads["ga-test"]["dependencies"] = [{"id": "ga-fix", "status": "open"}]
+
+    first = attach(worktree, "ga-fix", runner, registry=registry)
+    second = attach(worktree, "ga-fix", runner, registry=registry)
+
+    assert first["status"] == second["status"] == "ready"
+    assert plan_bead_ids(worktree) == ["ga-test"]
+    assert "attached_bead_ids: [ga-fix]" in Path(first["plan"]).read_text(encoding="utf-8")
+    tracker = Path(first["tracker"]).read_text(encoding="utf-8")
+    assert tracker.count("- `ga-fix` — Fix blocking workflow boundary") == 1
+    assert beads["ga-fix"]["status"] == "in_progress"
+    journal = json.loads(Path(first["journal"]).read_text(encoding="utf-8"))
+    assert journal["events"][-1]["action"] == "attach"
+    assert journal["events"][-1]["attached_bead_id"] == "ga-fix"
+
+
+def test_attach_refuses_bead_that_is_not_a_declared_dependency(tmp_path: Path) -> None:
+    root, registry = _fixture_project(tmp_path)
+    beads = {
+        "ga-test": _bead(),
+        "ga-other": {
+            "id": "ga-other",
+            "title": "Unrelated work",
+            "status": "open",
+            "dependencies": [],
+        },
+    }
+    runner = MultiBeadRunner(beads, "ga-test")
+    started = begin(
+        root,
+        "ga-test",
+        slug="fixture",
+        goals=[],
+        registry=registry,
+        runner=runner,
+    )
+    worktree = Path(started["spec"]["worktree"])
+
+    with pytest.raises(WorkflowError, match="not a declared dependency"):
+        attach(worktree, "ga-other", runner, registry=registry)
+
+    assert plan_bead_ids(worktree) == ["ga-test"]
+    assert beads["ga-other"]["status"] == "open"
 
 
 def test_frozen_verification_does_not_append_plan_sync_state(tmp_path: Path) -> None:
