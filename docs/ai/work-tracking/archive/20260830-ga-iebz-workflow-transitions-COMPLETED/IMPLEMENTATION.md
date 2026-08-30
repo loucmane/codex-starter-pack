@@ -50,4 +50,5 @@ the exact same journal to `ready`. A second `resume` omitted `--bead` and indepe
   record remain preserved in the committed audit log.
 
 ## Progress Log
-- **2026-08-30 13:02 CEST** - [S:20260830|W:ga-iebz-workflow-transitions|H:plugins/gas-city-workflow|E:docs/ai/work-tracking/active/20260830-ga-iebz-workflow-transitions-ACTIVE/IMPLEMENTATION.md] Implemented and exercised the memory-independent modular lifecycle, recovery journal, pinned environment, installed runtime, and origin identity guard.
+- **2026-08-30 13:02 CEST** - [S:20260830|W:ga-iebz-workflow-transitions|H:plugins/gas-city-workflow|E:docs/ai/work-tracking/archive/20260830-ga-iebz-workflow-transitions-COMPLETED/IMPLEMENTATION.md] Implemented and exercised the memory-independent modular lifecycle, recovery journal, pinned environment, installed runtime, and origin identity guard.
+- **2026-08-30 13:24 CEST** - [S:20260830|W:ga-iebz-workflow-transitions|H:github:pr-317|E:PR:317;merge:4b264614c8785271eab4cfd4f2114b1ec4a17b87;plugin:gas-city-workflow@0.2.0+codex.20260830111111] Merged the byte-identical reviewed tree and reinstalled the canonical plugin; cached and source `workflow.py` digests match exactly.
