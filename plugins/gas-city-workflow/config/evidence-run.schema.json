@@ -1,0 +1,219 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gas-city.local/schemas/evidence-run.schema.json",
+  "title": "Gas City frozen evidence run",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "run_id",
+    "phase",
+    "mode",
+    "repair",
+    "supersedes",
+    "created_at",
+    "frozen_at",
+    "parent_bead",
+    "project",
+    "subject",
+    "profile",
+    "freeze_request",
+    "authorization",
+    "run_root",
+    "candidates",
+    "assets",
+    "external_inputs",
+    "external_inventory_sha256",
+    "fable_inputs",
+    "lanes",
+    "authoritative_outputs"
+  ],
+  "properties": {
+    "schema": {"const": "gas-city-evidence-run.v1"},
+    "run_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"},
+    "phase": {"const": "frozen"},
+    "mode": {"const": "shadow"},
+    "repair": {"type": "boolean"},
+    "supersedes": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"}
+      ]
+    },
+    "created_at": {"type": "string", "format": "date-time"},
+    "frozen_at": {"type": "string", "format": "date-time"},
+    "parent_bead": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9-]+$"},
+        "status": {"enum": ["open", "in_progress"]}
+      }
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "rig"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "rig": {"type": "string", "minLength": 1}
+      }
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "root", "branch", "commit", "tree", "clean"],
+      "properties": {
+        "repository": {"type": "string", "minLength": 3},
+        "root": {"type": "string", "minLength": 1},
+        "branch": {"type": "string", "minLength": 1},
+        "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "tree": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "clean": {"const": true}
+      }
+    },
+    "profile": {"$ref": "#/$defs/digestedFileWithId"},
+    "freeze_request": {"$ref": "#/$defs/digestedFile"},
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "request_sha256", "scope_sha256", "expires_at"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "request_sha256": {"$ref": "#/$defs/sha256"},
+        "scope_sha256": {"$ref": "#/$defs/sha256"},
+        "expires_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "run_root": {"type": "string", "minLength": 1},
+    "candidates": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/asset"}
+    },
+    "external_inputs": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/externalInput"}
+    },
+    "external_inventory_sha256": {"$ref": "#/$defs/sha256"},
+    "fable_inputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/pathBinding"}
+    },
+    "lanes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/lane"}
+    },
+    "authoritative_outputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/pathBinding"}
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"repair": {"const": true}}},
+      "then": {"properties": {"supersedes": {"type": "string"}}},
+      "else": {"properties": {"supersedes": {"type": "null"}}}
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "digestedFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "digestedFileWithId": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path", "sha256"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "pathBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["file", "directory"]},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "externalInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "sha256", "reason"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["file", "directory"]},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "lane_id", "path", "sha256"],
+      "properties": {
+        "kind": {"enum": ["prompt", "rubric", "report_schema", "bundle_builder"]},
+        "lane_id": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "lane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "bundle_dir",
+        "report_dir",
+        "declared_bundle_files",
+        "allowed_outputs",
+        "forbidden_patterns"
+      ],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"},
+        "bundle_dir": {"type": "string", "minLength": 1},
+        "report_dir": {"type": "string", "minLength": 1},
+        "declared_bundle_files": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "allowed_outputs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "forbidden_patterns": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

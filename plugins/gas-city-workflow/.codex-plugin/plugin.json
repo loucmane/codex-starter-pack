@@ -1,7 +1,7 @@
 {
   "name": "gas-city-workflow",
-  "version": "0.2.0+codex.20260830111111",
-  "description": "Transactional Beads-first lifecycle orchestration for Gas City projects and read-only reviewers.",
+  "version": "0.3.0+codex.20260830140500",
+  "description": "Transactional Beads-first lifecycle and frozen report-only evidence workflows for Gas City projects.",
   "author": {
     "name": "Gas City maintainers"
   },
@@ -11,13 +11,14 @@
     "beads",
     "aegis",
     "workflow",
-    "project-context"
+    "project-context",
+    "evidence"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Gas City Workflow",
     "shortDescription": "Orient and work safely in Gas City projects",
-    "longDescription": "Gas City Workflow provides a deterministic project-context capsule plus journaled begin, resume, recover, checkpoint, verify, publish, and finish transitions. It keeps Beads authoritative, preserves Aegis evidence, and applies the same lifecycle across Gas City, HPFetcher, Blog, and descriptor-based future projects without granting new permissions.",
+    "longDescription": "Gas City Workflow provides a deterministic project-context capsule, journaled lifecycle transitions, and digest-bound report-only evidence reviews. It keeps Beads authoritative, preserves Aegis evidence, and applies the same lifecycle across Gas City, HPFetcher, Blog, and descriptor-based future projects without granting new permissions or calculating project verdicts.",
     "developerName": "Gas City maintainers",
     "category": "Developer Tools",
     "capabilities": [
@@ -25,7 +26,8 @@
     ],
     "defaultPrompt": [
       "Begin or resume this Gas City bead through the journaled project workflow",
-      "Inspect the current bead, plan, session, journal, and next safe workflow step"
+      "Inspect the current bead, plan, session, journal, and next safe workflow step",
+      "Freeze and validate a report-only evidence run without changing project outputs"
     ]
   }
 }

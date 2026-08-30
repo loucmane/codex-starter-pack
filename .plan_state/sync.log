@@ -1090,5 +1090,35 @@
     "plan_hash": "03d24925ca973c0a716b21d01cd46a64043a37bfca0c699ca11530be3523a5b5",
     "tracker_hash": "bb2ad75ca02eca4888cb9c4846927d0b962fb3cb344ec9cf6ee04872a9e2493b",
     "synced_at": "2026-08-30T13:23:59.437166+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-k0ry-evidence-workflow-v1.md",
+    "plan_hash": "b5e890fecaea6ea670927c5ea7944e1a267add7811f4301ede87558f4b6a9640",
+    "tracker_hash": "d62263b8971c3c61314e3e9abe34b9637582a897a451add015ba9d48ce16150f",
+    "synced_at": "2026-08-30T13:32:54.581378+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-k0ry-evidence-workflow-v1.md",
+    "plan_hash": "724e09d3b65e2ba2e76e388f86652914d05d055f019b3f1033deddf119f63d80",
+    "tracker_hash": "ec22fc763b2730bf13543712fffdb7753bd87117a8d7818785c345d1431011eb",
+    "synced_at": "2026-08-30T13:34:40.407931+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-k0ry-evidence-workflow-v1.md",
+    "plan_hash": "82dfdc96abb090dd063cd146b43567f2a84559f0aaaf285596c6b4483c6f21fd",
+    "tracker_hash": "f85c7dfd20d5069c3002179ffe4997794f9e4203734fca510236a70a90094e5e",
+    "synced_at": "2026-08-30T13:35:09.581824+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-k0ry-evidence-workflow-v1.md",
+    "plan_hash": "b989f4c21519c65196825cd77d3508c50b89a98c0e6a2adef1a39c451811dc80",
+    "tracker_hash": "f85a280498894e36defd77db9262ae9854db3d3e0a9571ebb0f39e87271e4386",
+    "synced_at": "2026-08-30T13:54:25.511189+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-k0ry-evidence-workflow-v1.md",
+    "plan_hash": "b989f4c21519c65196825cd77d3508c50b89a98c0e6a2adef1a39c451811dc80",
+    "tracker_hash": "f85a280498894e36defd77db9262ae9854db3d3e0a9571ebb0f39e87271e4386",
+    "synced_at": "2026-08-30T13:54:37.433700+02:00"
   }
 ]
