@@ -14,6 +14,7 @@ SCRIPTS = REPO_ROOT / "plugins" / "gas-city-workflow" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import workflow_common  # noqa: E402
+import workflow as workflow_module  # noqa: E402
 from scripts import _aegis_installer as aegis_installer  # noqa: E402
 from aegis_foundation.gate.render import next_command  # noqa: E402
 from workflow import _verify, parse_args  # noqa: E402
@@ -74,7 +75,12 @@ def _write(path: Path, content: str, *, executable: bool = False) -> None:
         path.chmod(0o755)
 
 
-def _fixture_project(tmp_path: Path, *, descriptor: bool = True) -> tuple[Path, Path]:
+def _fixture_project(
+    tmp_path: Path,
+    *,
+    descriptor: bool = True,
+    legacy_profile: bool = False,
+) -> tuple[Path, Path]:
     root = tmp_path / "future-project"
     root.mkdir()
     _write(root / "AGENTS.md", "# Agents\n")
@@ -89,7 +95,11 @@ def _fixture_project(tmp_path: Path, *, descriptor: bool = True) -> tuple[Path, 
                     "repository": "fixture/future-project",
                     "rig": "future-project",
                     "workflow_authority": "beads",
-                    "workflow_profile": "beads-with-aegis-evidence",
+                    "workflow_profile": (
+                        "beads-with-frozen-legacy-evidence"
+                        if legacy_profile
+                        else "beads-with-aegis-evidence"
+                    ),
                 },
                 indent=2,
             )
@@ -138,6 +148,17 @@ plan.write_text(
         executable=True,
     )
     registry = tmp_path / "projects.json"
+    if legacy_profile:
+        _write(
+            root
+            / "docs"
+            / "ai"
+            / "work-tracking"
+            / "active"
+            / "20260101-task80-historical-ACTIVE"
+            / "TRACKER.md",
+            "# Historical tracker\n**Status**: ACTIVE\n",
+        )
     projects = []
     if not descriptor:
         projects.append(
@@ -147,7 +168,11 @@ plan.write_text(
                 "repository": "fixture/future-project",
                 "rig": "future-project",
                 "workflow_authority": "beads",
-                "workflow_profile": "beads-with-aegis-evidence",
+                "workflow_profile": (
+                    "beads-with-frozen-legacy-evidence"
+                    if legacy_profile
+                    else "beads-with-aegis-evidence"
+                ),
             }
         )
     _write(
@@ -309,6 +334,30 @@ def test_begin_uses_registered_base_ref_without_touching_canonical_checkout(
     assert (root / "parked.txt").read_text(encoding="utf-8") == "dirty canonical state\n"
 
 
+def test_begin_preserves_unchanged_tracked_active_folder_for_legacy_profile(
+    tmp_path: Path,
+) -> None:
+    root, registry = _fixture_project(tmp_path, legacy_profile=True)
+
+    result = begin(
+        root,
+        "ga-test",
+        slug="fixture",
+        goals=[],
+        registry=registry,
+        runner=FixtureRunner(_bead()),
+    )
+
+    worktree = Path(result["spec"]["worktree"])
+    trackers = sorted(
+        item.name
+        for item in (worktree / "docs" / "ai" / "work-tracking" / "active").iterdir()
+    )
+    assert trackers[0] == "20260101-task80-historical-ACTIVE"
+    assert len(trackers) == 2
+    assert trackers[1].endswith("-ga-test-fixture-ACTIVE")
+
+
 def test_ready_replay_keeps_original_base_after_canonical_checkout_advances(
     tmp_path: Path,
 ) -> None:
@@ -465,6 +514,121 @@ def test_installed_project_kickoff_uses_registry_bound_canonical_runtime(
     assert argv[1] == (runtime / "scripts" / "codex-task").as_posix()
     assert argv[2:4] == ["aegis", "kickoff"]
     assert argv[argv.index("--target-dir") + 1] == target.as_posix()
+
+
+def test_legacy_project_without_foundation_uses_target_bound_wizard(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "consumer"
+    historical = (
+        target
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "active"
+        / "20260101-task80-historical-ACTIVE"
+    )
+    _write(historical / "TRACKER.md", "# Historical\n")
+    runtime = tmp_path / "gas-city-ops"
+    _write(runtime / "scripts" / "codex-task", "#!/usr/bin/env python3\n", executable=True)
+    registry = tmp_path / "projects.json"
+    _write(
+        registry,
+        json.dumps(
+            {
+                "schema": "gas-city-workflow.project-registry.v1",
+                "projects": [
+                    {
+                        "id": "gas-city-operations",
+                        "root": runtime.as_posix(),
+                        "repository": "fixture/gas-city-operations",
+                        "rig": "gascity",
+                        "workflow_authority": "beads",
+                        "workflow_profile": "beads-with-aegis-evidence",
+                    }
+                ],
+            }
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(workflow_common, "SOURCE_ROOT", tmp_path / "plugin-cache")
+    spec = BeginSpec(
+        project_id="consumer",
+        rig="consumer",
+        workflow_profile="beads-with-frozen-legacy-evidence",
+        canonical_root=target.as_posix(),
+        worktree_root=(tmp_path / "consumer-worktrees").as_posix(),
+        bead_id="hpf-test",
+        title="Shadow review",
+        slug="shadow-review",
+        branch="codex/hpf-test-shadow-review",
+        worktree=target.as_posix(),
+        base_commit="a" * 40,
+    )
+
+    argv, cwd = _kickoff_command(spec, ["Review one frozen batch"], registry)
+
+    assert cwd == runtime
+    assert argv[1] == (runtime / "scripts" / "codex-task").as_posix()
+    assert argv[2:4] == ["wizard", "kickoff"]
+    assert argv[argv.index("--target-dir") + 1] == target.as_posix()
+    assert "--force" in argv
+    assert "aegis" not in argv
+
+
+def test_lightweight_sync_and_finish_select_only_the_bead_folder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "consumer"
+    current = (
+        target
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "active"
+        / "20300101-hpf-test-shadow-review-ACTIVE"
+    )
+    historical = (
+        target
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "active"
+        / "20260101-task80-historical-ACTIVE"
+    )
+    _write(current / "TRACKER.md", "**Status**: ACTIVE\n")
+    _write(historical / "TRACKER.md", "**Status**: ACTIVE\n")
+    runtime = tmp_path / "runtime"
+    _write(runtime / "scripts/codex-task", "#!/usr/bin/env python3\n", executable=True)
+    monkeypatch.setattr(workflow_module, "workflow_runtime_root", lambda: runtime)
+    monkeypatch.setattr(workflow_module, "active_bead_id", lambda _root: "hpf-test")
+    context = {
+        "project": {
+            "id": "hpfetcher",
+            "root": target.as_posix(),
+            "workflow_profile": "beads-with-frozen-legacy-evidence",
+        },
+        "workflow": {"rig": "hpfetcher"},
+    }
+    runner = FixtureRunner({"id": "hpf-test", "status": "in_progress"})
+
+    assert workflow_module._sync_plan(target, context, runner) is True
+    sync_argv = runner.calls[-1]
+    assert sync_argv[sync_argv.index("--folder") + 1] == current.name
+
+    monkeypatch.setattr(workflow_module, "build_context", lambda *_args: context)
+    monkeypatch.setattr(workflow_module, "_run_profile_readiness", lambda *_args: "READY")
+    monkeypatch.setattr(
+        workflow_module,
+        "record_lifecycle_event",
+        lambda *_args, **_kwargs: target / ".git/lifecycle.json",
+    )
+    checked = workflow_module._finish(target, runner, apply=False)
+
+    assert checked["backend"] == "lightweight-source-archive"
+    finish_argv = runner.calls[-1]
+    assert finish_argv[2] == "--dry-run"
+    assert finish_argv[finish_argv.index("--folder") + 1] == current.name
 
 
 def test_router_skill_delegates_transitions_without_copying_mutation_sequences() -> None:

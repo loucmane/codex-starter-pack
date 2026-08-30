@@ -268,6 +268,20 @@ def journal_path_for_root(runner: CommandRunner, root: Path, bead_id: str) -> Pa
     return common / "gas-city-workflow" / "transactions" / f"{bead_id}.json"
 
 
+def active_begin_spec(runner: CommandRunner, root: Path) -> BeginSpec:
+    bead_id = active_bead_id(root)
+    journal = load_journal(journal_path_for_root(runner, root, bead_id))
+    if journal is None:
+        raise WorkflowError("active work has no Gas City workflow transition journal")
+    try:
+        spec = BeginSpec(**journal["spec"])
+    except (KeyError, TypeError) as exc:
+        raise WorkflowError("active transition journal spec is invalid") from exc
+    if Path(spec.worktree).resolve() != root.resolve():
+        raise WorkflowError("active transition journal targets another worktree")
+    return spec
+
+
 def atomic_write_json(path: Path, payload: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp-{os.getpid()}")

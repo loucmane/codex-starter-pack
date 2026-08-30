@@ -46,6 +46,17 @@ starting commit from that ref instead of canonical `HEAD`, without checking out,
 otherwise mutating the canonical workspace. Refresh a remote-tracking ref before `begin` when the
 task explicitly requires the newest remote default branch.
 
+For `beads-with-frozen-legacy-evidence` projects only, `begin` preserves unrelated ACTIVE folders
+that are tracked and byte-unchanged at the selected base commit. They remain historical inputs,
+not the current task. A new or modified unrelated ACTIVE folder still blocks. Modern Aegis
+profiles retain the one-ACTIVE-folder rule.
+
+Projects without an installed Aegis foundation use the canonical Gas City Operations
+`codex-task wizard kickoff --target-dir <worktree>` adapter. The executable is shared, but the
+adapter validates the selected Git worktree root and writes every session, plan, tracker, and
+plan-sync artifact beneath that target. Cross-project Taskmaster kickoff is forbidden. Installed
+Aegis projects continue to use `aegis kickoff`.
+
 ## Workspace placement
 
 The Git common directory is the source of truth for the canonical checkout. By default, linked worktrees must be direct children of a sibling `<canonical-name>-worktrees` directory. For example, `/home/loucmane/gas-city-ops` uses `/home/loucmane/gas-city-ops-worktrees`.

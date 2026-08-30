@@ -164,9 +164,40 @@ def _active_dirs(root: Path) -> list[Path]:
     )
 
 
-def _scaffold_state(root: Path, spec: BeginSpec) -> str:
+def _preserved_legacy_tracker(
+    runner: CommandRunner,
+    root: Path,
+    spec: BeginSpec,
+    tracker: Path,
+) -> bool:
+    if spec.workflow_profile != "beads-with-frozen-legacy-evidence":
+        return False
+    relative = tracker.relative_to(root).as_posix()
+    exists_at_base = runner.run(
+        [
+            "git",
+            "-C",
+            str(root),
+            "cat-file",
+            "-e",
+            f"{spec.base_commit}:{relative}/TRACKER.md",
+        ],
+        check=False,
+    )
+    unchanged = runner.run(
+        ["git", "-C", str(root), "diff", "--quiet", spec.base_commit, "--", relative],
+        check=False,
+    )
+    return exists_at_base.returncode == 0 and unchanged.returncode == 0
+
+
+def _scaffold_state(runner: CommandRunner, root: Path, spec: BeginSpec) -> str:
     active = _active_dirs(root)
     matching = [item for item in active if f"-{spec.bead_id}-" in item.name]
+    unrelated = [item for item in active if item not in matching]
+    preserved = all(
+        _preserved_legacy_tracker(runner, root, spec, item) for item in unrelated
+    )
     session_state = root / "sessions" / "state.json"
     session_bead = None
     if session_state.is_file():
@@ -194,17 +225,39 @@ def _scaffold_state(root: Path, spec: BeginSpec) -> str:
         except OSError as exc:
             raise WorkflowError("plans/current is broken") from exc
     exact = (
-        len(active) == 1
-        and len(matching) == 1
+        len(matching) == 1
+        and preserved
         and session_bead == spec.bead_id
         and f"bead_ids: [{spec.bead_id}]" in plan_text
         and f"branch_policy: {spec.branch}" in plan_text
     )
     if exact:
         return "exact"
-    if active or session_bead == spec.bead_id or f"bead_ids: [{spec.bead_id}]" in plan_text:
+    if matching or not preserved or session_bead == spec.bead_id or f"bead_ids: [{spec.bead_id}]" in plan_text:
         raise WorkflowError("partial or mismatched workflow scaffold requires explicit diagnosis")
     return "absent"
+
+
+def run_profile_readiness(runner: CommandRunner, spec: BeginSpec) -> str:
+    root = Path(spec.worktree)
+    if spec.workflow_profile != "beads-with-frozen-legacy-evidence":
+        return run_readiness(runner, root)
+    branch = runner.run(
+        ["git", "-C", str(root), "branch", "--show-current"]
+    ).stdout.strip()
+    if branch != spec.branch:
+        raise WorkflowError(
+            f"active branch is {branch or '<detached>'}, expected {spec.branch}"
+        )
+    ancestor = runner.run(
+        ["git", "-C", str(root), "merge-base", "--is-ancestor", spec.base_commit, "HEAD"],
+        check=False,
+    )
+    if ancestor.returncode != 0:
+        raise WorkflowError("frozen workflow base is not an ancestor of HEAD")
+    if _scaffold_state(runner, root, spec) != "exact":
+        raise WorkflowError("lightweight bead-native scaffold is not exact")
+    return "STATE: READY\nPROFILE: beads-with-frozen-legacy-evidence\n"
 
 
 def _kickoff_command(
@@ -214,14 +267,24 @@ def _kickoff_command(
 ) -> tuple[list[str], Path]:
     target = Path(spec.worktree)
     goal_args = [part for goal in goals for part in ("--goal", goal)]
-    source_task = target / "scripts" / "codex-task"
-    if source_task.is_file() and not (target / ".aegis" / "foundation-manifest.json").is_file():
+    foundation = target / ".aegis" / "foundation-manifest.json"
+    runtime_root = workflow_runtime_root(registry)
+    canonical_task = runtime_root / "scripts" / "codex-task"
+    if not foundation.is_file():
+        force_args = (
+            ["--force"]
+            if spec.workflow_profile == "beads-with-frozen-legacy-evidence"
+            and _active_dirs(target)
+            else []
+        )
         return (
             [
                 sys.executable,
-                str(source_task),
+                str(canonical_task),
                 "wizard",
                 "kickoff",
+                "--target-dir",
+                str(target),
                 "--bead",
                 spec.bead_id,
                 "--slug",
@@ -231,13 +294,12 @@ def _kickoff_command(
                 "--task-source",
                 f"Gas City bead {spec.bead_id}",
                 "--handler-target",
-                "plugins/gas-city-workflow",
+                ".",
+                *force_args,
                 *goal_args,
             ],
-            target,
+            runtime_root,
         )
-    runtime_root = workflow_runtime_root(registry)
-    canonical_task = runtime_root / "scripts" / "codex-task"
     return (
         [
             sys.executable,
@@ -268,10 +330,10 @@ def _ensure_scaffold(
     registry: Path,
 ) -> None:
     target = Path(spec.worktree)
-    if _scaffold_state(target, spec) == "absent":
+    if _scaffold_state(runner, target, spec) == "absent":
         argv, cwd = _kickoff_command(spec, goals, registry)
         runner.run(argv, cwd=cwd)
-    if _scaffold_state(target, spec) != "exact":
+    if _scaffold_state(runner, target, spec) != "exact":
         raise WorkflowError("workflow kickoff did not create the exact expected scaffold")
     if not _phase_at_least(journal, "scaffolded"):
         advance_journal(journal, "scaffolded")
@@ -348,7 +410,7 @@ def begin(
     _ensure_worktree(runner, spec, journal, path)
     _ensure_scaffold(runner, spec, journal, path, goals, registry)
     bead = _ensure_claim(runner, spec, journal, path, registry)
-    readiness = run_readiness(runner, Path(spec.worktree))
+    readiness = run_profile_readiness(runner, spec)
     if "STATE: READY" not in readiness:
         raise WorkflowError("readiness command succeeded without a READY state")
     if not _phase_at_least(journal, "ready"):
