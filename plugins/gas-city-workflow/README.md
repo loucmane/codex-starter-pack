@@ -1,6 +1,6 @@
 # Gas City Workflow plugin
 
-Version `0.4.0` packages the common lifecycle and frozen report-only evidence reviews without
+Version `0.4.1` packages the common lifecycle and frozen report-only evidence reviews without
 copying project state into prompts or widening permissions.
 
 - `skills/gas-city-workflow/SKILL.md` is the small routing skill.
@@ -47,10 +47,16 @@ python3 plugins/gas-city-workflow/scripts/install_evidence_reviewer.py
 ```
 
 `--apply` is a separate live configuration mutation. It requires every registered rig suspended
-and zero running agent sessions, preserves an exact backup, atomically installs only the provider
-and two agent files, validates the resolved command and prompt, reloads without restarting the
-controller, and rolls back exact prior bytes on failure. Installation does not authorize routing,
-rig resume, or evidence dispatch.
+and zero running agent sessions. On a fresh install it atomically installs the provider and two
+agent files; on an append-forward repair it requires those installed bytes to remain exact. In
+both modes it transactionally ensures the exact work directory is trusted in the attended Codex
+`config.toml`, using an owned marker block while preserving all unrelated bytes and the original
+file mode. The transaction records mode-0600 backups, validates the resolved provider, agent,
+prompt, and trust readback, reloads only when Gas City configuration changed, preserves the
+controller epoch, and restores every mutated surface byte-exact on failure. Conflicting entries,
+canonical-path aliases, malformed TOML, and managed-block drift fail closed. Installation does
+not authorize routing, rig resume, or evidence dispatch; a fresh managed reviewer session remains
+the required proof that interactive startup reaches its instructions without a trust prompt.
 
 Validate from the repository root:
 

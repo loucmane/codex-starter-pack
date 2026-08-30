@@ -3,7 +3,7 @@ session_id: 2026-08-30-004
 work_context: ga-k0ry-evidence-workflow-v1
 handler_target: plugins/gas-city-workflow
 bead_ids: [ga-k0ry]
-attached_bead_ids: [ga-25cw]
+attached_bead_ids: [ga-25cw, ga-ma7k]
 branch_policy: codex/ga-k0ry-evidence-workflow-v1
 evidence_summary:
   - docs/ai/work-tracking/active/20260830-ga-k0ry-evidence-workflow-v1-ACTIVE
