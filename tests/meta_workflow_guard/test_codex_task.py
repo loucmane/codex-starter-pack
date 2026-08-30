@@ -120,9 +120,92 @@ def test_build_parser_accepts_cross_project_bead_wizard_target() -> None:
     assert args.target_dir == "/tmp/hpfetcher-worktree"
 
     plan_sync = parser.parse_args(
-        ["plan", "sync", "--target-dir", "/tmp/hpfetcher-worktree"]
+        [
+            "plan",
+            "sync",
+            "--target-dir",
+            "/tmp/hpfetcher-worktree",
+            "--folder",
+            "20260830-hpf-test-shadow-review-ACTIVE",
+        ]
     )
     assert plan_sync.target_dir == "/tmp/hpfetcher-worktree"
+    assert plan_sync.folder == "20260830-hpf-test-shadow-review-ACTIVE"
+
+
+def test_plan_sync_folder_selects_one_tracker_in_multi_active_target(
+    monkeypatch, tmp_path, capsys
+) -> None:
+    module = load_task_module()
+    target = tmp_path / "consumer"
+    target.mkdir()
+    subprocess.run(
+        ["git", "init", "-b", "codex/hpf-test-current"],
+        cwd=target,
+        check=True,
+        capture_output=True,
+    )
+    selected = target / "docs/ai/work-tracking/active/20300101-hpf-test-current-ACTIVE"
+    historical = target / "docs/ai/work-tracking/active/20260101-task80-historical-ACTIVE"
+    selected.mkdir(parents=True)
+    historical.mkdir(parents=True)
+    (selected / "TRACKER.md").write_text(
+        "- [x] plan-step-scope\n- [ ] plan-step-implement\n- [ ] plan-step-verify\n"
+        "- [ ] plan-step-emergency\n",
+        encoding="utf-8",
+    )
+    plans = target / "plans"
+    plans.mkdir()
+    plan = plans / "current.md"
+    plan.write_text(
+        "| plan-step-scope | Scope | x | completed |\n"
+        "| plan-step-implement | Implement | x | in_progress |\n"
+        "| plan-step-verify | Verify | x | pending |\n"
+        "| plan-step-emergency | Emergency | x | n/a |\n",
+        encoding="utf-8",
+    )
+    (plans / "current").symlink_to(plan.name)
+
+    module.handle_plan_sync(
+        argparse.Namespace(
+            target_dir=target.as_posix(),
+            plan=None,
+            tracker=None,
+            folder=selected.name,
+            dry_run=True,
+        )
+    )
+
+    assert '"plan_hash"' in capsys.readouterr().out
+
+
+def test_cross_project_archive_target_uses_lightweight_transaction_mode(
+    monkeypatch, tmp_path
+) -> None:
+    module = load_task_module()
+    target = tmp_path / "consumer"
+    target.mkdir()
+    subprocess.run(
+        ["git", "init", "-b", "codex/hpf-test-current"],
+        cwd=target,
+        check=True,
+        capture_output=True,
+    )
+    monkeypatch.setattr(module, "COMMAND_SOURCE_ROOT", tmp_path / "source")
+    monkeypatch.setattr(
+        module,
+        "_git_common_dir",
+        lambda root: (tmp_path / "consumer.git")
+        if root.resolve() == target.resolve()
+        else (tmp_path / "source.git"),
+    )
+
+    module._configure_source_closeout_target(target.as_posix())
+
+    assert module.REPO_ROOT == target
+    assert module.LIGHTWEIGHT_WORKFLOW_TARGET is True
+    assert module._is_uninstalled_source_checkout_for_archive() is True
+    assert module._retire_recovered_source_current_work({}) is False
 
 
 def test_build_parser_accepts_same_repository_source_closeout_target() -> None:
@@ -152,7 +235,7 @@ def test_build_parser_accepts_same_repository_source_closeout_target() -> None:
     assert reconcile.target_dir == "/tmp/aegis-linked-worktree"
 
 
-def test_source_closeout_target_is_restricted_to_same_repository_worktree(
+def test_source_closeout_target_selects_foreign_lightweight_or_same_repo_full_mode(
     monkeypatch, tmp_path
 ) -> None:
     module = load_task_module()
@@ -170,13 +253,17 @@ def test_source_closeout_target_is_restricted_to_same_repository_worktree(
         "_git_common_dir",
         lambda root: Path("/git/common-a") if root == target else Path("/git/common-b"),
     )
-    with pytest.raises(module.TaskError, match="another worktree of this repository"):
-        module._configure_source_closeout_target(str(target))
+    module._configure_source_closeout_target(str(target))
+
+    assert module.REPO_ROOT == target
+    assert module.LIGHTWEIGHT_WORKFLOW_TARGET is True
+    assert module.SOURCE_WORKFLOW_HELPER_OVERRIDE is None
 
     monkeypatch.setattr(module, "_git_common_dir", lambda _root: Path("/git/common"))
     module._configure_source_closeout_target(str(target))
 
     assert module.REPO_ROOT == target
+    assert module.LIGHTWEIGHT_WORKFLOW_TARGET is False
     assert module.WORK_TRACKING_BASE == target / "docs/ai/work-tracking/active"
     assert module.PLAN_STATE_DIR == target / ".plan_state"
     assert module.SOURCE_WORKFLOW_HELPER_OVERRIDE == (

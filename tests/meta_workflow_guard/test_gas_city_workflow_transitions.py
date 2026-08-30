@@ -14,6 +14,7 @@ SCRIPTS = REPO_ROOT / "plugins" / "gas-city-workflow" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import workflow_common  # noqa: E402
+import workflow as workflow_module  # noqa: E402
 from scripts import _aegis_installer as aegis_installer  # noqa: E402
 from aegis_foundation.gate.render import next_command  # noqa: E402
 from workflow import _verify, parse_args  # noqa: E402
@@ -573,6 +574,61 @@ def test_legacy_project_without_foundation_uses_target_bound_wizard(
     assert argv[argv.index("--target-dir") + 1] == target.as_posix()
     assert "--force" in argv
     assert "aegis" not in argv
+
+
+def test_lightweight_sync_and_finish_select_only_the_bead_folder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "consumer"
+    current = (
+        target
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "active"
+        / "20300101-hpf-test-shadow-review-ACTIVE"
+    )
+    historical = (
+        target
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "active"
+        / "20260101-task80-historical-ACTIVE"
+    )
+    _write(current / "TRACKER.md", "**Status**: ACTIVE\n")
+    _write(historical / "TRACKER.md", "**Status**: ACTIVE\n")
+    runtime = tmp_path / "runtime"
+    _write(runtime / "scripts/codex-task", "#!/usr/bin/env python3\n", executable=True)
+    monkeypatch.setattr(workflow_module, "workflow_runtime_root", lambda: runtime)
+    monkeypatch.setattr(workflow_module, "active_bead_id", lambda _root: "hpf-test")
+    context = {
+        "project": {
+            "id": "hpfetcher",
+            "root": target.as_posix(),
+            "workflow_profile": "beads-with-frozen-legacy-evidence",
+        },
+        "workflow": {"rig": "hpfetcher"},
+    }
+    runner = FixtureRunner({"id": "hpf-test", "status": "in_progress"})
+
+    assert workflow_module._sync_plan(target, context, runner) is True
+    sync_argv = runner.calls[-1]
+    assert sync_argv[sync_argv.index("--folder") + 1] == current.name
+
+    monkeypatch.setattr(workflow_module, "build_context", lambda *_args: context)
+    monkeypatch.setattr(workflow_module, "_run_profile_readiness", lambda *_args: "READY")
+    monkeypatch.setattr(
+        workflow_module,
+        "record_lifecycle_event",
+        lambda *_args, **_kwargs: target / ".git/lifecycle.json",
+    )
+    checked = workflow_module._finish(target, runner, apply=False)
+
+    assert checked["backend"] == "lightweight-source-archive"
+    finish_argv = runner.calls[-1]
+    assert finish_argv[2] == "--dry-run"
+    assert finish_argv[finish_argv.index("--folder") + 1] == current.name
 
 
 def test_router_skill_delegates_transitions_without_copying_mutation_sequences() -> None:

@@ -24,6 +24,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPT_DIR = Path(__file__).resolve().parent
 COMMAND_SOURCE_ROOT = REPO_ROOT
 SOURCE_WORKFLOW_HELPER_OVERRIDE: Optional[Path] = None
+LIGHTWEIGHT_WORKFLOW_TARGET = False
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 if str(SCRIPT_DIR) not in sys.path:
@@ -2253,13 +2254,18 @@ def _is_between_sessions_state() -> bool:
     return state.get("current") in {None, ""}
 
 
-def _resolve_tracker_path(override: Optional[str] = None) -> Path:
+def _resolve_tracker_path(
+    override: Optional[str] = None,
+    folder: Optional[str] = None,
+) -> Path:
+    if override and folder:
+        raise TaskError("Plan sync accepts either --tracker or --folder, not both")
     if override:
         candidate = (REPO_ROOT / override).resolve()
         if not candidate.exists():
             raise TaskError(f"Tracker file not found: {candidate}")
         return candidate
-    return _get_tracker_path()
+    return _get_tracker_path(folder)
 
 
 def _parse_plan_table(text: str) -> Dict[str, Dict[str, str]]:
@@ -2348,7 +2354,7 @@ def handle_plan_sync(args: argparse.Namespace) -> None:
         return
 
     plan_path = _resolve_plan_path(args.plan)
-    tracker_path = _resolve_tracker_path(args.tracker)
+    tracker_path = _resolve_tracker_path(args.tracker, getattr(args, "folder", None))
 
     plan_text = plan_path.read_text(encoding="utf-8")
     steps = _parse_plan_table(plan_text)
@@ -2581,6 +2587,7 @@ def _git_common_dir(root: Path) -> Path:
 
 
 def _configure_source_closeout_target(value: object) -> None:
+    global LIGHTWEIGHT_WORKFLOW_TARGET
     if value in {None, ""}:
         return
     if not isinstance(value, str):
@@ -2597,7 +2604,9 @@ def _configure_source_closeout_target(value: object) -> None:
     if top_level.returncode != 0 or Path(top_level.stdout.strip()).resolve() != target:
         raise TaskError("Source closeout target must be the root of a Git worktree")
     if _git_common_dir(target) != _git_common_dir(COMMAND_SOURCE_ROOT):
-        raise TaskError("Source closeout target must be another worktree of this repository")
+        _configure_workflow_target(target.as_posix())
+        return
+    LIGHTWEIGHT_WORKFLOW_TARGET = False
 
     helper_path = COMMAND_SOURCE_ROOT / "scripts" / "_source_workflow_state.py"
     if not helper_path.is_file() or helper_path.is_symlink():
@@ -2654,7 +2663,7 @@ def _configure_workflow_target(value: object) -> None:
     global PLAN_CURRENT, PLAN_STATE_DIR, PLAN_SYNC_LOG, SESSION_STATE_PATH
     global TASKMASTER_TASKS_DIR, TASKMASTER_TASKS_JSON, TASKMASTER_TASKS_JSON_REL
     global SESSIONS_CURRENT_REL, PLANS_CURRENT_REL, SESSION_STATE_REL
-    global SOURCE_WORKFLOW_HELPER_OVERRIDE
+    global SOURCE_WORKFLOW_HELPER_OVERRIDE, LIGHTWEIGHT_WORKFLOW_TARGET
     REPO_ROOT = target
     REPO_STRUCTURE = structure
     SESSIONS_DIR = structure.sessions_root
@@ -2675,6 +2684,9 @@ def _configure_workflow_target(value: object) -> None:
     PLANS_CURRENT_REL = structure.current_plan_link.relative_to(REPO_ROOT).as_posix()
     SESSION_STATE_REL = structure.session_state_path.relative_to(REPO_ROOT).as_posix()
     SOURCE_WORKFLOW_HELPER_OVERRIDE = None
+    LIGHTWEIGHT_WORKFLOW_TARGET = (
+        _git_common_dir(target) != _git_common_dir(COMMAND_SOURCE_ROOT)
+    )
 
 
 def _configure_wizard_target(value: object, *, bead_id: object) -> None:
@@ -2700,11 +2712,15 @@ def _load_source_workflow_state_module():
 
 
 def _is_uninstalled_source_checkout_for_archive() -> bool:
+    if LIGHTWEIGHT_WORKFLOW_TARGET:
+        return True
     module = _load_source_workflow_state_module()
     return bool(module and module.is_uninstalled_aegis_source_checkout(REPO_ROOT))
 
 
 def _retire_recovered_source_current_work(transaction: Mapping[str, object]) -> bool:
+    if LIGHTWEIGHT_WORKFLOW_TARGET:
+        return False
     current_path = REPO_ROOT / ".aegis/state/current-work.json"
     if not current_path.exists() and not current_path.is_symlink():
         return False
@@ -18905,6 +18921,10 @@ def build_parser() -> argparse.ArgumentParser:
     plan_sync = plan_sub.add_parser("sync", help="Validate plan/tracker parity and log sync entry")
     plan_sync.add_argument("--plan", help=f"Explicit plan file path (default: {PLANS_CURRENT_REL})")
     plan_sync.add_argument("--tracker", help="Explicit tracker file path (default: active tracker)")
+    plan_sync.add_argument(
+        "--folder",
+        help="Specific ACTIVE work-tracking folder whose TRACKER.md is synchronized",
+    )
     plan_sync.add_argument(
         "--target-dir",
         help="Git worktree root whose plan/tracker state is synchronized",

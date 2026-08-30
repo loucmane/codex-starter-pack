@@ -10,5 +10,11 @@
   requires live operator authority; an envelope can only prove that a run stayed within it.
 - 2026-08-30 — Generic tools may validate structure, hashes, confinement, and cross-lane evidence,
   but may not reproduce HPFetcher aggregation, promotion, or adjudication semantics.
+- 2026-08-30 — A project can legitimately retain unrelated historical ACTIVE folders. Lifecycle
+  commands must select the current folder by bead identity and refuse zero or multiple matches;
+  global single-folder assumptions turn durable history into an agent-memory dependency.
+- 2026-08-30 — Cross-project closeout can reuse the canonical transactional archive safely when it
+  treats legacy `.aegis` state as frozen evidence. The archive may update only the selected tracker,
+  its bound plan/session references, and the transaction journal.
 
 - 2026-08-30 — _Pending_ — document new findings here.

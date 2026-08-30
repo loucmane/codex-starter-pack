@@ -36,6 +36,20 @@ def _is_lightweight_legacy(context: dict[str, Any]) -> bool:
     )
 
 
+def _active_folder_name(root: Path, bead_id: str) -> str:
+    active_root = root / "docs" / "ai" / "work-tracking" / "active"
+    matches = sorted(
+        path.name
+        for path in active_root.glob("*-ACTIVE")
+        if path.is_dir() and not path.is_symlink() and f"-{bead_id}-" in path.name
+    )
+    if len(matches) != 1:
+        raise WorkflowError(
+            f"expected exactly one ACTIVE folder for {bead_id}; found {matches}"
+        )
+    return matches[0]
+
+
 def _sync_plan(
     root: Path,
     context: dict[str, Any],
@@ -47,6 +61,7 @@ def _sync_plan(
         return True
     if _is_lightweight_legacy(context):
         runtime = workflow_runtime_root()
+        bead_id = active_bead_id(root)
         runner.run(
             [
                 sys.executable,
@@ -55,6 +70,8 @@ def _sync_plan(
                 "sync",
                 "--target-dir",
                 str(root),
+                "--folder",
+                _active_folder_name(root, bead_id),
             ],
             cwd=runtime,
         )
@@ -177,6 +194,21 @@ def _finish(root: Path, runner: CommandRunner, *, apply: bool) -> dict[str, Any]
     if source_task.is_file():
         argv = [sys.executable, str(source_task), "work-tracking", "archive"]
         backend = "source-archive"
+    elif _is_lightweight_legacy(context):
+        canonical_task = workflow_runtime_root() / "scripts" / "codex-task"
+        argv = [
+            sys.executable,
+            str(canonical_task),
+            "work-tracking",
+            "archive",
+            "--target-dir",
+            str(root),
+            "--folder",
+            _active_folder_name(root, bead_id),
+        ]
+        if not apply:
+            argv.insert(2, "--dry-run")
+        backend = "lightweight-source-archive"
     else:
         canonical_task = workflow_runtime_root() / "scripts" / "codex-task"
         argv = [
