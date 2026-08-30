@@ -1,0 +1,8 @@
+{
+  "schema": "gas-city-workflow.project.v1",
+  "id": "gas-city-operations",
+  "repository": "loucmane/gas-city-operations",
+  "rig": "gascity",
+  "workflow_authority": "beads",
+  "workflow_profile": "beads-with-aegis-evidence"
+}
