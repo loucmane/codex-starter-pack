@@ -10,10 +10,11 @@ from pathlib import Path
 from typing import Any
 
 from project_context import DEFAULT_REGISTRY, build_context
-from workflow_begin import begin, resume
+from workflow_begin import begin, resume, run_profile_readiness
 from workflow_common import (
     CommandRunner,
     WorkflowError,
+    active_begin_spec,
     active_bead_id,
     git_value,
     record_lifecycle_event,
@@ -23,13 +24,59 @@ from workflow_common import (
 )
 
 
+def _is_lightweight_legacy(context: dict[str, Any]) -> bool:
+    return (
+        context["project"]["workflow_profile"]
+        == "beads-with-frozen-legacy-evidence"
+        and not (
+            Path(context["project"]["root"])
+            / ".aegis"
+            / "foundation-manifest.json"
+        ).is_file()
+    )
+
+
+def _sync_plan(
+    root: Path,
+    context: dict[str, Any],
+    runner: CommandRunner,
+) -> bool:
+    source_task = root / "scripts" / "codex-task"
+    if source_task.is_file():
+        runner.run([sys.executable, str(source_task), "plan", "sync"], cwd=root)
+        return True
+    if _is_lightweight_legacy(context):
+        runtime = workflow_runtime_root()
+        runner.run(
+            [
+                sys.executable,
+                str(runtime / "scripts" / "codex-task"),
+                "plan",
+                "sync",
+                "--target-dir",
+                str(root),
+            ],
+            cwd=runtime,
+        )
+        return True
+    return False
+
+
+def _run_profile_readiness(
+    root: Path,
+    context: dict[str, Any],
+    runner: CommandRunner,
+) -> str:
+    if _is_lightweight_legacy(context):
+        return run_profile_readiness(runner, active_begin_spec(runner, root))
+    return run_readiness(runner, root)
+
+
 def _checkpoint(root: Path, runner: CommandRunner) -> dict[str, Any]:
     context = build_context(root, DEFAULT_REGISTRY)
     root = Path(context["project"]["root"])
-    task = root / "scripts" / "codex-task"
-    if task.is_file():
-        runner.run([sys.executable, str(task), "plan", "sync"], cwd=root)
-    run_readiness(runner, root)
+    _sync_plan(root, context, runner)
+    _run_profile_readiness(root, context, runner)
     journal = record_lifecycle_event(runner, root, "checkpoint", "ready")
     return result_payload(
         "checkpoint",
@@ -47,12 +94,10 @@ def _verify(
 ) -> dict[str, Any]:
     context = build_context(root, DEFAULT_REGISTRY)
     root = Path(context["project"]["root"])
-    source_task = root / "scripts" / "codex-task"
     checks: list[str] = []
-    if synchronize and source_task.is_file():
-        runner.run([sys.executable, str(source_task), "plan", "sync"], cwd=root)
+    if synchronize and _sync_plan(root, context, runner):
         checks.append("plan-sync")
-    run_readiness(runner, root)
+    _run_profile_readiness(root, context, runner)
     guard = root / "scripts" / "codex-guard"
     checks.append("readiness")
     if guard.is_file():
@@ -61,7 +106,10 @@ def _verify(
     runner.run(["git", "-C", str(root), "diff", "--check"])
     runner.run(["git", "-C", str(root), "diff", "--cached", "--check"])
     checks.append("git-diff-check")
-    if source_task.is_file() and not (root / ".aegis" / "foundation-manifest.json").is_file():
+    source_task = root / "scripts" / "codex-task"
+    if _is_lightweight_legacy(context):
+        checks.append("lightweight-bead-scaffold")
+    elif source_task.is_file() and not (root / ".aegis" / "foundation-manifest.json").is_file():
         runner.run(
             [sys.executable, str(source_task), "work-tracking", "audit"],
             cwd=root,
@@ -124,7 +172,7 @@ def _finish(root: Path, runner: CommandRunner, *, apply: bool) -> dict[str, Any]
     context = build_context(root, DEFAULT_REGISTRY)
     root = Path(context["project"]["root"])
     bead_id = active_bead_id(root)
-    run_readiness(runner, root)
+    _run_profile_readiness(root, context, runner)
     source_task = root / "scripts" / "codex-task"
     if source_task.is_file():
         argv = [sys.executable, str(source_task), "work-tracking", "archive"]

@@ -7,6 +7,7 @@ import importlib.machinery
 import importlib.util
 import json
 import os
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -96,6 +97,32 @@ def test_build_parser_accepts_bead_native_wizard_kickoff() -> None:
     assert args.subcommand == "kickoff"
     assert args.bead == "ga-k9sd"
     assert args.task is None
+
+
+def test_build_parser_accepts_cross_project_bead_wizard_target() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+
+    args = parser.parse_args(
+        [
+            "wizard",
+            "kickoff",
+            "--bead",
+            "hpf-test",
+            "--slug",
+            "shadow-review",
+            "--target-dir",
+            "/tmp/hpfetcher-worktree",
+        ]
+    )
+
+    assert args.bead == "hpf-test"
+    assert args.target_dir == "/tmp/hpfetcher-worktree"
+
+    plan_sync = parser.parse_args(
+        ["plan", "sync", "--target-dir", "/tmp/hpfetcher-worktree"]
+    )
+    assert plan_sync.target_dir == "/tmp/hpfetcher-worktree"
 
 
 def test_build_parser_accepts_same_repository_source_closeout_target() -> None:
@@ -855,6 +882,78 @@ def test_handle_wizard_kickoff_creates_bead_native_artifacts_without_taskmaster(
     assert "- **Bead IDs**: ga-k9sd" in plan_text
     assert "branch_policy: codex/ga-k9sd-beads-first-guidance" in plan_text
     assert not any(cmd and cmd[0] == "task-master" for cmd in commands)
+
+
+def test_cross_project_bead_wizard_writes_only_to_selected_git_root(
+    monkeypatch, tmp_path
+) -> None:
+    module = load_task_module()
+    target = tmp_path / "consumer"
+    target.mkdir()
+    subprocess.run(
+        ["git", "init", "-b", "codex/hpf-test-shadow-review"],
+        cwd=target,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    module.handle_wizard_kickoff(
+        argparse.Namespace(
+            task=None,
+            bead="hpf-test",
+            slug="shadow-review",
+            title="Shadow review",
+            goal=["Review one frozen batch"],
+            task_source="HPFetcher bead hpf-test",
+            handler_target=".",
+            target_dir=target.as_posix(),
+            force=False,
+            dry_run=False,
+        )
+    )
+
+    active = (
+        target
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "active"
+        / "20260424-hpf-test-shadow-review-ACTIVE"
+    )
+    session = target / "sessions" / "2026" / "04" / "2026-04-24-001-hpf-test-shadow-review.md"
+    plan = target / "plans" / "2026-04-24-hpf-test-shadow-review.md"
+    assert active.is_dir()
+    assert session.is_file()
+    assert plan.is_file()
+    assert (target / "sessions" / "current").resolve() == session
+    assert (target / "plans" / "current").resolve() == plan
+    assert (target / ".plan_state" / "sync.log").is_file()
+    assert "bead_ids: [hpf-test]" in plan.read_text(encoding="utf-8")
+
+    before = json.loads(
+        (target / ".plan_state" / "sync.log").read_text(encoding="utf-8")
+    )
+    module.handle_plan_sync(
+        argparse.Namespace(
+            plan=None,
+            tracker=None,
+            target_dir=target.as_posix(),
+            dry_run=False,
+        )
+    )
+    after = json.loads(
+        (target / ".plan_state" / "sync.log").read_text(encoding="utf-8")
+    )
+    assert len(after) == len(before) + 1
+
+
+def test_cross_project_wizard_rejects_taskmaster_identity(tmp_path) -> None:
+    module = load_task_module()
+
+    with pytest.raises(module.TaskError, match="requires --bead"):
+        module._configure_wizard_target(tmp_path.as_posix(), bead_id=None)
 
 
 def test_handle_wizard_kickoff_rejects_invalid_bead_id(monkeypatch, tmp_path) -> None:

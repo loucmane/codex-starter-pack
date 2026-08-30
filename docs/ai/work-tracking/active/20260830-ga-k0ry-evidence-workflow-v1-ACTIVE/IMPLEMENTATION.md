@@ -10,6 +10,12 @@
   replace project quality logic.
 - Added an optional validated project `base_ref`; HPFetcher now derives new task worktrees from
   `refs/remotes/origin/main` without touching its dirty, parked canonical checkout.
+- Added target-aware lightweight lifecycle scaffolding for projects without an installed Aegis
+  foundation. The canonical `codex-task` validates the foreign Git root, writes only beneath that
+  worktree, forbids cross-project Taskmaster kickoff, and exposes target-aware plan sync.
+- Added profile-native readiness for frozen-legacy projects. It binds the transition journal,
+  exact bead branch, selected base ancestry, current plan/session, and one matching tracker while
+  tolerating only unrelated trackers that are tracked and byte-unchanged at the selected base.
 
 ## Frozen bindings
 
@@ -33,5 +39,8 @@ Validation evidence:
 
 - Codex plugin validator: PASS.
 - Evidence and plugin focused tests: 16 passed; lifecycle/plugin base-ref regression: 28 passed.
+- Cross-project lifecycle proof: HPFetcher `hpf-nqzf` reached journal phase `ready` from exact main
+  `5415f14f...` in its isolated worktree while the dirty canonical checkout remained untouched.
+- Target-aware helper regression: 226 `codex-task` tests and 17 workflow-transition tests passed.
 - Optional `ruff` command was unavailable in the environment; Python compilation and repository
   guard checks remain required before commit.

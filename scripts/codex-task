@@ -1763,6 +1763,7 @@ def _handle_bead_wizard_kickoff(args: argparse.Namespace) -> None:
         return
 
     session_dir.mkdir(parents=True, exist_ok=True)
+    plan_path.parent.mkdir(parents=True, exist_ok=True)
     _write_file_lines(session_path, session_lines)
     _write_file_lines(plan_path, plan_lines)
     _symlink_to(SESSIONS_DIR / "current", session_path)
@@ -1790,6 +1791,9 @@ def _handle_bead_wizard_kickoff(args: argparse.Namespace) -> None:
 
 
 def handle_wizard_kickoff(args: argparse.Namespace) -> None:
+    _configure_wizard_target(
+        getattr(args, "target_dir", None), bead_id=getattr(args, "bead", None)
+    )
     if _is_uninstalled_source_checkout_for_archive() and _source_closeout_journal_path().exists():
         raise TaskError(
             "Source lifecycle is CLOSEOUT_PENDING; run "
@@ -1864,6 +1868,7 @@ def handle_wizard_kickoff(args: argparse.Namespace) -> None:
         return
 
     session_dir.mkdir(parents=True, exist_ok=True)
+    plan_path.parent.mkdir(parents=True, exist_ok=True)
     _write_file_lines(session_path, session_lines)
     _write_file_lines(plan_path, plan_lines)
     _symlink_to(SESSIONS_DIR / "current", session_path)
@@ -2337,6 +2342,7 @@ def _write_plan_sync_entries(entries: List[Dict[str, str]]) -> None:
 
 
 def handle_plan_sync(args: argparse.Namespace) -> None:
+    _configure_workflow_target(getattr(args, "target_dir", None))
     if not args.plan and not args.tracker and _is_between_sessions_state():
         print("No active plan; repository is between sessions. Plan sync skipped.")
         return
@@ -2615,6 +2621,66 @@ def _configure_source_closeout_target(value: object) -> None:
     PLAN_SYNC_LOG = REPO_STRUCTURE.plan_sync_log
     SESSION_STATE_PATH = REPO_STRUCTURE.session_state_path
     SOURCE_WORKFLOW_HELPER_OVERRIDE = helper_path
+
+
+def _configure_workflow_target(value: object) -> None:
+    """Bind lightweight workflow output to an explicitly selected Git worktree.
+
+    The canonical workflow runtime is shared by projects that intentionally do not
+    install the full Aegis foundation. In that mode the executable remains under
+    Gas City Operations, while every mutable scaffold path must resolve beneath the
+    selected project worktree.
+    """
+
+    if value in {None, ""}:
+        return
+    if not isinstance(value, str):
+        raise TaskError("Workflow target must be a path string")
+    target = Path(value).expanduser().resolve()
+    if not target.is_dir() or target.is_symlink():
+        raise TaskError("Workflow target must be a real directory")
+    top_level = subprocess.run(
+        ["git", "-C", str(target), "rev-parse", "--show-toplevel"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if top_level.returncode != 0 or Path(top_level.stdout.strip()).resolve() != target:
+        raise TaskError("Workflow target must be the root of a Git worktree")
+
+    structure = load_repo_structure(target)
+    global REPO_ROOT, REPO_STRUCTURE, SESSIONS_DIR, PLANS_DIR
+    global WORK_TRACKING_BASE, WORK_TRACKING_ACTIVE_REL, WORK_TRACKING_ARCHIVE_REL
+    global PLAN_CURRENT, PLAN_STATE_DIR, PLAN_SYNC_LOG, SESSION_STATE_PATH
+    global TASKMASTER_TASKS_DIR, TASKMASTER_TASKS_JSON, TASKMASTER_TASKS_JSON_REL
+    global SESSIONS_CURRENT_REL, PLANS_CURRENT_REL, SESSION_STATE_REL
+    global SOURCE_WORKFLOW_HELPER_OVERRIDE
+    REPO_ROOT = target
+    REPO_STRUCTURE = structure
+    SESSIONS_DIR = structure.sessions_root
+    PLANS_DIR = structure.plans_root
+    WORK_TRACKING_BASE = structure.work_tracking_active_root
+    WORK_TRACKING_ACTIVE_REL = WORK_TRACKING_BASE.relative_to(REPO_ROOT).as_posix()
+    WORK_TRACKING_ARCHIVE_REL = (
+        structure.work_tracking_archive_root.relative_to(REPO_ROOT).as_posix()
+    )
+    PLAN_CURRENT = structure.current_plan_link
+    PLAN_STATE_DIR = structure.plan_state_dir
+    PLAN_SYNC_LOG = structure.plan_sync_log
+    SESSION_STATE_PATH = structure.session_state_path
+    TASKMASTER_TASKS_DIR = structure.taskmaster_tasks_dir
+    TASKMASTER_TASKS_JSON = structure.taskmaster_tasks_json
+    TASKMASTER_TASKS_JSON_REL = TASKMASTER_TASKS_JSON.relative_to(REPO_ROOT).as_posix()
+    SESSIONS_CURRENT_REL = structure.current_session_link.relative_to(REPO_ROOT).as_posix()
+    PLANS_CURRENT_REL = structure.current_plan_link.relative_to(REPO_ROOT).as_posix()
+    SESSION_STATE_REL = structure.session_state_path.relative_to(REPO_ROOT).as_posix()
+    SOURCE_WORKFLOW_HELPER_OVERRIDE = None
+
+
+def _configure_wizard_target(value: object, *, bead_id: object) -> None:
+    if value not in {None, ""} and not bead_id:
+        raise TaskError("Cross-project wizard kickoff requires --bead")
+    _configure_workflow_target(value)
 
 
 def _load_source_workflow_state_module():
@@ -18839,6 +18905,10 @@ def build_parser() -> argparse.ArgumentParser:
     plan_sync = plan_sub.add_parser("sync", help="Validate plan/tracker parity and log sync entry")
     plan_sync.add_argument("--plan", help=f"Explicit plan file path (default: {PLANS_CURRENT_REL})")
     plan_sync.add_argument("--tracker", help="Explicit tracker file path (default: active tracker)")
+    plan_sync.add_argument(
+        "--target-dir",
+        help="Git worktree root whose plan/tracker state is synchronized",
+    )
     plan_sync.set_defaults(func=handle_plan_sync)
 
     report_parser = subparsers.add_parser("report", help="Report generation operations")
@@ -20017,6 +20087,10 @@ def build_parser() -> argparse.ArgumentParser:
     wizard_kickoff.add_argument("--goal", action="append", help="Goal checklist item (repeatable)")
     wizard_kickoff.add_argument("--task-source", help="Human-readable source line for the session metadata")
     wizard_kickoff.add_argument("--handler-target", help="Primary handler target/path for the generated plan")
+    wizard_kickoff.add_argument(
+        "--target-dir",
+        help="Git worktree root that receives bead-native scaffold output",
+    )
     wizard_kickoff.add_argument("--force", action="store_true", help="Allow kickoff even if another ACTIVE folder exists")
     wizard_kickoff.set_defaults(func=handle_wizard_kickoff)
 
