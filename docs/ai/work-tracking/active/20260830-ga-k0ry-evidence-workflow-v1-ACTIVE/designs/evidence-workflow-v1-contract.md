@@ -26,8 +26,8 @@ one JSON schema and five small commands under `plugins/gas-city-workflow/scripts
    subject Git state, bound workflow assets, sorted external-input inventory, and authorization
    envelope reference.
 2. `validate_evidence_run.py` recomputes every binding, refuses existing run-id overwrite,
-   requires `supersedes` for successor repairs, cross-checks project id/rig, and hard-errors on
-   every mode except `shadow`.
+   requires `supersedes` plus a digest-bound absolute predecessor manifest for successor repairs,
+   cross-checks project id/rig, and hard-errors on every mode except `shadow`.
 3. `audit_blind_bundle.py` rejects forbidden content, `.git` metadata, special files, escaping
    symlinks, undeclared files, and writes outside the lane's exact output directory.
 4. `validate_review_report.py` checks lane schema, manifest/run/candidate identity, declared

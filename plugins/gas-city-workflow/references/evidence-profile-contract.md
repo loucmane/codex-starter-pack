@@ -24,8 +24,10 @@ must never recreate a project gate, fold, quality score, promotion decision, or 
 `lane_io`, `authorization_envelope`, and `run_root`.
 
 All paths except tracked profile asset paths are absolute. `mode` is always `shadow`. A repair
-uses a new run id, sets `repair=true`, names `supersedes`, and points to the prior sibling run;
-no evidence file is overwritten.
+uses a new run id, sets `repair=true`, names `supersedes`, and adds the absolute
+`supersedes_manifest` path. The frozen successor binds that predecessor manifest's digest, so a
+repair may move to a different approved output root without copying or rewriting old evidence.
+Non-repair requests omit `supersedes_manifest`.
 
 ## Authorization envelope
 

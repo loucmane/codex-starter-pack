@@ -39,7 +39,12 @@ def _git(root: Path, *args: str) -> str:
 def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     subject = tmp_path / "subject"
     subject.mkdir()
-    subprocess.run(["git", "init", "-b", "codex/ga-fixture-evidence"], cwd=subject, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "init", "-b", "codex/ga-fixture-evidence"],
+        cwd=subject,
+        check=True,
+        capture_output=True,
+    )
     _write_json(
         subject / ".gas-city-workflow.json",
         {
@@ -74,7 +79,15 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "additionalProperties": False,
-        "required": ["schema", "run_id", "lane_id", "candidate_id", "status", "summary", "findings"],
+        "required": [
+            "schema",
+            "run_id",
+            "lane_id",
+            "candidate_id",
+            "status",
+            "summary",
+            "findings",
+        ],
         "properties": {
             "schema": {"const": "gas-city-evidence-report.v1"},
             "run_id": {"type": "string"},
@@ -118,8 +131,16 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     subprocess.run(["git", "add", "."], cwd=subject, check=True)
     subprocess.run(
         [
-            "git", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.test",
-            "-c", "commit.gpgsign=false", "commit", "-m", "fixture",
+            "git",
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@example.test",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "-m",
+            "fixture",
         ],
         cwd=subject,
         check=True,
@@ -148,7 +169,9 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
         "external_inputs": [{"path": external.as_posix(), "reason": "untracked parsed input"}],
         "fable_inputs": [(subject / "fable-input.json").as_posix()],
         "authoritative_outputs": [(subject / "authoritative.json").as_posix()],
-        "lane_io": {"blind-quality": {"bundle_dir": bundle.as_posix(), "report_dir": reports.as_posix()}},
+        "lane_io": {
+            "blind-quality": {"bundle_dir": bundle.as_posix(), "report_dir": reports.as_posix()}
+        },
         "authorization_envelope": envelope_path.as_posix(),
         "run_root": run_root.as_posix(),
     }
@@ -167,7 +190,12 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
             "max_workers": 1,
             "allowed_write_roots": [reports.as_posix()],
             "excluded_actions": [
-                "push", "merge", "deploy", "publish", "rig-lifecycle", "authoritative-output-write"
+                "push",
+                "merge",
+                "deploy",
+                "publish",
+                "rig-lifecycle",
+                "authoritative-output-write",
             ],
         },
         "verbatim_authorization": "One bounded report-only shadow review; no project mutation.",
@@ -186,7 +214,10 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
 
 def _freeze(values: dict[str, Any]) -> dict[str, Any]:
     return freeze_module.freeze(
-        values["request_path"], values["profile_path"], values["manifest_path"], registry=values["registry"]
+        values["request_path"],
+        values["profile_path"],
+        values["manifest_path"],
+        registry=values["registry"],
     )
 
 
@@ -208,7 +239,9 @@ def _report(values: dict[str, Any], *, candidate: str = "candidate-1") -> Path:
             "candidate_id": candidate,
             "status": "evidence-only",
             "summary": "One evidence-bearing observation.",
-            "findings": [{"id": "clarity-1", "evidence": "The stem is independently understandable."}],
+            "findings": [
+                {"id": "clarity-1", "evidence": "The stem is independently understandable."}
+            ],
         },
     )
     return path
@@ -220,7 +253,12 @@ def test_freeze_validate_and_reject_drift_overwrite_and_authoritative_mode(
     values = _fixture(tmp_path, monkeypatch)
     manifest = _freeze(values)
     assert manifest["mode"] == "shadow"
-    assert validate_module.validate_manifest(values["manifest_path"], registry=values["registry"])["run_id"] == "run-001"
+    assert (
+        validate_module.validate_manifest(values["manifest_path"], registry=values["registry"])[
+            "run_id"
+        ]
+        == "run-001"
+    )
     with pytest.raises(EvidenceError, match="already exists"):
         _freeze(values)
 
@@ -228,7 +266,9 @@ def test_freeze_validate_and_reject_drift_overwrite_and_authoritative_mode(
     with pytest.raises(EvidenceError, match="external input inventory drift"):
         validate_module.validate_manifest(values["manifest_path"], registry=values["registry"])
 
-    values["profile_path"].write_text(values["profile_path"].read_text(encoding="utf-8") + " ", encoding="utf-8")
+    values["profile_path"].write_text(
+        values["profile_path"].read_text(encoding="utf-8") + " ", encoding="utf-8"
+    )
     with pytest.raises(EvidenceError, match="profile digest drift"):
         validate_module.validate_manifest(values["manifest_path"], registry=values["registry"])
 
@@ -255,11 +295,85 @@ def test_freeze_rejects_dirty_subject_and_project_rig_mismatch(
     _write_json(values["profile_path"], profile)
     subprocess.run(["git", "add", "evidence/profile.json"], cwd=values["subject"], check=True)
     subprocess.run(
-        ["git", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.test", "-c", "commit.gpgsign=false", "commit", "-m", "mismatch"],
-        cwd=values["subject"], check=True, capture_output=True,
+        [
+            "git",
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@example.test",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "-m",
+            "mismatch",
+        ],
+        cwd=values["subject"],
+        check=True,
+        capture_output=True,
     )
     with pytest.raises(EvidenceError, match="project/rig"):
         _freeze(values)
+
+
+def test_repair_binds_predecessor_manifest_across_output_roots(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    values = _fixture(tmp_path, monkeypatch)
+    _freeze(values)
+    predecessor_sha = validate_module.sha256_file(values["manifest_path"])
+
+    run_root = tmp_path / "relocated-output-root" / "run-002"
+    run_root.mkdir(parents=True)
+    request_path = run_root / "request.json"
+    envelope_path = run_root / "authorization.json"
+    bundle = run_root / "lanes" / "blind-quality" / "bundle"
+    reports = run_root / "lanes" / "blind-quality" / "reports"
+    request = {
+        **values["request"],
+        "run_id": "run-002",
+        "created_at": "2026-08-30T12:10:00Z",
+        "repair": True,
+        "supersedes": "run-001",
+        "supersedes_manifest": values["manifest_path"].as_posix(),
+        "lane_io": {
+            "blind-quality": {
+                "bundle_dir": bundle.as_posix(),
+                "report_dir": reports.as_posix(),
+            }
+        },
+        "authorization_envelope": envelope_path.as_posix(),
+        "run_root": run_root.as_posix(),
+    }
+    _write_json(request_path, request)
+    envelope = {
+        **values["envelope"],
+        "request_sha256": validate_module.canonical_sha256(request),
+        "scope": {
+            **values["envelope"]["scope"],
+            "run_id": "run-002",
+            "allowed_write_roots": [reports.as_posix()],
+        },
+    }
+    _write_json(envelope_path, envelope)
+    manifest_path = run_root / "manifest.json"
+
+    manifest = freeze_module.freeze(
+        request_path, values["profile_path"], manifest_path, registry=values["registry"]
+    )
+    assert manifest["supersedes_manifest"] == {
+        "path": values["manifest_path"].as_posix(),
+        "sha256": predecessor_sha,
+    }
+    assert (
+        validate_module.validate_manifest(manifest_path, registry=values["registry"])["run_id"]
+        == "run-002"
+    )
+
+    values["manifest_path"].write_text(
+        values["manifest_path"].read_text(encoding="utf-8") + " ", encoding="utf-8"
+    )
+    with pytest.raises(EvidenceError, match="predecessor manifest binding drift"):
+        validate_module.validate_manifest(manifest_path, registry=values["registry"])
 
 
 def test_blind_bundle_rejects_leakage_git_symlink_and_unauthorized_output(
@@ -268,7 +382,9 @@ def test_blind_bundle_rejects_leakage_git_symlink_and_unauthorized_output(
     values = _fixture(tmp_path, monkeypatch)
     _freeze(values)
     _bundle(values)
-    assert audit_module.audit(values["manifest_path"], "blind-quality", "pre-dispatch")["ok"] is True
+    assert (
+        audit_module.audit(values["manifest_path"], "blind-quality", "pre-dispatch")["ok"] is True
+    )
     (values["bundle"] / "candidate.json").write_text('{"answer_key":"A"}\n', encoding="utf-8")
     with pytest.raises(EvidenceError, match="forbidden pattern"):
         audit_module.audit(values["manifest_path"], "blind-quality", "pre-dispatch")
@@ -290,7 +406,12 @@ def test_report_validation_and_sealed_comparison_are_fail_closed(
     _freeze(values)
     _bundle(values)
     report = _report(values)
-    assert report_module.validate_report(values["manifest_path"], "blind-quality", report)["candidate_id"] == "candidate-1"
+    assert (
+        report_module.validate_report(values["manifest_path"], "blind-quality", report)[
+            "candidate_id"
+        ]
+        == "candidate-1"
+    )
     _report(values, candidate="not-frozen")
     with pytest.raises(EvidenceError, match="outside the frozen set"):
         report_module.validate_report(values["manifest_path"], "blind-quality", report)
@@ -304,26 +425,42 @@ def test_report_validation_and_sealed_comparison_are_fail_closed(
     _write_json(
         seal,
         {
-            "schema": "gas-city-evidence-controller-event.v1", "event": "seal", "run_id": "run-001",
-            "parent_bead": "ga-fixture", "at": "2026-08-30T12:01:00Z",
-            "payload": {"fable_report": fable.as_posix(), "sha256": validate_module.sha256_file(fable)},
+            "schema": "gas-city-evidence-controller-event.v1",
+            "event": "seal",
+            "run_id": "run-001",
+            "parent_bead": "ga-fixture",
+            "at": "2026-08-30T12:01:00Z",
+            "payload": {
+                "fable_report": fable.as_posix(),
+                "sha256": validate_module.sha256_file(fable),
+            },
         },
     )
     readback = controller / "02-readback.json"
     _write_json(
         readback,
         {
-            "schema": "gas-city-evidence-controller-event.v1", "event": "fable-readback", "run_id": "run-001",
-            "parent_bead": "ga-fixture", "at": "2026-08-30T12:02:00Z",
-            "payload": {"seal_event_sha256": validate_module.sha256_file(seal), "fable_report_sha256": validate_module.sha256_file(fable), "confirmed_by": "Fable"},
+            "schema": "gas-city-evidence-controller-event.v1",
+            "event": "fable-readback",
+            "run_id": "run-001",
+            "parent_bead": "ga-fixture",
+            "at": "2026-08-30T12:02:00Z",
+            "payload": {
+                "seal_event_sha256": validate_module.sha256_file(seal),
+                "fable_report_sha256": validate_module.sha256_file(fable),
+                "confirmed_by": "Fable",
+            },
         },
     )
     dispatch = controller / "03-dispatch.json"
     _write_json(
         dispatch,
         {
-            "schema": "gas-city-evidence-controller-event.v1", "event": "dispatch", "run_id": "run-001",
-            "parent_bead": "ga-fixture", "at": "2026-08-30T12:03:00Z",
+            "schema": "gas-city-evidence-controller-event.v1",
+            "event": "dispatch",
+            "run_id": "run-001",
+            "parent_bead": "ga-fixture",
+            "at": "2026-08-30T12:03:00Z",
             "payload": {"readback_event_sha256": validate_module.sha256_file(readback)},
         },
     )
@@ -331,9 +468,15 @@ def test_report_validation_and_sealed_comparison_are_fail_closed(
     _write_json(
         release,
         {
-            "schema": "gas-city-evidence-controller-event.v1", "event": "release", "run_id": "run-001",
-            "parent_bead": "ga-fixture", "at": "2026-08-30T12:04:00Z",
-            "payload": {"dispatch_event_sha256": validate_module.sha256_file(dispatch), "policy_attestation": "Fable did not independently access worker reports before release."},
+            "schema": "gas-city-evidence-controller-event.v1",
+            "event": "release",
+            "run_id": "run-001",
+            "parent_bead": "ga-fixture",
+            "at": "2026-08-30T12:04:00Z",
+            "payload": {
+                "dispatch_event_sha256": validate_module.sha256_file(dispatch),
+                "policy_attestation": "Fable did not independently access worker reports before release.",
+            },
         },
     )
     base = 2_000_000_000_000_000_000
@@ -342,14 +485,25 @@ def test_report_validation_and_sealed_comparison_are_fail_closed(
     os.utime(release, ns=(base + 2, base + 2))
     output = values["run_root"] / "comparison.json"
     result = compare_module.compare(
-        values["manifest_path"], fable, seal, readback, dispatch, release,
-        [("blind-quality", report)], output,
+        values["manifest_path"],
+        fable,
+        seal,
+        readback,
+        dispatch,
+        release,
+        [("blind-quality", report)],
+        output,
     )
     assert result["domain_verdict"] is None
     assert result["shared_finding_ids"] == ["clarity-1"]
     with pytest.raises(EvidenceError):
         compare_module.compare(
-            values["manifest_path"], fable, seal, readback, dispatch,
-            controller / "missing-release.json", [("blind-quality", report)],
+            values["manifest_path"],
+            fable,
+            seal,
+            readback,
+            dispatch,
+            controller / "missing-release.json",
+            [("blind-quality", report)],
             values["run_root"] / "interrupted.json",
         )

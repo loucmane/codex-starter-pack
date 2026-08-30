@@ -41,5 +41,6 @@ expired authorization, existing run id, unexpected bundle/output files, Git meta
 special files, forbidden content, report identity/schema mismatch, broken event order,
 authoritative-output drift, or any request for authoritative mode.
 
-Repairs are append-forward: create a new run id and name the frozen predecessor in `supersedes`.
-Never rewrite or clean earlier run evidence.
+Repairs are append-forward: create a new run id, name the frozen predecessor in `supersedes`, and
+bind its absolute manifest path in `supersedes_manifest`. Never rewrite, relocate, copy, or clean
+earlier run evidence.

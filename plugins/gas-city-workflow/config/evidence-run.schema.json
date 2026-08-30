@@ -40,6 +40,7 @@
         {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"}
       ]
     },
+    "supersedes_manifest": {"$ref": "#/$defs/digestedFile"},
     "created_at": {"type": "string", "format": "date-time"},
     "frozen_at": {"type": "string", "format": "date-time"},
     "parent_bead": {
@@ -123,8 +124,14 @@
   "allOf": [
     {
       "if": {"properties": {"repair": {"const": true}}},
-      "then": {"properties": {"supersedes": {"type": "string"}}},
-      "else": {"properties": {"supersedes": {"type": "null"}}}
+      "then": {
+        "required": ["supersedes_manifest"],
+        "properties": {"supersedes": {"type": "string"}}
+      },
+      "else": {
+        "not": {"required": ["supersedes_manifest"]},
+        "properties": {"supersedes": {"type": "null"}}
+      }
     }
   ],
   "$defs": {

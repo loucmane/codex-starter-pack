@@ -87,7 +87,7 @@ def freeze(
             "fresh run root must contain only the freeze request and authorization envelope"
         )
     if request["repair"]:
-        prior = run_root.parent / request["supersedes"] / "manifest.json"
+        prior = absolute_path(request["supersedes_manifest"], "supersedes manifest")
         if not prior.is_file() or prior.is_symlink():
             raise EvidenceError("repair supersedes manifest is missing")
         prior_payload = load_json_object(prior, "superseded manifest")
@@ -98,7 +98,10 @@ def freeze(
     project = {"id": context["project"]["id"], "rig": context["workflow"]["rig"]}
     if profile["project"] != project:
         raise EvidenceError("profile project/rig does not match the subject context")
-    if envelope["scope"]["project_id"] != project["id"] or envelope["scope"]["rig"] != project["rig"]:
+    if (
+        envelope["scope"]["project_id"] != project["id"]
+        or envelope["scope"]["rig"] != project["rig"]
+    ):
         raise EvidenceError("authorization scope project/rig mismatch")
     bead = load_bead(CommandRunner(), context, request["parent_bead"])
     status = str(bead.get("status") or "")
@@ -120,7 +123,10 @@ def freeze(
     external_inputs = []
     for item in request["external_inputs"]:
         external_inputs.append(
-            {**path_binding(absolute_path(item["path"], "external input")), "reason": item["reason"]}
+            {
+                **path_binding(absolute_path(item["path"], "external input")),
+                "reason": item["reason"],
+            }
         )
     external_inputs.sort(key=lambda item: item["path"])
     fable_inputs = sorted(
@@ -179,7 +185,11 @@ def freeze(
             "tree": tree,
             "clean": True,
         },
-        "profile": {"id": profile["id"], "path": profile_path.as_posix(), "sha256": sha256_file(profile_path)},
+        "profile": {
+            "id": profile["id"],
+            "path": profile_path.as_posix(),
+            "sha256": sha256_file(profile_path),
+        },
         "freeze_request": {"path": request_path.as_posix(), "sha256": sha256_file(request_path)},
         "authorization": {
             "path": envelope_path.as_posix(),
@@ -197,6 +207,12 @@ def freeze(
         "lanes": lanes,
         "authoritative_outputs": authoritative_outputs,
     }
+    if request["repair"]:
+        prior = absolute_path(request["supersedes_manifest"], "supersedes manifest")
+        manifest["supersedes_manifest"] = {
+            "path": prior.as_posix(),
+            "sha256": sha256_file(prior),
+        }
     atomic_write_json(manifest_path, manifest)
     try:
         validate_manifest(manifest_path, registry=registry)
@@ -214,11 +230,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--registry", type=Path, default=DEFAULT_REGISTRY)
     args = parser.parse_args(argv)
     try:
-        manifest = freeze(args.request, args.profile, args.manifest, registry=args.registry.resolve())
+        manifest = freeze(
+            args.request, args.profile, args.manifest, registry=args.registry.resolve()
+        )
     except (EvidenceError, OSError, ValueError) as exc:
         print(f"freeze-evidence-run: REFUSED: {exc}", file=sys.stderr)
         return 2
-    print(json.dumps({"ok": True, "run_id": manifest["run_id"], "manifest": args.manifest.resolve().as_posix()}, sort_keys=True))
+    print(
+        json.dumps(
+            {
+                "ok": True,
+                "run_id": manifest["run_id"],
+                "manifest": args.manifest.resolve().as_posix(),
+            },
+            sort_keys=True,
+        )
+    )
     return 0
 
 
