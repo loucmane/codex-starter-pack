@@ -1026,11 +1026,77 @@ bead_ids: [ga-test1]
     assert active_reference not in plan.read_text(encoding="utf-8")
     assert archive_reference in plan.read_text(encoding="utf-8")
 
-    module.handle_work_tracking_archive(
-        argparse.Namespace(folder=active.name, dry_run=False)
-    )
+    recovered_current = repo / ".aegis" / "state" / "current-work.json"
+    recovered_current.parent.mkdir(parents=True)
+    recovered_current.write_text("{}\n", encoding="utf-8")
+
+    def retire_completed(transaction) -> bool:
+        assert transaction["work"] == {"kind": "bead", "id": "ga-test1"}
+        assert transaction["paths"]["active"] == active_reference
+        assert transaction["paths"]["archive"] == archive_reference
+        recovered_current.unlink()
+        return True
+
+    monkeypatch.setattr(module, "_retire_recovered_source_current_work", retire_completed)
+    module.handle_work_tracking_archive(argparse.Namespace(folder=active.name, dry_run=False))
+    assert not recovered_current.exists()
     assert (archived / "TRACKER.md").read_text(encoding="utf-8") == tracker_text
     assert len(json.loads((plan_state / "sync.log").read_text(encoding="utf-8"))) == 1
+
+
+def test_source_closeout_crash_after_current_work_retirement_is_idempotent(
+    monkeypatch, tmp_path
+) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    plan_state = repo / ".plan_state"
+    journal = plan_state / "source-closeout-transaction.json"
+    journal.parent.mkdir(parents=True)
+    journal.write_text("{}\n", encoding="utf-8")
+    current = repo / ".aegis" / "state" / "current-work.json"
+    current.parent.mkdir(parents=True)
+    current.write_text("{}\n", encoding="utf-8")
+    transaction = {
+        "phase": "plan_synced",
+        "work": {"kind": "bead", "id": "ga-test1"},
+        "paths": {
+            "active": "docs/ai/work-tracking/active/20300101-ga-test1-closeout-ACTIVE",
+            "archive": "docs/ai/work-tracking/archive/20300101-ga-test1-closeout-COMPLETED",
+            "plan": "plans/2030-01-01-ga-test1-closeout.md",
+            "session": "sessions/2030/01/2030-01-01-001-ga-test1-closeout.md",
+        },
+    }
+    retire_calls = 0
+
+    def retire(_transaction) -> bool:
+        nonlocal retire_calls
+        retire_calls += 1
+        if current.exists():
+            current.unlink()
+            return True
+        return False
+
+    def crash_after_retirement(phase: str) -> None:
+        if phase == "current_work_retired":
+            raise RuntimeError("simulated crash after current-work retirement")
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "PLAN_STATE_DIR", plan_state)
+    monkeypatch.setattr(module, "_verify_source_closeout_terminal", lambda _transaction: None)
+    monkeypatch.setattr(module, "_retire_recovered_source_current_work", retire)
+    monkeypatch.setattr(module, "_source_closeout_checkpoint", crash_after_retirement)
+
+    with pytest.raises(RuntimeError, match="simulated crash"):
+        module._execute_source_closeout(transaction)
+
+    assert not current.exists()
+    assert journal.exists()
+
+    monkeypatch.setattr(module, "_source_closeout_checkpoint", lambda _phase: None)
+    module._execute_source_closeout(transaction)
+
+    assert not journal.exists()
+    assert retire_calls == 2
 
 
 def test_bead_kickoff_refuses_pending_source_closeout(monkeypatch, tmp_path) -> None:

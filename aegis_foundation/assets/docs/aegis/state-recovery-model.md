@@ -20,6 +20,7 @@ It complements the invocation contract, update/rollback guide, and public adopti
 | `invalid_manifest` | A manifest exists but cannot be parsed or validated against the installed schema. | Review manifest drift; repair only if the manifest can be restored from managed evidence. |
 | `installed_no_current_work` | Runtime files are installed, but `.aegis/state/current-work.json` is absent. | Start local work with `aegis start "<title>"` or explicit-id work with `aegis kickoff`. |
 | `source_active_no_current_work` | The uninstalled Aegis source checkout has one aligned ACTIVE tracker plus matching `plans/current`, `sessions/current`, and branch identity, but its ignored runtime envelope is absent after a clone or worktree change. | Readiness derives ACTIVE without writing. The first explicit `aegis log` mutation atomically recovers `.aegis/state/current-work.json` from those tracked authorities and then records evidence. |
+| `source_closeout_recovered_current_work` | Transactional source closeout has a recovered ignored current-work envelope bound to the same work identity, plan, session, and ACTIVE bundle. | Verify the terminal archive first, then durably retire only the matching recovered envelope. A missing envelope is an idempotent no-op; any mismatch is preserved and refused. |
 | `in_progress_ready` | Current work exists, branch/session/plan/work-tracking state is aligned, and readiness passes. | Continue normal implementation or verification. |
 | `workflow_scaffold_incomplete` | Current work exists, but required pointers, directories, or workflow surfaces are missing. | Run `aegis doctor`, then `aegis repair --apply` only for safe mechanical fixes. |
 | `pending_tracking` | `.aegis/state/pending-tracking.json` contains one or more unlogged mutation events. | Run `aegis log --pending-id current ...`; repair must not clear these events. |
@@ -62,6 +63,15 @@ bead-native payload, and writes it atomically. Repeating recovery is a byte-pres
 Any identity, pointer, branch-policy, title, slug, containment, or existing-payload mismatch
 refuses before the evidence surfaces are changed. Installed projects retain the normal
 kickoff/start contract and never use this source-only fallback.
+
+Transactional source closeout treats a recovered source envelope as temporary runtime state.
+After the archive, rewritten references, and plan-sync evidence are all verified, the closeout
+helper recomputes the recovery fingerprint and matches the envelope's work identity, plan,
+session, and former ACTIVE path to the transaction before durably unlinking it. The transaction
+journal is removed only afterward. Reconciliation safely repeats that sequence after a crash,
+and re-running archive against an already-completed bundle performs the same bounded repair.
+Installed, malformed, symlinked, tampered, or differently scoped current-work state is never
+deleted by this path.
 
 ## Doctor Contract
 

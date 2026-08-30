@@ -2578,6 +2578,19 @@ def _is_uninstalled_source_checkout_for_archive() -> bool:
     return bool(module and module.is_uninstalled_aegis_source_checkout(REPO_ROOT))
 
 
+def _retire_recovered_source_current_work(transaction: Mapping[str, object]) -> bool:
+    current_path = REPO_ROOT / ".aegis/state/current-work.json"
+    if not current_path.exists() and not current_path.is_symlink():
+        return False
+    module = _load_source_workflow_state_module()
+    if module is None:
+        raise TaskError("Source current-work retirement helper is unavailable")
+    try:
+        return bool(module.retire_recovered_source_current_work(REPO_ROOT, transaction))
+    except Exception as exc:  # noqa: BLE001 - normalize fail-closed helper errors.
+        raise TaskError(f"Source current-work retirement refused: {exc}") from exc
+
+
 def _resolve_current_repo_document(relative_path: str) -> Optional[Path]:
     link = REPO_ROOT / relative_path
     if not link.exists():
@@ -2922,6 +2935,8 @@ def _execute_source_closeout(transaction: Dict[str, object]) -> Path:
         _set_source_closeout_phase(transaction, "plan_synced")
 
     _verify_source_closeout_terminal(transaction)
+    _retire_recovered_source_current_work(transaction)
+    _source_closeout_checkpoint("current_work_retired")
     _source_closeout_checkpoint("terminal_verified")
     _durable_unlink(_source_closeout_journal_path())
     return archive
@@ -3087,7 +3102,9 @@ def handle_work_tracking_archive(args: argparse.Namespace) -> None:
         current_session = _resolve_current_repo_document(SESSIONS_CURRENT_REL)
         if current_plan is None or current_session is None:
             raise TaskError("Completed source closeout has no current plan/session pointers")
+        work_kind, work_id = _work_identity_from_active_folder(WORK_TRACKING_BASE / args.folder)
         verification = {
+            "work": {"kind": work_kind, "id": work_id},
             "paths": {
                 "active": (WORK_TRACKING_BASE / args.folder).relative_to(REPO_ROOT).as_posix(),
                 "archive": archive.relative_to(REPO_ROOT).as_posix(),
@@ -3096,6 +3113,7 @@ def handle_work_tracking_archive(args: argparse.Namespace) -> None:
             }
         }
         _verify_source_closeout_terminal(verification)
+        _retire_recovered_source_current_work(verification)
         print(f"Source closeout already completed at {archive.relative_to(REPO_ROOT)}")
         return
 
