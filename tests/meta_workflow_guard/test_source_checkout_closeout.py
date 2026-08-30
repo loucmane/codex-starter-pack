@@ -528,9 +528,50 @@ def test_recovered_source_current_work_retires_only_for_matching_closeout(
         retire_recovered_source_current_work(root, mismatched)
     assert json.loads(current_path.read_text(encoding="utf-8")) == recovered
 
+    updated = json.loads(current_path.read_text(encoding="utf-8"))
+    updated["updated_at"] = "2030-01-02T12:34:56Z"
+    current_path.write_text(json.dumps(updated), encoding="utf-8")
+
     assert retire_recovered_source_current_work(root, transaction) is True
     assert not current_path.exists()
     assert retire_recovered_source_current_work(root, transaction) is False
+
+
+def test_recovered_source_current_work_retirement_refuses_invalid_timestamp_progression(
+    tmp_path: Path,
+) -> None:
+    root, _ = _init_bead_source_repo(tmp_path)
+    active = _activate_bead_source_state(root)
+    recover_source_current_work(
+        root,
+        "codex/ga-test1-source-closeout",
+        schema_version="fixture-v1",
+    )
+    current_path = root / ".aegis" / "state" / "current-work.json"
+    transaction = {
+        "work": {"kind": "bead", "id": "ga-test1"},
+        "paths": {
+            "active": active.relative_to(root).as_posix(),
+            "archive": "docs/ai/work-tracking/archive/20300101-ga-test1-source-closeout-COMPLETED",
+            "plan": (root / "plans" / "current").resolve().relative_to(root).as_posix(),
+            "session": (root / "sessions" / "current").resolve().relative_to(root).as_posix(),
+        },
+    }
+    recovered = json.loads(current_path.read_text(encoding="utf-8"))
+
+    older = json.loads(json.dumps(recovered))
+    older["updated_at"] = "2000-01-01T00:00:00Z"
+    current_path.write_text(json.dumps(older), encoding="utf-8")
+    with pytest.raises(SourceWorkflowStateError, match="timestamps are invalid"):
+        retire_recovered_source_current_work(root, transaction)
+    assert current_path.exists()
+
+    invalid = json.loads(json.dumps(recovered))
+    invalid["updated_at"] = "not-a-timestamp"
+    current_path.write_text(json.dumps(invalid), encoding="utf-8")
+    with pytest.raises(SourceWorkflowStateError, match="timestamps are invalid"):
+        retire_recovered_source_current_work(root, transaction)
+    assert current_path.exists()
 
 
 def test_recovered_source_current_work_retirement_refuses_tamper_and_installed_state(
