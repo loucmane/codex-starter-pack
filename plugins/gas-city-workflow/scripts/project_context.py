@@ -17,12 +17,23 @@ DESCRIPTOR_NAME = ".gas-city-workflow.json"
 REGISTRY_SCHEMA = "gas-city-workflow.project-registry.v1"
 DESCRIPTOR_SCHEMA = "gas-city-workflow.project.v1"
 CONTEXT_SCHEMA = "gas-city-workflow.project-context.v1"
-PLUGIN_VERSION = "0.1.1"
+try:
+    _MANIFEST = json.loads(
+        (PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+    )
+except (OSError, json.JSONDecodeError):
+    _MANIFEST = {}
+PLUGIN_VERSION = str(_MANIFEST.get("version") or "unknown")
 CITY = "/home/loucmane/gascity/city"
 GC = "/home/loucmane/gascity/bin/gc"
 BD = "/home/loucmane/gascity/bin/bd"
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9-]*$")
 REPOSITORY_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+GITHUB_REMOTE_PATTERNS = (
+    re.compile(r"^git@github\.com:(?P<repo>[^/]+/[^/]+?)(?:\.git)?$"),
+    re.compile(r"^ssh://git@github\.com/(?P<repo>[^/]+/[^/]+?)(?:\.git)?$"),
+    re.compile(r"^https://github\.com/(?P<repo>[^/]+/[^/]+?)(?:\.git)?/?$"),
+)
 
 
 class ContextError(RuntimeError):
@@ -104,9 +115,7 @@ def _load_registry(path: Path) -> list[dict[str, Any]]:
     if len(set(roots)) != len(roots) or len(set(ids)) != len(ids):
         raise ContextError("project registry roots and ids must be unique")
     worktree_roots = [
-        project["worktree_root"]
-        for project in validated
-        if "worktree_root" in project
+        project["worktree_root"] for project in validated if "worktree_root" in project
     ]
     if len(set(worktree_roots)) != len(worktree_roots):
         raise ContextError("project registry worktree roots must be unique")
@@ -121,6 +130,23 @@ def _git(root: Path, *args: str) -> tuple[int, str]:
         text=True,
     )
     return result.returncode, result.stdout.strip()
+
+
+def _remote_repository(root: Path, expected: str) -> tuple[str | None, str]:
+    code, remote = _git(root, "remote", "get-url", "origin")
+    if code != 0 or not remote:
+        return None, "unconfigured"
+    repository = None
+    for pattern in GITHUB_REMOTE_PATTERNS:
+        match = pattern.fullmatch(remote)
+        if match:
+            repository = match.group("repo")
+            break
+    if repository is None:
+        raise ContextError("origin is not a supported GitHub repository URL")
+    if repository.casefold() != expected.casefold():
+        raise ContextError(f"declared repository {expected} disagrees with origin {repository}")
+    return repository, "exact"
 
 
 def _resolve_git_root(requested: Path) -> Path:
@@ -168,11 +194,7 @@ def _resolve_project(
 
     registry = _load_registry(registry_path)
     registered = next(
-        (
-            project
-            for project in registry
-            if Path(project["root"]).resolve() == canonical_root
-        ),
+        (project for project in registry if Path(project["root"]).resolve() == canonical_root),
         None,
     )
     if registered is None and descriptor is not None:
@@ -182,9 +204,7 @@ def _resolve_project(
         )
     if descriptor is not None and registered is not None:
         comparable = {
-            key: value
-            for key, value in registered.items()
-            if key not in {"root", "worktree_root"}
+            key: value for key, value in registered.items() if key not in {"root", "worktree_root"}
         }
         if descriptor != comparable:
             raise ContextError("project descriptor disagrees with the central registry")
@@ -262,6 +282,8 @@ def _pointer_target(root: Path, relative: str) -> str | None:
 
 
 def build_context(root: Path, registry_path: Path) -> dict[str, Any]:
+    if PLUGIN_VERSION == "unknown":
+        raise ContextError("plugin manifest version is unavailable")
     root = _resolve_git_root(root)
     canonical_root = _canonical_git_root(root)
     project, identity_source, registered = _resolve_project(
@@ -275,6 +297,7 @@ def build_context(root: Path, registry_path: Path) -> dict[str, Any]:
     status_code, status = _git(root, "status", "--porcelain=v1")
     if branch_code != 0 or head_code != 0 or status_code != 0:
         raise ContextError("could not read Git branch, head, or worktree status")
+    remote_repository, remote_status = _remote_repository(root, str(project["repository"]))
     active_root = root / "docs" / "ai" / "work-tracking" / "active"
     active = (
         sorted(
@@ -285,14 +308,12 @@ def build_context(root: Path, registry_path: Path) -> dict[str, Any]:
         if active_root.is_dir()
         else []
     )
-    readiness_candidates = (
-        ".aegis/bin/aegis",
-        ".claude/scripts/readiness.sh",
+    readiness = (
+        ".claude/scripts/readiness.sh"
+        if (root / ".claude" / "scripts" / "readiness.sh").is_file()
+        else None
     )
-    readiness = next(
-        (candidate for candidate in readiness_candidates if (root / candidate).is_file()),
-        None,
-    )
+    lifecycle = (PLUGIN_ROOT / "scripts" / "workflow.py").as_posix()
     rig = project["rig"]
     return {
         "schema": CONTEXT_SCHEMA,
@@ -308,6 +329,8 @@ def build_context(root: Path, registry_path: Path) -> dict[str, Any]:
             "head": head,
             "clean": not bool(status),
             "status_entries": len(status.splitlines()) if status else 0,
+            "origin_repository": remote_repository,
+            "origin_status": remote_status,
         },
         "workflow": {
             "authority": "beads",
@@ -316,12 +339,29 @@ def build_context(root: Path, registry_path: Path) -> dict[str, Any]:
             "bd": BD,
             "rig": rig,
             "readiness_entrypoint": readiness,
+            "lifecycle_entrypoint": lifecycle,
             "plan_current": _pointer_target(root, "plans/current"),
             "session_current": _pointer_target(root, "sessions/current"),
             "active_trackers": active,
             "commands": {
                 "ready": [GC, "--city", CITY, "--rig", rig, "bd", "ready"],
                 "show": [GC, "--city", CITY, "--rig", rig, "bd", "show", "<bead-id>"],
+                "begin": [
+                    sys.executable,
+                    lifecycle,
+                    "begin",
+                    "--root",
+                    canonical_root.as_posix(),
+                    "--bead",
+                    "<bead-id>",
+                ],
+                "resume": [
+                    sys.executable,
+                    lifecycle,
+                    "resume",
+                    "--root",
+                    root.as_posix(),
+                ],
             },
         },
         "adapters": {

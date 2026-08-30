@@ -4301,6 +4301,14 @@ def _workflow_log_handler(target_root: Path, event_class: str) -> str:
     return f"{_workflow_handler_prefix(target_root)}:{event_class}"
 
 
+def _workflow_cli_command(target_root: Path) -> str:
+    if (target_root / ".aegis" / "bin" / "aegis").is_file():
+        return "./.aegis/bin/aegis"
+    if (target_root / "scripts" / "codex-task").is_file():
+        return f"{_quote_cli(sys.executable)} scripts/codex-task aegis"
+    return "aegis"
+
+
 def _expects_pending_tracking(target_root: Path) -> bool:
     """Return true when the active workflow requires per-mutation reconciliation."""
 
@@ -9451,13 +9459,14 @@ def _next_action_after_log(
     implementation_handler = _workflow_log_handler(target_root, "implementation")
     verification_handler = _workflow_log_handler(target_root, "verification")
     pending_tracking_expected = _expects_pending_tracking(target_root)
+    workflow_cli = _workflow_cli_command(target_root)
     if remaining:
         event_ids = [str(event.get("id") or "unknown") for event in remaining]
         return _workflow_next_action(
             "log_remaining_pending_event",
             "A pending mutation still exists. Log it before any further mutation or closeout.",
             suggested_cli=(
-                "./.aegis/bin/aegis log --target-dir . --pending-id current "
+                f"{workflow_cli} log --target-dir . --pending-id current "
                 "--note '<past-tense note>' --plan-step <plan-step-id> --plan-status completed"
             ),
             suggested_mcp_tool="aegis.log",
@@ -9474,7 +9483,7 @@ def _next_action_after_log(
     if normalized_plan_step == "plan-step-scope" and normalized_plan_status == "completed":
         if pending_tracking_expected:
             after_mutation = (
-                "./.aegis/bin/aegis log --target-dir . --pending-id current "
+                f"{workflow_cli} log --target-dir . --pending-id current "
                 "--note '<past-tense note>' --plan-step plan-step-implement --plan-status completed"
             )
             suggested_mcp_arguments = {
@@ -9487,7 +9496,7 @@ def _next_action_after_log(
             }
         else:
             after_mutation = (
-                f"./.aegis/bin/aegis log --target-dir . --handler {implementation_handler} "
+                f"{workflow_cli} log --target-dir . --handler {implementation_handler} "
                 "--evidence '<changed-file-or-command>' --note '<past-tense implementation note>' "
                 "--plan-step plan-step-implement --plan-status completed"
             )
@@ -9522,7 +9531,7 @@ def _next_action_after_log(
         if pending_tracking_expected:
             suggested_cli = (
                 "# write verification evidence, then:\n"
-                "./.aegis/bin/aegis log --target-dir . --pending-id current "
+                f"{workflow_cli} log --target-dir . --pending-id current "
                 "--note 'Recorded task-specific verification evidence' "
                 "--plan-step plan-step-verify --plan-status completed"
             )
@@ -9537,7 +9546,7 @@ def _next_action_after_log(
         else:
             suggested_cli = (
                 f"# write verification evidence, then:\n"
-                f"./.aegis/bin/aegis log --target-dir . --handler {verification_handler} "
+                f"{workflow_cli} log --target-dir . --handler {verification_handler} "
                 f"--evidence {_quote_cli(verification_rel)} "
                 "--note 'Recorded task-specific verification evidence' "
                 "--plan-step plan-step-verify --plan-status completed"
@@ -9568,7 +9577,7 @@ def _next_action_after_log(
             return _workflow_next_action(
                 "run_closeout",
                 "Strict verification is logged. Run closeout readiness/dry-run, then final closeout before reporting the task complete.",
-                suggested_cli="./.aegis/bin/aegis closeout --target-dir . --dry-run --update-handoff",
+                suggested_cli=f"{workflow_cli} closeout --target-dir . --dry-run --update-handoff",
                 suggested_mcp_tool="aegis.closeout_ready",
                 suggested_mcp_arguments={
                     "target_dir": ".",
@@ -9578,7 +9587,7 @@ def _next_action_after_log(
         return _workflow_next_action(
             "run_strict_verify",
             "Task-specific verification is logged. Run strict Aegis verification next, then log its pending event.",
-            suggested_cli="./.aegis/bin/aegis verify --target-dir . --strict",
+            suggested_cli=f"{workflow_cli} verify --target-dir . --strict",
             suggested_mcp_tool="aegis.verify",
             suggested_mcp_arguments={
                 "target_dir": ".",
@@ -9589,7 +9598,7 @@ def _next_action_after_log(
     return _workflow_next_action(
         "continue_workflow",
         "Progress was logged. Check readiness and pending tracking before the next mutation.",
-        suggested_cli="./.aegis/bin/aegis gate readiness --quick --target-dir .",
+        suggested_cli=f"{workflow_cli} gate readiness --quick --target-dir .",
     )
 
 

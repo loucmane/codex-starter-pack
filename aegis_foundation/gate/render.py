@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import shlex
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -89,6 +91,14 @@ def _emit_bounded(lines: list[str], *, max_lines: int, max_bytes: int) -> None:
     print("\n".join(selected))
 
 
+def next_command(root: Path) -> str:
+    if (root / ".aegis" / "bin" / "aegis").is_file():
+        return "./.aegis/bin/aegis next --target-dir ."
+    if (root / "scripts" / "codex-task").is_file():
+        return f"{shlex.quote(sys.executable)} scripts/codex-task aegis next --target-dir ."
+    return "aegis next --target-dir ."
+
+
 def print_full(
     root: Path,
     state: str,
@@ -155,7 +165,7 @@ def print_full(
                 "- Use the project kickoff workflow instead of writing files or memory by hand.",
             ]
         )
-    lines.append("Next: ./.aegis/bin/aegis next --target-dir .")
+    lines.append(f"Next: {next_command(root)}")
     if omitted:
         lines.append("Full stdout: rerun readiness.sh with --all.")
     _emit_bounded(lines, max_lines=max_lines, max_bytes=max_bytes)
