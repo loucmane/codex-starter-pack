@@ -237,6 +237,27 @@ def journal_path(runner: CommandRunner, spec: BeginSpec) -> Path:
     return common / "gas-city-workflow" / "transactions" / f"{spec.bead_id}.json"
 
 
+def plan_bead_ids(root: Path) -> list[str]:
+    plan = root / "plans" / "current"
+    if not plan.is_symlink():
+        raise WorkflowError("active session does not contain a valid bead id")
+    try:
+        plan_text = plan.resolve(strict=True).read_text(encoding="utf-8")
+    except OSError as exc:
+        raise WorkflowError("plans/current is broken") from exc
+    matches = re.findall(r"^bead_ids:\s*\[([^\]]+)\]\s*$", plan_text, re.MULTILINE)
+    if len(matches) != 1:
+        raise WorkflowError("current plan does not identify one bead list")
+    bead_ids = [item.strip() for item in matches[0].split(",")]
+    if (
+        not bead_ids
+        or len(bead_ids) != len(set(bead_ids))
+        or any(not BEAD_PATTERN.fullmatch(item) for item in bead_ids)
+    ):
+        raise WorkflowError("current plan bead list is invalid")
+    return bead_ids
+
+
 def active_bead_id(root: Path) -> str:
     state = root / "sessions" / "state.json"
     if not state.is_file() or state.is_symlink():
@@ -249,17 +270,7 @@ def active_bead_id(root: Path) -> str:
     bead_id = task.get("id") if isinstance(task, dict) else None
     if isinstance(bead_id, str) and BEAD_PATTERN.fullmatch(bead_id):
         return bead_id
-    plan = root / "plans" / "current"
-    if not plan.is_symlink():
-        raise WorkflowError("active session does not contain a valid bead id")
-    try:
-        plan_text = plan.resolve(strict=True).read_text(encoding="utf-8")
-    except OSError as exc:
-        raise WorkflowError("plans/current is broken") from exc
-    matches = re.findall(r"^bead_ids:\s*\[([a-z][a-z0-9-]*)\]\s*$", plan_text, re.MULTILINE)
-    if len(matches) != 1 or not BEAD_PATTERN.fullmatch(matches[0]):
-        raise WorkflowError("current plan does not identify exactly one bead")
-    return matches[0]
+    return plan_bead_ids(root)[0]
 
 
 def journal_path_for_root(runner: CommandRunner, root: Path, bead_id: str) -> Path:

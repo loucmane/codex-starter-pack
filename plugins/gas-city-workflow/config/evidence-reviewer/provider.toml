@@ -1,0 +1,20 @@
+[providers.codex-evidence]
+base = "provider:codex"
+options_schema_merge = "by_key"
+
+[providers.codex-evidence.option_defaults]
+effort = "xhigh"
+model = "gpt-5.6-sol"
+permission_mode = "fail-fast"
+worklog_access = "isolated-workspace"
+
+[[providers.codex-evidence.options_schema]]
+key = "worklog_access"
+label = "Evidence workspace access"
+type = "select"
+default = "isolated-workspace"
+
+[[providers.codex-evidence.options_schema.choices]]
+value = "isolated-workspace"
+label = "Current evidence workspace only"
+flag_args = ["--sandbox", "workspace-write", "-c", "sandbox_workspace_write.writable_roots=[]"]

@@ -1,11 +1,11 @@
 # Gas City Workflow plugin
 
-Version `0.3.0` packages the common lifecycle and frozen report-only evidence reviews without
+Version `0.4.0` packages the common lifecycle and frozen report-only evidence reviews without
 copying project state into prompts or widening permissions.
 
 - `skills/gas-city-workflow/SKILL.md` is the small routing skill.
 - `scripts/project_context.py` emits the live read-only context capsule.
-- `scripts/workflow.py` executes journaled `begin`, `resume`, `recover`, `checkpoint`,
+- `scripts/workflow.py` executes journaled `begin`, `resume`, `recover`, `attach`, `checkpoint`,
   `verify`, `publish`, and `finish` transitions.
 - `config/projects.json` binds established canonical roots and exceptional worktree-root overrides.
 - `.gas-city-workflow.json` descriptors onboard future projects without changing plugin code.
@@ -36,6 +36,21 @@ The evidence workflow similarly cannot grant dispatch or calculate a domain verd
 tracked project assets and external inputs, audits blind bundles and exact report directories,
 validates evidence-only reports, and enforces seal/readback/dispatch/release ordering. Only
 `mode=shadow` exists in v1. See `references/evidence-profile-contract.md`.
+
+For blind report lanes, `config/evidence-reviewer/` defines one generic rig-scoped Sol reviewer
+whose work directory is `/home/loucmane/gascity/evidence-runs`, whose additional writable-root
+list is empty, and whose prompt forbids project/Git/vault/host/network inspection. Preview the
+bounded host install with:
+
+```bash
+python3 plugins/gas-city-workflow/scripts/install_evidence_reviewer.py
+```
+
+`--apply` is a separate live configuration mutation. It requires every registered rig suspended
+and zero running agent sessions, preserves an exact backup, atomically installs only the provider
+and two agent files, validates the resolved command and prompt, reloads without restarting the
+controller, and rolls back exact prior bytes on failure. Installation does not authorize routing,
+rig resume, or evidence dispatch.
 
 Validate from the repository root:
 
