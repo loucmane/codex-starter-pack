@@ -38,6 +38,18 @@ class FakeRunner(module.Runner):
     def run(self, argv, *, env=None):
         args = list(argv)
         self.calls.append(args)
+        if "execpolicy" in args and "check" in args:
+            command = tuple(args[args.index("--pretty") + 1 :])
+            if command in module.POLICY_ALLOW_COMMANDS:
+                return json.dumps(
+                    {
+                        "matchedRules": [
+                            {"prefixRuleMatch": {"decision": "allow", "matchedPrefix": command}}
+                        ],
+                        "decision": "allow",
+                    }
+                )
+            return json.dumps({"matchedRules": []})
         if args[-2:] == ["status", "--json"]:
             return json.dumps(
                 {
@@ -238,6 +250,7 @@ def test_assets_define_one_report_only_non_project_lane() -> None:
     provider = tomllib.loads((assets / "provider.toml").read_text(encoding="utf-8"))
     agent = tomllib.loads((assets / "agent.toml").read_text(encoding="utf-8"))
     prompt = (assets / "prompt.template.md").read_text(encoding="utf-8")
+    policy = (assets / module.POLICY_NAME).read_text(encoding="utf-8")
 
     evidence = provider["providers"]["codex-evidence"]
     assert evidence["base"] == "provider:codex"
@@ -251,6 +264,42 @@ def test_assets_define_one_report_only_non_project_lane() -> None:
     assert "Do not inspect a project checkout, Git metadata" in prompt
     assert "Write only the declared report file" in prompt
     assert "Never repair project content" in prompt
+    assert policy.count("prefix_rule(") == 5
+    for required in (
+        '["/home/loucmane/gascity/bin/gc", "hook", "--claim", "--json"]',
+        '["/home/loucmane/gascity/bin/gc", "bd", "show"]',
+        '["/home/loucmane/gascity/bin/gc", "bd", "update"]',
+        '["/home/loucmane/gascity/bin/gc", "bd", "close"]',
+        '["/home/loucmane/gascity/bin/gc", "runtime", "drain-ack"]',
+    ):
+        assert required in policy
+    for forbidden in (
+        'rig", "resume',
+        "sling",
+        "mail",
+        'mol", "current',
+        "request-restart",
+        "/home/loucmane/gascity/bin/bd",
+    ):
+        assert forbidden not in policy
+
+
+def test_policy_corpus_allows_only_the_five_reviewed_prefixes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _, _, _, _ = _fixture(tmp_path, monkeypatch)
+    runner = FakeRunner()
+
+    module._validate_policy_with_codex(
+        runner,
+        module.DEFAULT_CODEX,
+        module.ASSET_ROOT / module.POLICY_NAME,
+    )
+
+    checks = [call for call in runner.calls if "execpolicy" in call]
+    assert len(checks) == len(module.POLICY_ALLOW_COMMANDS) + len(module.POLICY_DENY_COMMANDS)
+    observed = {tuple(call[call.index("--pretty") + 1 :]) for call in checks}
+    assert observed == set(module.POLICY_ALLOW_COMMANDS) | set(module.POLICY_DENY_COMMANDS)
 
 
 def test_install_applies_exact_assets_and_preserves_controller_epoch(
@@ -276,12 +325,18 @@ def test_install_applies_exact_assets_and_preserves_controller_epoch(
     _assert_exact_hook_trust(codex_config, evidence_root)
     assert codex_config.read_bytes().startswith(BASE_CODEX)
     assert stat.S_IMODE(codex_config.stat().st_mode) == 0o600
+    policy = evidence_root / module.POLICY_RELATIVE
+    assert policy.read_bytes() == (source / module.POLICY_NAME).read_bytes()
+    assert stat.S_IMODE(policy.stat().st_mode) == module.POLICY_MODE
+    assert result["control_policy_rule_count"] == 5
+    assert result["control_policy_changed"] is True
     assert any(call[-1:] == ["reload"] for call in runner.calls)
     evidence = Path(result["evidence"])
     assert (evidence / "city.toml.before").read_bytes() == BASE_CITY
     assert (evidence / "codex-config.toml.before").read_bytes() == BASE_CODEX
     assert (evidence / "codex-config.toml.after").read_bytes() == codex_config.read_bytes()
     assert json.loads((evidence / "result.json").read_text(encoding="utf-8"))["status"] == "pass"
+    assert (evidence / module.POLICY_NAME).read_bytes() == policy.read_bytes()
 
 
 def test_append_forward_trust_repair_preserves_exact_installed_assets(
@@ -306,6 +361,9 @@ def test_append_forward_trust_repair_preserves_exact_installed_assets(
     assert parsed["projects"][evidence_root.as_posix()] == {"trust_level": "trusted"}
     _assert_exact_hook_trust(codex_config, evidence_root)
     assert codex_config.read_bytes().startswith(BASE_CODEX)
+    assert (evidence_root / module.POLICY_RELATIVE).read_bytes() == (
+        module.ASSET_ROOT / module.POLICY_NAME
+    ).read_bytes()
     unmanaged, managed = module._strip_trust_block(codex_config.read_text(encoding="utf-8"))
     stripped, found = hook_trust._strip_hook_trust_tables(
         unmanaged.encode(),
@@ -319,7 +377,7 @@ def test_append_forward_trust_repair_preserves_exact_installed_assets(
 def test_append_forward_validation_failure_restores_only_codex_config(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    city, gc, codex_config, _ = _fixture(tmp_path, monkeypatch)
+    city, gc, codex_config, evidence_root = _fixture(tmp_path, monkeypatch)
     live_city = _install_existing_assets(city)
     runner = FakeRunner(fail_prime=True)
 
@@ -329,12 +387,14 @@ def test_append_forward_validation_failure_restores_only_codex_config(
     assert codex_config.read_bytes() == BASE_CODEX
     assert (city / "city.toml").read_bytes() == live_city
     assert not any(call[-1:] == ["reload"] for call in runner.calls)
+    assert not (evidence_root / module.POLICY_RELATIVE).exists()
+    assert not (evidence_root / ".codex/rules").exists()
 
 
 def test_post_mutation_validation_failure_restores_exact_prior_state(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    city, gc, codex_config, _ = _fixture(tmp_path, monkeypatch)
+    city, gc, codex_config, evidence_root = _fixture(tmp_path, monkeypatch)
     runner = FakeRunner(fail_prime=True)
 
     with pytest.raises(module.InstallError, match="fixture prompt failure"):
@@ -345,10 +405,57 @@ def test_post_mutation_validation_failure_restores_exact_prior_state(
     assert codex_config.read_bytes() == BASE_CODEX
     assert stat.S_IMODE(codex_config.stat().st_mode) == 0o600
     assert any(call[-1:] == ["reload"] for call in runner.calls)
+    assert not (evidence_root / module.POLICY_RELATIVE).exists()
+    assert not (evidence_root / ".codex/rules").exists()
     evidence_roots = list((city / ".gc/gas-city-workflow/evidence-reviewer-install").iterdir())
     assert len(evidence_roots) == 1
     assert (evidence_roots[0] / "city.toml.before").read_bytes() == BASE_CITY
     assert (evidence_roots[0] / "codex-config.toml.before").read_bytes() == BASE_CODEX
+
+
+def test_exact_policy_reapplication_is_idempotent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    city, gc, _, evidence_root = _fixture(tmp_path, monkeypatch)
+    runner = FakeRunner()
+
+    first = module.install(city, gc, apply=True, runner=runner)
+    policy = evidence_root / module.POLICY_RELATIVE
+    before = policy.read_bytes()
+    before_stat = policy.stat()
+    second = module.install(city, gc, apply=True, runner=runner)
+
+    assert first["control_policy_changed"] is True
+    assert second["control_policy_state"] == "exact"
+    assert second["control_policy_changed"] is False
+    assert policy.read_bytes() == before
+    assert policy.stat().st_ino == before_stat.st_ino
+
+
+def test_unrelated_or_drifted_policy_fails_before_runtime_checks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    city, gc, codex_config, evidence_root = _fixture(tmp_path, monkeypatch)
+    rules = evidence_root / ".codex/rules"
+    rules.mkdir()
+    (rules / "gas-city-native-control.rules").write_text("broad\n", encoding="utf-8")
+    runner = FakeRunner()
+
+    with pytest.raises(module.InstallError, match="unrelated entries"):
+        module.install(city, gc, apply=True, runner=runner)
+
+    assert runner.calls == []
+    assert codex_config.read_bytes() == BASE_CODEX
+    assert (city / "city.toml").read_bytes() == BASE_CITY
+
+    (rules / "gas-city-native-control.rules").unlink()
+    target = rules / module.POLICY_NAME
+    target.write_text("drift\n", encoding="utf-8")
+    target.chmod(module.POLICY_MODE)
+    with pytest.raises(module.InstallError, match="bytes drifted"):
+        module.install(city, gc, apply=True, runner=runner)
+
+    assert runner.calls == []
 
 
 def test_conflicting_or_aliased_trust_fails_before_mutation(

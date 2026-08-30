@@ -62,6 +62,11 @@ evidence, validates the resolved provider, agent, prompt, project trust, and hoo
 only when Gas City configuration changed, preserves the controller epoch, and restores every
 mutated surface byte-exact on failure. Conflicting entries, canonical-path aliases, malformed
 TOML, unrelated nonblank config-byte or semantic changes, and managed-block drift fail closed.
+The same transaction installs one project-local Codex exec-policy file containing only five
+absolute control prefixes: claim, bead show/update/close, and drain acknowledgement. It validates
+every allowed prefix and a negative lifecycle/routing/mail/molecule/restart/shell corpus through
+`codex execpolicy check`, refuses unrelated rule files, and removes the file and newly created
+rules directory on rollback. The broader Gas City worker policy is never installed for this lane.
 Codex may normalize an adjacent blank separator while inserting its own tables; the exact prior
 file is still preserved for rollback. Installation does not
 authorize routing, rig resume, or evidence dispatch; a fresh managed reviewer session remains the

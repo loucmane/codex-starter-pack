@@ -37,6 +37,27 @@ DEFAULT_CODEX_CONFIG = Path("/home/loucmane/.codex/config.toml")
 DEFAULT_EVIDENCE_ROOT = Path("/home/loucmane/gascity/evidence-runs")
 ASSET_ROOT = Path(__file__).resolve().parent.parent / "config" / "evidence-reviewer"
 AGENT_RELATIVE = Path("agents/evidence-reviewer")
+POLICY_NAME = "gas-city-evidence-reviewer-control.rules"
+POLICY_RELATIVE = Path(".codex/rules") / POLICY_NAME
+POLICY_MODE = 0o644
+GC_CONTROL = "/home/loucmane/gascity/bin/gc"
+POLICY_ALLOW_COMMANDS = (
+    (GC_CONTROL, "hook", "--claim", "--json"),
+    (GC_CONTROL, "bd", "show", "hpf-example.1", "--json"),
+    (GC_CONTROL, "bd", "update", "hpf-example.1", "--append-notes", "report-written"),
+    (GC_CONTROL, "bd", "close", "hpf-example.1", "--reason", "verified"),
+    (GC_CONTROL, "runtime", "drain-ack"),
+)
+POLICY_DENY_COMMANDS = (
+    (GC_CONTROL, "rig", "resume", "hpfetcher"),
+    (GC_CONTROL, "sling", "hpfetcher/evidence-reviewer", "hpf-example.1"),
+    (GC_CONTROL, "mail", "inbox"),
+    (GC_CONTROL, "bd", "mol", "current", "hpf-example"),
+    (GC_CONTROL, "runtime", "request-restart"),
+    ("/home/loucmane/gascity/bin/bd", "show", "hpf-example.1"),
+    ("/usr/bin/bash", "-lc", "id"),
+    ("/usr/bin/id",),
+)
 TRUST_BEGIN = "# GAS-CITY-WORKFLOW:BEGIN evidence-reviewer-project-trust v1"
 TRUST_END = "# GAS-CITY-WORKFLOW:END evidence-reviewer-project-trust v1"
 ANCHOR = """[providers.codex.option_defaults]
@@ -251,6 +272,76 @@ def _atomic_write(path: Path, data: bytes, mode: int) -> None:
         temporary.unlink(missing_ok=True)
 
 
+def _policy_state(evidence_root: Path, expected: bytes) -> tuple[str, Path, bool]:
+    codex_dir = evidence_root / ".codex"
+    if codex_dir.is_symlink() or not codex_dir.is_dir():
+        raise InstallError("evidence-root .codex directory is missing or unsafe")
+    rules_dir = codex_dir / "rules"
+    rules_dir_exists = rules_dir.exists()
+    if rules_dir_exists and (rules_dir.is_symlink() or not rules_dir.is_dir()):
+        raise InstallError("evidence-reviewer rules path is unsafe")
+    target = rules_dir / POLICY_NAME
+    if rules_dir_exists:
+        other_rules = sorted(
+            entry.name for entry in rules_dir.iterdir() if entry.name != POLICY_NAME
+        )
+        if other_rules:
+            raise InstallError(
+                "evidence-reviewer rules directory contains unrelated entries: "
+                + ", ".join(other_rules)
+            )
+    if not target.exists():
+        return "absent", target, rules_dir_exists
+    if target.is_symlink() or not target.is_file():
+        raise InstallError("evidence-reviewer control policy is unsafe")
+    details = target.stat()
+    if details.st_uid != os.getuid() or stat.S_IMODE(details.st_mode) != POLICY_MODE:
+        raise InstallError("evidence-reviewer control policy ownership or mode drifted")
+    if _read_regular(target) != expected:
+        raise InstallError("evidence-reviewer control policy bytes drifted")
+    return "exact", target, rules_dir_exists
+
+
+def _policy_check(
+    runner: Runner,
+    codex: Path,
+    policy: Path,
+    command: tuple[str, ...],
+) -> dict[str, Any]:
+    raw = runner.run(
+        [
+            str(codex),
+            "execpolicy",
+            "check",
+            "--rules",
+            str(policy),
+            "--pretty",
+            *command,
+        ],
+        env=_env(),
+    )
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise InstallError("Codex exec-policy check returned invalid JSON") from exc
+    if not isinstance(payload, dict) or not isinstance(payload.get("matchedRules", []), list):
+        raise InstallError("Codex exec-policy check returned an invalid result")
+    return payload
+
+
+def _validate_policy_with_codex(runner: Runner, codex: Path, policy: Path) -> None:
+    for command in POLICY_ALLOW_COMMANDS:
+        payload = _policy_check(runner, codex, policy, command)
+        if payload.get("decision") != "allow" or len(payload["matchedRules"]) != 1:
+            raise InstallError(
+                "evidence-reviewer control policy did not allow its exact required prefix"
+            )
+    for command in POLICY_DENY_COMMANDS:
+        payload = _policy_check(runner, codex, policy, command)
+        if payload.get("decision") == "allow" or payload["matchedRules"]:
+            raise InstallError("evidence-reviewer control policy allowed a forbidden command")
+
+
 def _env() -> dict[str, str]:
     return {**os.environ, "PATH": OPERATOR_PATH}
 
@@ -363,17 +454,23 @@ def install(
         "prompt.template.md": agent_dir / "prompt.template.md",
         "codex-config.toml": codex_config,
         "codex-hooks.json": hooks_path,
+        "codex-control-policy": evidence_root / POLICY_RELATIVE,
     }
     assets = {
         "provider.toml": _asset("provider.toml"),
         "agent.toml": _asset("agent.toml"),
         "prompt.template.md": _asset("prompt.template.md"),
+        POLICY_NAME: _asset(POLICY_NAME),
     }
     before = _read_regular(city_toml)
     codex_before = _read_regular(codex_config)
     state = _agent_state(agent_dir, assets)
     expected_city = expected_city_config(before, assets["provider.toml"], agent_state=state)
     expected_codex = render_codex_config(codex_before, evidence_root)
+    policy_state, policy_target, rules_dir_existed = _policy_state(
+        evidence_root, assets[POLICY_NAME]
+    )
+    _validate_policy_with_codex(runner, codex, ASSET_ROOT / POLICY_NAME)
     pre = _status(runner, gc, city)
     plan = {
         "schema": SCHEMA,
@@ -392,6 +489,10 @@ def install(
         "operation": "install" if state == "absent" else "trust-repair",
         "city_changed": expected_city != before,
         "codex_config_changed": expected_codex != codex_before,
+        "control_policy_state": policy_state,
+        "control_policy_changed": policy_state == "absent",
+        "control_policy_sha256": _sha256(assets[POLICY_NAME]),
+        "control_policy_rule_count": len(POLICY_ALLOW_COMMANDS),
         "asset_sha256": {name: _sha256(data) for name, data in assets.items()},
         "controller_pid": pre["controller"]["pid"],
         "targets": {name: path.as_posix() for name, path in targets.items()},
@@ -406,6 +507,22 @@ def install(
     _atomic_write(evidence / "city.toml.before", before, 0o600)
     _atomic_write(evidence / "codex-config.toml.before", codex_before, 0o600)
     _atomic_write(
+        evidence / "control-policy.before.json",
+        (
+            json.dumps(
+                {
+                    "state": policy_state,
+                    "path": policy_target.as_posix(),
+                    "rules_directory_existed": rules_dir_existed,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n"
+        ).encode(),
+        0o600,
+    )
+    _atomic_write(
         evidence / "plan.json",
         (json.dumps(plan, indent=2, sort_keys=True) + "\n").encode(),
         0o600,
@@ -413,6 +530,8 @@ def install(
     city_mutated = False
     agent_created = False
     codex_mutated = False
+    policy_mutated = False
+    rules_dir_created = False
     try:
         if expected_city != before:
             _atomic_write(city_toml, expected_city, 0o644)
@@ -425,6 +544,16 @@ def install(
         if expected_codex != codex_before:
             _atomic_write(codex_config, expected_codex, codex_mode)
             codex_mutated = True
+        if policy_state == "absent":
+            if not rules_dir_existed:
+                policy_target.parent.mkdir(mode=0o755)
+                rules_dir_created = True
+            _atomic_write(policy_target, assets[POLICY_NAME], POLICY_MODE)
+            policy_mutated = True
+        installed_policy_state, _, _ = _policy_state(evidence_root, assets[POLICY_NAME])
+        if installed_policy_state != "exact":
+            raise InstallError("evidence-reviewer control policy installation was incomplete")
+        _validate_policy_with_codex(runner, codex, policy_target)
         # From this point the hook transaction may write config even when project trust
         # was already exact, so every later failure must restore the captured bytes.
         codex_mutated = True
@@ -440,6 +569,7 @@ def install(
         if post["controller"]["pid"] != pre["controller"]["pid"]:
             raise InstallError("controller epoch changed during config-only install")
         _atomic_write(evidence / "codex-config.toml.after", codex_after, 0o600)
+        _atomic_write(evidence / POLICY_NAME, _read_regular(policy_target), 0o600)
         result = {
             **plan,
             "status": "pass",
@@ -456,6 +586,13 @@ def install(
         return result
     except Exception as exc:
         rollback_errors: list[str] = []
+        if policy_mutated:
+            try:
+                policy_target.unlink()
+                if rules_dir_created:
+                    policy_target.parent.rmdir()
+            except Exception as rollback_exc:  # noqa: BLE001 - collect rollback failures.
+                rollback_errors.append(f"codex-control-policy={rollback_exc}")
         if codex_mutated:
             try:
                 _atomic_write(codex_config, codex_before, codex_mode)
@@ -477,6 +614,16 @@ def install(
                 raise InstallError("rollback did not restore exact Codex config bytes")
         except Exception as rollback_exc:  # noqa: BLE001 - report incomplete rollback.
             rollback_errors.append(f"codex-readback={rollback_exc}")
+        try:
+            restored_policy_state, _, restored_rules_dir_exists = _policy_state(
+                evidence_root, assets[POLICY_NAME]
+            )
+            if restored_policy_state != policy_state:
+                raise InstallError("rollback did not restore exact control policy state")
+            if restored_rules_dir_exists != rules_dir_existed:
+                raise InstallError("rollback did not restore the rules directory state")
+        except Exception as rollback_exc:  # noqa: BLE001 - report incomplete rollback.
+            rollback_errors.append(f"control-policy-readback={rollback_exc}")
         if rollback_errors:
             raise InstallError(
                 "evidence-reviewer transaction failed and rollback was incomplete: "
