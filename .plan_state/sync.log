@@ -1018,5 +1018,23 @@
     "plan_hash": "5a277989f7dc696114fcdb5fe9e2dcc13ae12fc4fd0c05872ea7b02c3bd7eb7c",
     "tracker_hash": "9d9780f84ee2be07a5f91628b3a8190cd450216f7ba2b1f7b9eb674156f24dc8",
     "synced_at": "2026-08-30T12:13:08.020292+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-2mfo-workflow-identity-cache.md",
+    "plan_hash": "1e0317d17375fc45109b7bd00a2f44ad422dbfb00749d96833b6c18e2cbb610c",
+    "tracker_hash": "cae1e1802512a1a7a89dc44e6f92ccb3e1ffb3b61468d5f9d9fb46a2f85ac156",
+    "synced_at": "2026-08-30T12:22:38.437426+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-2mfo-workflow-identity-cache.md",
+    "plan_hash": "7a83c9fd8f5cf84317cffe9c112809006770424561d238df305f03e4943d32a6",
+    "tracker_hash": "abbce0255a233bf79858cfa259ea252f04e5f2114a42258084cdd378e800b359",
+    "synced_at": "2026-08-30T12:22:50.262009+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-2mfo-workflow-identity-cache.md",
+    "plan_hash": "1fd2614c4d935462428a081ff83e8a202588be093d7c0ae1ccf451af5b3b305f",
+    "tracker_hash": "abbce0255a233bf79858cfa259ea252f04e5f2114a42258084cdd378e800b359",
+    "synced_at": "2026-08-30T12:24:11.938814+02:00"
   }
 ]
