@@ -29,6 +29,9 @@ GC = "/home/loucmane/gascity/bin/gc"
 BD = "/home/loucmane/gascity/bin/bd"
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9-]*$")
 REPOSITORY_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+BASE_REF_PATTERN = re.compile(
+    r"^(?:[0-9a-f]{40}|refs/(?:heads|remotes)/[A-Za-z0-9._/-]+)$"
+)
 GITHUB_REMOTE_PATTERNS = (
     re.compile(r"^git@github\.com:(?P<repo>[^/]+/[^/]+?)(?:\.git)?$"),
     re.compile(r"^ssh://git@github\.com/(?P<repo>[^/]+/[^/]+?)(?:\.git)?$"),
@@ -60,7 +63,9 @@ def _validate_project(project: dict[str, Any], *, allow_root: bool) -> dict[str,
         "workflow_authority",
         "workflow_profile",
     }
-    optional = {"worktree_root"} if allow_root else set()
+    optional = {"base_ref"}
+    if allow_root:
+        optional.add("worktree_root")
     if allow_root:
         expected.add("root")
     if not expected.issubset(project) or not set(project).issubset(expected | optional):
@@ -83,6 +88,15 @@ def _validate_project(project: dict[str, Any], *, allow_root: bool) -> dict[str,
         "beads-with-frozen-legacy-evidence",
     }:
         raise ContextError("workflow_profile is invalid")
+    base_ref = project.get("base_ref")
+    if base_ref is not None and (
+        not isinstance(base_ref, str)
+        or not BASE_REF_PATTERN.fullmatch(base_ref)
+        or ".." in base_ref
+        or "//" in base_ref
+        or base_ref.endswith("/")
+    ):
+        raise ContextError("project base_ref is invalid")
     result: dict[str, Any] = {key: str(value) for key, value in project.items()}
     if allow_root:
         root_value = project.get("root")

@@ -380,6 +380,15 @@ def test_descriptor_and_registry_disagreement_fails_closed(tmp_path: Path) -> No
         module.build_context(root, registry)
 
 
+def test_hpfetcher_declares_a_stable_base_ref_for_dirty_canonical_checkout() -> None:
+    registry = json.loads((PLUGIN / "config" / "projects.json").read_text(encoding="utf-8"))[
+        "projects"
+    ]
+    hpfetcher = next(project for project in registry if project["id"] == "hpfetcher")
+
+    assert hpfetcher["base_ref"] == "refs/remotes/origin/main"
+
+
 def test_codex_and_fable_adapters_share_one_context_and_keep_roles_bounded() -> None:
     skill = (PLUGIN / "skills" / "gas-city-workflow" / "SKILL.md").read_text(encoding="utf-8")
     codex = (PLUGIN / "adapters" / "codex.md").read_text(encoding="utf-8")

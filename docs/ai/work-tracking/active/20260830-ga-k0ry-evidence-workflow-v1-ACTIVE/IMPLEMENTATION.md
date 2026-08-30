@@ -8,6 +8,8 @@
   lane comparison.
 - Kept `mode=shadow` structural. The generic comparator emits `domain_verdict: null` and cannot
   replace project quality logic.
+- Added an optional validated project `base_ref`; HPFetcher now derives new task worktrees from
+  `refs/remotes/origin/main` without touching its dirty, parked canonical checkout.
 
 ## Frozen bindings
 
@@ -30,6 +32,6 @@ ordered.
 Validation evidence:
 
 - Codex plugin validator: PASS.
-- Evidence and plugin focused tests: 16 passed.
+- Evidence and plugin focused tests: 16 passed; lifecycle/plugin base-ref regression: 28 passed.
 - Optional `ruff` command was unavailable in the environment; Python compilation and repository
   guard checks remain required before commit.

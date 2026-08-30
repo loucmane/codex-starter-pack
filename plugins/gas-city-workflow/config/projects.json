@@ -23,6 +23,7 @@
       "root": "/home/loucmane/dev/hpfetcher",
       "repository": "loucmane/hp-coach",
       "rig": "hpfetcher",
+      "base_ref": "refs/remotes/origin/main",
       "workflow_authority": "beads",
       "workflow_profile": "beads-with-frozen-legacy-evidence"
     },

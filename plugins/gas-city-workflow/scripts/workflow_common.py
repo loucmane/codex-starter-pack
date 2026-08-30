@@ -197,7 +197,9 @@ def derive_begin_spec(
     normalized_slug = slugify(slug or title)
     if slug is not None and normalized_slug != slug:
         raise WorkflowError("explicit slug must already be normalized")
-    base_commit = git_value(runner, canonical, "rev-parse", "HEAD")
+    configured_base = context["project"].get("base_ref")
+    base_ref = str(configured_base) if configured_base is not None else "HEAD"
+    base_commit = git_value(runner, canonical, "rev-parse", "--verify", f"{base_ref}^{{commit}}")
     branch = f"codex/{bead_id}-{normalized_slug}"
     worktree = worktree_root / f"{bead_id}-{normalized_slug}"
     spec = BeginSpec(
