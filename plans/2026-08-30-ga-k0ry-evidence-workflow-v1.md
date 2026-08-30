@@ -3,7 +3,7 @@ session_id: 2026-08-30-004
 work_context: ga-k0ry-evidence-workflow-v1
 handler_target: plugins/gas-city-workflow
 bead_ids: [ga-k0ry]
-attached_bead_ids: [ga-25cw, ga-ma7k]
+attached_bead_ids: [ga-25cw, ga-ma7k, ga-wwmw]
 branch_policy: codex/ga-k0ry-evidence-workflow-v1
 evidence_summary:
   - docs/ai/work-tracking/active/20260830-ga-k0ry-evidence-workflow-v1-ACTIVE
@@ -56,6 +56,9 @@ emergency_bypass: false
 - 2026-08-30 - Preserved run 004 after its pre-claim Codex hook-review stop and replaced the
   interactive trust-memory dependency with a modular exact-manifest app-server transaction;
   successor dispatch remains pending source merge and live migration.
+- 2026-08-30 - Attached repair bead `ga-wwmw` after run 005 lane 1 proved the report-only
+  reviewer needs a dedicated five-prefix Codex control policy; the broader default profile
+  remains explicitly out of scope.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)

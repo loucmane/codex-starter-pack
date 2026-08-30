@@ -1,0 +1,38 @@
+# The report-only evidence reviewer may reach only the five Gas City control
+# surfaces required to claim, inspect, update, close, and drain its routed bead.
+# Project work remains inside the workspace-write sandbox.
+
+prefix_rule(
+    pattern = ["/home/loucmane/gascity/bin/gc", "hook", "--claim", "--json"],
+    decision = "allow",
+    justification = "Claim the one routed report-only evidence lane",
+    match = ["/home/loucmane/gascity/bin/gc hook --claim --json"],
+)
+
+prefix_rule(
+    pattern = ["/home/loucmane/gascity/bin/gc", "bd", "show"],
+    decision = "allow",
+    justification = "Read the exact claimed evidence-lane bead",
+    match = ["/home/loucmane/gascity/bin/gc bd show hpf-example.1 --json"],
+)
+
+prefix_rule(
+    pattern = ["/home/loucmane/gascity/bin/gc", "bd", "update"],
+    decision = "allow",
+    justification = "Record bounded report evidence on the claimed bead",
+    match = ["/home/loucmane/gascity/bin/gc bd update hpf-example.1 --append-notes report-written"],
+)
+
+prefix_rule(
+    pattern = ["/home/loucmane/gascity/bin/gc", "bd", "close"],
+    decision = "allow",
+    justification = "Close the exact reviewed evidence-lane bead",
+    match = ["/home/loucmane/gascity/bin/gc bd close hpf-example.1 --reason verified"],
+)
+
+prefix_rule(
+    pattern = ["/home/loucmane/gascity/bin/gc", "runtime", "drain-ack"],
+    decision = "allow",
+    justification = "Acknowledge a clean report-only reviewer drain",
+    match = ["/home/loucmane/gascity/bin/gc runtime drain-ack"],
+)

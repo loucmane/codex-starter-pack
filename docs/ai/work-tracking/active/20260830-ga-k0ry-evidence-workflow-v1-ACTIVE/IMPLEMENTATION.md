@@ -82,6 +82,26 @@ retains the installer's exact backup/rollback boundary. A disposable copy of the
 proved untrusted-to-trusted migration and byte-idempotent reapplication; 56 focused workflow tests,
 Ruff, plugin validation, and diff checks pass. The live migration remains a separate gate.
 
+## Pilot-discovered Codex control-policy repair
+
+Run 005 lane 1 reached non-interactive startup but Codex correctly denied the absolute Gas City
+claim command because the isolated evidence root had no project-local exec policy. The attempt
+failed before claim, bundle access, report creation, or subject mutation; its transcript and stop
+record remain immutable.
+
+The attached `ga-wwmw` repair adds one dedicated five-rule profile for only the absolute claim,
+bead show/update/close, and drain-ack prefixes. The evidence-reviewer installer validates the
+source and installed copies with the real `codex execpolicy check` surface, including negative
+lifecycle, routing, mail, molecule, restart, direct-`bd`, shell, and unrelated-command cases. It
+refuses any unrelated entry in the dedicated rules directory, installs the exact file at mode
+`0644`, records the absent/exact predecessor state, is byte-idempotent, and removes both the file
+and a newly created rules directory on rollback. The broader 14-prefix worker policy remains out
+of scope. The real read-only preview passed with policy SHA-256
+`dc2e7ac6fc66714a73e482e50bdff7fb3fc77936c7bff8a76723a6caa4d3b67d`; 34 focused tests,
+Ruff, plugin validation, and diff checks pass. Live migration remains separately ordered after
+merge.
+
 ## Progress Log
 - **2026-08-30 16:03 CEST** - [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:plugins/gas-city-workflow/scripts/install_evidence_reviewer.py|E:bead:ga-25cw;tests:23-passed;install-plan:0bb089972880127b0e8b619fd35813945b69d9a990c1fef2030d0af7e3b05660] Attached blocking bead ga-25cw to the active ga-k0ry context, implemented a generic no-project-access evidence reviewer plus transactional installer and rollback, and matched the validated live candidate hashes without mutating Gas City.
 - **2026-08-30 18:24 CEST** - [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:codex:hooks/list+config/batchWrite|E:manifest:55e21a9d981805afb62da110b022bc847f7ad2b9a62bada45de95dbdfa472410;tests:56-passed] Replaced interactive hook memory with an exact, modular, supported-API trust transaction and proved it twice against a disposable copy of the real configuration.
+- **2026-08-30 19:25 CEST** - [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:plugins/gas-city-workflow/scripts/install_evidence_reviewer.py|E:bead:ga-wwmw;policy:dc2e7ac6fc66714a73e482e50bdff7fb3fc77936c7bff8a76723a6caa4d3b67d;tests:34-passed] Added the transactional five-prefix evidence-reviewer policy, real Codex positive/negative validation, exact rollback and idempotence coverage, and explicitly excluded the broader default profile.
