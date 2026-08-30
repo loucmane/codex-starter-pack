@@ -9,3 +9,4 @@
 - 2026-08-30 — Existing source and installed Aegis kickoff implementations already provide
   most transition mechanics. The missing layer is deterministic orchestration and recovery,
   not another policy engine.
+- 2026-08-30 — Archive preconditions were satisfied and the completed bundle was preserved.

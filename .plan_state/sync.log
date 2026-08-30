@@ -1084,5 +1084,11 @@
     "plan_hash": "34f098d79d8ca37703536bdfd3db98c372568a0b0ee4f6d2cbc20362775f2841",
     "tracker_hash": "7e4f7124d76944077d021fef93d1948b288c21277ade9f3ccce5ffc445876be8",
     "synced_at": "2026-08-30T13:15:12.045995+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-iebz-workflow-transitions.md",
+    "plan_hash": "03d24925ca973c0a716b21d01cd46a64043a37bfca0c699ca11530be3523a5b5",
+    "tracker_hash": "bb2ad75ca02eca4888cb9c4846927d0b962fb3cb344ec9cf6ee04872a9e2493b",
+    "synced_at": "2026-08-30T13:23:59.437166+02:00"
   }
 ]

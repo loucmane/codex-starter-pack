@@ -8,4 +8,5 @@
   deployment outside this workflow's authority even when it reports those next actions.
 
 ## Progress Log
-- **2026-08-30 12:43 CEST** - [S:20260830|W:ga-iebz-workflow-transitions|H:workflow:design|E:docs/ai/work-tracking/active/20260830-ga-iebz-workflow-transitions-ACTIVE/designs/workflow-transition-contract.md] Defined the memory-independent modular transition contract, journal phases, source/installed backends, and non-authority boundaries
+- **2026-08-30 12:43 CEST** - [S:20260830|W:ga-iebz-workflow-transitions|H:workflow:design|E:docs/ai/work-tracking/archive/20260830-ga-iebz-workflow-transitions-COMPLETED/designs/workflow-transition-contract.md] Defined the memory-independent modular transition contract, journal phases, source/installed backends, and non-authority boundaries
+- 2026-08-30 — Archived through the supported archive helper; no evidence was deleted.
