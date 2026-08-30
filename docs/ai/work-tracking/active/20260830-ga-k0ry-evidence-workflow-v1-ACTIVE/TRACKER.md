@@ -7,7 +7,7 @@
 ## Goals
 - [x] Freeze the reviewed v1 architecture and authority boundaries.
 - [x] Implement the generic schema, skill, five validators, and fail-closed fixture matrix.
-- [ ] Add the project-owned HPFetcher profile and closed-bundle builders in an isolated project worktree.
+- [x] Add the project-owned HPFetcher profile and closed-bundle builders in an isolated project worktree.
 - [ ] Run one already-adjudicated report-only shadow pilot with sealed Fable ordering and byte-identical authoritative outputs.
 - [ ] Merge both source surfaces, close the relevant beads, and publish terminal Obsidian evidence.
 
@@ -24,11 +24,13 @@
 - **2026-08-30 14:20 CEST** - [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:workflow:target-aware-bootstrap|E:/home/loucmane/dev/hpfetcher/.git/gas-city-workflow/transactions/hpf-nqzf.json] Replaced the cross-project memory assumption with a target-aware canonical wizard, target-aware plan sync, preserved-legacy tracker proof, and profile-native bead readiness; the real HPFetcher transaction reached `ready` on exact main without touching its dirty canonical checkout
 - **2026-08-30 14:53 CEST** - [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:workflow:bead-scoped-closeout|E:tests/meta_workflow_guard/test_codex_task.py] Made lightweight checkpoint and finish select the active bead's exact tracker folder, support transactional cross-project archive without touching frozen `.aegis` state, and preserve the full same-repository closeout path
 - **2026-08-30 14:53 CEST** - [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:pytest|E:tests/meta_workflow_guard] Proved packaged-script parity, 272 focused lifecycle/evidence tests, and the complete repository suite with 2,322 passed and 21 explicitly skipped; the isolated network-restricted editable-install failure passed when rerun with normal dependency access
+- **2026-08-30 15:15 CEST** - [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:hpfetcher-profile+frozen-run|E:commit:7ee1f35a9260a27090720197b4487164b427df54;run:hpf-nqzf-batch13-shadow-20260830-001] Signed and froze the tracked HPFetcher profile and two key-blind batch13 bundles; pre-dispatch validation passed and the frozen manifest recorded the complete authoritative batch plus runtime-only authentic corpus
+- **2026-08-30 15:15 CEST** - [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:append-forward-confinement|E:plugins/gas-city-workflow/scripts/evidence/freeze_evidence_run.py;tests/meta_workflow_guard/test_gas_city_evidence_workflow.py] The pre-dispatch sandbox census proved run 001's report roots were outside the HPFetcher worker's managed write roots; preserved run 001 unchanged and added a digest-bound absolute predecessor-manifest repair path so run 002 can relocate under the existing least-privilege worktree root without copying evidence or widening permissions; 5 focused tests passed
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
 - [x] plan-step-implement — Update workflow/guard/docs and capture tests
-- [ ] plan-step-profile — Add project-owned HPFetcher profile and bundle builders
+- [x] plan-step-profile — Add project-owned HPFetcher profile and bundle builders
 - [ ] plan-step-pilot — Run the report-only frozen shadow pilot
 - [ ] plan-step-verify — Evidence stored, documentation updated
 - [ ] plan-step-emergency (if applicable)

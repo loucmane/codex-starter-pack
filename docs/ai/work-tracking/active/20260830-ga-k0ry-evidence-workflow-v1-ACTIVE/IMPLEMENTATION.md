@@ -51,3 +51,16 @@ Validation evidence:
   2,322 passed and 21 explicitly skipped.
 - Optional `ruff` command was unavailable in the environment; Python compilation and repository
   guard checks remain required before commit.
+
+## Pilot-discovered confinement repair
+
+The first immutable pilot manifest froze successfully before dispatch, but its report roots were
+under the operations scratchpad while the managed HPFetcher Sol worker is intentionally writable
+only beneath the HPFetcher worktree root. No route, session, or worker mutation occurred.
+
+Repairs now accept a required absolute `supersedes_manifest` only when `repair=true`. The
+successor manifest binds that predecessor file's SHA-256 and revalidates its run identity. This
+allows a repair to move to an already-approved output root without copying, relocating, or
+rewriting old evidence and without widening a worker sandbox. Legacy non-repair manifests remain
+valid and must omit the new field. Focused coverage proves cross-root repair, predecessor digest
+drift refusal, and backward-compatible validation of run 001.

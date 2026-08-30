@@ -130,7 +130,11 @@ def tree_inventory(path: Path) -> list[dict[str, str]]:
             if stat.S_ISLNK(mode) or not stat.S_ISREG(mode):
                 raise EvidenceError(f"directory tree contains a link or special entry: {entry}")
             result.append(
-                {"path": entry.relative_to(path).as_posix(), "kind": "file", "sha256": sha256_file(entry)}
+                {
+                    "path": entry.relative_to(path).as_posix(),
+                    "kind": "file",
+                    "sha256": sha256_file(entry),
+                }
             )
     return result
 
@@ -186,8 +190,14 @@ def validate_profile(profile: Mapping[str, Any]) -> None:
         exact_keys(
             lane,
             {
-                "id", "bundle_builder", "prompt", "rubric", "report_schema",
-                "declared_bundle_files", "allowed_outputs", "forbidden_patterns",
+                "id",
+                "bundle_builder",
+                "prompt",
+                "rubric",
+                "report_schema",
+                "declared_bundle_files",
+                "allowed_outputs",
+                "forbidden_patterns",
             },
             f"profile.lanes[{index}]",
         )
@@ -201,8 +211,10 @@ def validate_profile(profile: Mapping[str, Any]) -> None:
             safe_relative(lane[key], f"profile lane {lane_id} {key}")
         for key in ("declared_bundle_files", "allowed_outputs", "forbidden_patterns"):
             values = lane.get(key)
-            if not isinstance(values, list) or not values or not all(
-                isinstance(item, str) and item for item in values
+            if (
+                not isinstance(values, list)
+                or not values
+                or not all(isinstance(item, str) and item for item in values)
             ):
                 raise EvidenceError(f"profile lane {lane_id} {key} must be non-empty strings")
             if len(values) != len(set(values)):
@@ -214,25 +226,49 @@ def validate_profile(profile: Mapping[str, Any]) -> None:
 
 
 def validate_request(request: Mapping[str, Any]) -> None:
-    exact_keys(
-        request,
-        {
-            "schema", "run_id", "created_at", "parent_bead", "mode", "repair", "supersedes",
-            "subject_root", "candidates", "external_inputs", "fable_inputs",
-            "authoritative_outputs", "lane_io", "authorization_envelope", "run_root",
-        },
-        "freeze request",
-    )
+    base_keys = {
+        "schema",
+        "run_id",
+        "created_at",
+        "parent_bead",
+        "mode",
+        "repair",
+        "supersedes",
+        "subject_root",
+        "candidates",
+        "external_inputs",
+        "fable_inputs",
+        "authoritative_outputs",
+        "lane_io",
+        "authorization_envelope",
+        "run_root",
+    }
+    observed_keys = set(request)
+    if observed_keys not in {frozenset(base_keys), frozenset(base_keys | {"supersedes_manifest"})}:
+        raise EvidenceError(
+            "freeze request keys mismatch: "
+            f"expected={sorted(base_keys)} or {sorted(base_keys | {'supersedes_manifest'})} "
+            f"observed={sorted(observed_keys)}"
+        )
     if request.get("schema") != REQUEST_SCHEMA:
         raise EvidenceError("freeze request schema mismatch")
     if request.get("mode") != "shadow":
         raise EvidenceError("mode=authoritative is forbidden; v1 accepts only shadow")
     repair = request.get("repair")
     supersedes = request.get("supersedes")
-    if not isinstance(repair, bool) or (repair and not isinstance(supersedes, str)) or (
-        not repair and supersedes is not None
+    if (
+        not isinstance(repair, bool)
+        or (repair and not isinstance(supersedes, str))
+        or (not repair and supersedes is not None)
     ):
         raise EvidenceError("repair runs require supersedes; non-repairs require null")
+    supersedes_manifest = request.get("supersedes_manifest")
+    if repair:
+        if not isinstance(supersedes_manifest, str) or not supersedes_manifest:
+            raise EvidenceError("repair runs require an absolute supersedes_manifest")
+        absolute_path(supersedes_manifest, "freeze request supersedes_manifest")
+    elif "supersedes_manifest" in request:
+        raise EvidenceError("non-repair runs must omit supersedes_manifest")
     parse_timestamp(str(request.get("created_at") or ""), "freeze request created_at")
     for key in ("run_id", "parent_bead", "subject_root", "authorization_envelope", "run_root"):
         if not isinstance(request.get(key), str) or not request[key]:
@@ -241,13 +277,20 @@ def validate_request(request: Mapping[str, Any]) -> None:
     absolute_path(request["authorization_envelope"], "freeze request authorization_envelope")
     absolute_path(request["run_root"], "freeze request run_root")
     candidates = request.get("candidates")
-    if not isinstance(candidates, list) or not candidates or not all(
-        isinstance(value, str) and value for value in candidates
-    ) or len(candidates) != len(set(candidates)):
+    if (
+        not isinstance(candidates, list)
+        or not candidates
+        or not all(isinstance(value, str) and value for value in candidates)
+        or len(candidates) != len(set(candidates))
+    ):
         raise EvidenceError("freeze request candidates must be unique non-empty strings")
     for key in ("fable_inputs", "authoritative_outputs"):
         values = request.get(key)
-        if not isinstance(values, list) or not values or not all(isinstance(v, str) for v in values):
+        if (
+            not isinstance(values, list)
+            or not values
+            or not all(isinstance(v, str) for v in values)
+        ):
             raise EvidenceError(f"freeze request {key} must contain paths")
         for value in values:
             absolute_path(value, f"freeze request {key}")
@@ -275,7 +318,14 @@ def validate_request(request: Mapping[str, Any]) -> None:
 def validate_envelope(envelope: Mapping[str, Any], request: Mapping[str, Any]) -> None:
     exact_keys(
         envelope,
-        {"schema", "request_sha256", "authorized_at", "expires_at", "scope", "verbatim_authorization"},
+        {
+            "schema",
+            "request_sha256",
+            "authorized_at",
+            "expires_at",
+            "scope",
+            "verbatim_authorization",
+        },
         "authorization envelope",
     )
     if envelope.get("schema") != ENVELOPE_SCHEMA:
@@ -291,10 +341,23 @@ def validate_envelope(envelope: Mapping[str, Any], request: Mapping[str, Any]) -
         raise EvidenceError("authorization envelope scope must be an object")
     exact_keys(
         scope,
-        {"project_id", "rig", "parent_bead", "run_id", "mode", "max_workers", "allowed_write_roots", "excluded_actions"},
+        {
+            "project_id",
+            "rig",
+            "parent_bead",
+            "run_id",
+            "mode",
+            "max_workers",
+            "allowed_write_roots",
+            "excluded_actions",
+        },
         "authorization scope",
     )
-    if scope.get("parent_bead") != request.get("parent_bead") or scope.get("run_id") != request.get("run_id") or scope.get("mode") != "shadow":
+    if (
+        scope.get("parent_bead") != request.get("parent_bead")
+        or scope.get("run_id") != request.get("run_id")
+        or scope.get("mode") != "shadow"
+    ):
         raise EvidenceError("authorization scope identity mismatch")
     if not isinstance(scope.get("max_workers"), int) or not 1 <= scope["max_workers"] <= 128:
         raise EvidenceError("authorization scope max_workers is invalid")
@@ -311,14 +374,21 @@ def validate_envelope(envelope: Mapping[str, Any], request: Mapping[str, Any]) -
     exclusions = scope.get("excluded_actions")
     if not isinstance(exclusions, list) or not REQUIRED_EXCLUSIONS.issubset(exclusions):
         raise EvidenceError("authorization scope lacks mandatory exclusions")
-    if not isinstance(envelope.get("verbatim_authorization"), str) or not envelope["verbatim_authorization"].strip():
+    if (
+        not isinstance(envelope.get("verbatim_authorization"), str)
+        or not envelope["verbatim_authorization"].strip()
+    ):
         raise EvidenceError("authorization envelope must preserve verbatim authorization")
 
 
 def git_value(root: Path, *args: str) -> str:
-    result = subprocess.run(["git", "-C", str(root), *args], check=False, capture_output=True, text=True)
+    result = subprocess.run(
+        ["git", "-C", str(root), *args], check=False, capture_output=True, text=True
+    )
     if result.returncode != 0:
-        raise EvidenceError(f"git {' '.join(args)} failed: {(result.stderr or result.stdout).strip()}")
+        raise EvidenceError(
+            f"git {' '.join(args)} failed: {(result.stderr or result.stdout).strip()}"
+        )
     return result.stdout.strip()
 
 
@@ -331,7 +401,12 @@ def asset_inventory(profile: Mapping[str, Any], subject: Path) -> list[dict[str,
             if subject not in path.parents:
                 raise EvidenceError(f"lane asset escapes the subject: {relative}")
             assets.append(
-                {"kind": kind, "lane_id": lane["id"], "path": path.as_posix(), "sha256": sha256_file(path)}
+                {
+                    "kind": kind,
+                    "lane_id": lane["id"],
+                    "path": path.as_posix(),
+                    "sha256": sha256_file(path),
+                }
             )
     return sorted(assets, key=lambda item: (item["lane_id"], item["kind"], item["path"]))
 
@@ -374,7 +449,10 @@ def validate_manifest(path: Path, *, registry: Path = DEFAULT_REGISTRY) -> dict[
         raise EvidenceError("manifest authorization scope digest mismatch")
     if manifest["authorization"]["expires_at"] != envelope["expires_at"]:
         raise EvidenceError("manifest authorization expiry mismatch")
-    if request["run_id"] != manifest["run_id"] or request["parent_bead"] != manifest["parent_bead"]["id"]:
+    if (
+        request["run_id"] != manifest["run_id"]
+        or request["parent_bead"] != manifest["parent_bead"]["id"]
+    ):
         raise EvidenceError("manifest and request identities disagree")
     if (
         request["created_at"] != manifest["created_at"]
@@ -383,12 +461,34 @@ def validate_manifest(path: Path, *, registry: Path = DEFAULT_REGISTRY) -> dict[
         or request["candidates"] != manifest["candidates"]
     ):
         raise EvidenceError("manifest and request frozen fields disagree")
+    if request["repair"]:
+        prior_path = absolute_path(
+            request["supersedes_manifest"], "freeze request supersedes_manifest"
+        )
+        expected_prior = {
+            "path": prior_path.as_posix(),
+            "sha256": sha256_file(prior_path),
+        }
+        if manifest.get("supersedes_manifest") != expected_prior:
+            raise EvidenceError("repair predecessor manifest binding drift")
+        prior = load_json_object(prior_path, "superseded manifest")
+        if prior.get("run_id") != request["supersedes"]:
+            raise EvidenceError("repair supersedes manifest identity mismatch")
+    elif "supersedes_manifest" in manifest:
+        raise EvidenceError("non-repair manifest must omit supersedes_manifest")
     if request["run_root"] != manifest["run_root"]:
         raise EvidenceError("manifest run root mismatch")
     context = build_context(subject, registry)
-    if context["project"]["id"] != manifest["project"]["id"] or context["workflow"]["rig"] != manifest["project"]["rig"]:
+    if (
+        context["project"]["id"] != manifest["project"]["id"]
+        or context["workflow"]["rig"] != manifest["project"]["rig"]
+    ):
         raise EvidenceError("manifest project or rig does not match project context")
-    if profile["project"] != manifest["project"] or envelope["scope"]["project_id"] != manifest["project"]["id"] or envelope["scope"]["rig"] != manifest["project"]["rig"]:
+    if (
+        profile["project"] != manifest["project"]
+        or envelope["scope"]["project_id"] != manifest["project"]["id"]
+        or envelope["scope"]["rig"] != manifest["project"]["rig"]
+    ):
         raise EvidenceError("profile or authorization project identity mismatch")
     observed_subject = {
         "repository": context["project"]["repository"],
@@ -417,7 +517,10 @@ def validate_manifest(path: Path, *, registry: Path = DEFAULT_REGISTRY) -> dict[
         bound = path_binding(absolute_path(item["path"], "external input path"))
         external.append({**bound, "reason": item["reason"]})
     external.sort(key=lambda item: item["path"])
-    if external != manifest["external_inputs"] or canonical_sha256(external) != manifest["external_inventory_sha256"]:
+    if (
+        external != manifest["external_inputs"]
+        or canonical_sha256(external) != manifest["external_inventory_sha256"]
+    ):
         raise EvidenceError("external input inventory drift")
     profile_lanes = {lane["id"]: lane for lane in profile["lanes"]}
     manifest_lanes = {lane["id"]: lane for lane in manifest["lanes"]}
@@ -455,7 +558,9 @@ def main(argv: list[str] | None = None) -> int:
     except (EvidenceError, OSError, ValueError) as exc:
         print(f"validate-evidence-run: REFUSED: {exc}", file=sys.stderr)
         return 2
-    print(json.dumps({"ok": True, "schema": RUN_SCHEMA, "run_id": manifest["run_id"]}, sort_keys=True))
+    print(
+        json.dumps({"ok": True, "schema": RUN_SCHEMA, "run_id": manifest["run_id"]}, sort_keys=True)
+    )
     return 0
 
 
