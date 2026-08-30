@@ -6,9 +6,9 @@ bead_ids: [ga-k0ry]
 attached_bead_ids: [ga-25cw, ga-ma7k, ga-wwmw]
 branch_policy: codex/ga-k0ry-evidence-workflow-v1
 evidence_summary:
-  - docs/ai/work-tracking/active/20260830-ga-k0ry-evidence-workflow-v1-ACTIVE
+  - docs/ai/work-tracking/archive/20260830-ga-k0ry-evidence-workflow-v1-COMPLETED
   - plugins/gas-city-workflow
-  - docs/ai/work-tracking/active/20260830-ga-k0ry-evidence-workflow-v1-ACTIVE/designs/evidence-workflow-v1-contract.md
+  - docs/ai/work-tracking/archive/20260830-ga-k0ry-evidence-workflow-v1-COMPLETED/designs/evidence-workflow-v1-contract.md
   - bead:ga-k0ry
   - scripts/codex-task
 plan_version: v1
@@ -23,22 +23,22 @@ emergency_bypass: false
 - **Handler Target (H)**: plugins/gas-city-workflow
 - **Bead IDs**: ga-k0ry
 - **Branch Policy**: codex/ga-k0ry-evidence-workflow-v1
-- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260830-ga-k0ry-evidence-workflow-v1-ACTIVE, plugins/gas-city-workflow, docs/ai/work-tracking/active/20260830-ga-k0ry-evidence-workflow-v1-ACTIVE/designs/evidence-workflow-v1-contract.md, bead:ga-k0ry, scripts/codex-task
+- **Evidence Summary (E)**: docs/ai/work-tracking/archive/20260830-ga-k0ry-evidence-workflow-v1-COMPLETED, plugins/gas-city-workflow, docs/ai/work-tracking/archive/20260830-ga-k0ry-evidence-workflow-v1-COMPLETED/designs/evidence-workflow-v1-contract.md, bead:ga-k0ry, scripts/codex-task
 - **Plan Version**: v1
 - **Emergency Bypass**: false
 
 ## Plan Table
 | Step ID | Description | Evidence | Status |
 |---|---|---|---|
-| plan-step-scope | Confirm scope and authority for Evidence workflow v1 — frozen-run schema, validators, and HPFetcher shadow pilot | docs/ai/work-tracking/active/20260830-ga-k0ry-evidence-workflow-v1-ACTIVE/FINDINGS.md; docs/ai/work-tracking/active/20260830-ga-k0ry-evidence-workflow-v1-ACTIVE/designs/evidence-workflow-v1-contract.md | completed |
-| plan-step-implement | Implement the generic frozen-run schema, skill, five validators, and fail-closed fixtures | plugins/gas-city-workflow; tests/meta_workflow_guard; docs/ai/work-tracking/active/20260830-ga-k0ry-evidence-workflow-v1-ACTIVE/IMPLEMENTATION.md | completed |
+| plan-step-scope | Confirm scope and authority for Evidence workflow v1 — frozen-run schema, validators, and HPFetcher shadow pilot | docs/ai/work-tracking/archive/20260830-ga-k0ry-evidence-workflow-v1-COMPLETED/FINDINGS.md; docs/ai/work-tracking/archive/20260830-ga-k0ry-evidence-workflow-v1-COMPLETED/designs/evidence-workflow-v1-contract.md | completed |
+| plan-step-implement | Implement the generic frozen-run schema, skill, five validators, and fail-closed fixtures | plugins/gas-city-workflow; tests/meta_workflow_guard; docs/ai/work-tracking/archive/20260830-ga-k0ry-evidence-workflow-v1-COMPLETED/IMPLEMENTATION.md | completed |
 | plan-step-profile | Add the digest-bound project-owned HPFetcher profile and bundle builders without changing domain verdict logic | commit:7ee1f35a9260a27090720197b4487164b427df54; run:hpf-nqzf-batch13-shadow-20260830-001 | completed |
-| plan-step-pilot | Run one authorized report-only frozen shadow pilot with seal/dispatch/release ordering, Fable readback, zero residue, and authoritative-output parity | bead:hpf-nqzf; preserved-failures:hpf-nqzf-batch13-shadow-20260830-003,hpf-nqzf-batch13-shadow-20260830-004; bead:ga-ma7k; hook-manifest:55e21a9d981805afb62da110b022bc847f7ad2b9a62bada45de95dbdfa472410; tests:56-passed | in-progress |
-| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/active/20260830-ga-k0ry-evidence-workflow-v1-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260830-ga-k0ry-evidence-workflow-v1-ACTIVE/TRACKER.md | pending |
+| plan-step-pilot | Run one authorized report-only frozen shadow pilot with seal/dispatch/release ordering, Fable readback, zero residue, and authoritative-output parity | run:hpf-nqzf-batch13-shadow-20260830-005; reports:66aeac2db41ebbcf0e46eca510408df312ac74d8fe62698b5885a9e2afb3e7ff,32790a8c177a5750348615ff0ae7e26c24ef8cc5c9782738f453846a1fab7d76; comparison:2b505f349a8bdb0d7758748efb99326f0bb0583a1ad0745941f9cb74def6461a; bead:hpf-nqzf | completed |
+| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/archive/20260830-ga-k0ry-evidence-workflow-v1-COMPLETED/HANDOFF.md; hpfetcher-pr:367; operations-pr:326; zero-residue:controller-50582 | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
-- `docs/ai/work-tracking/active/20260830-ga-k0ry-evidence-workflow-v1-ACTIVE`
+- `docs/ai/work-tracking/archive/20260830-ga-k0ry-evidence-workflow-v1-COMPLETED`
 - `plugins/gas-city-workflow`
 - project-owned HPFetcher evidence profile and bundle builders in an isolated `loucmane/hp-coach` worktree
 - `scripts/codex-task`
@@ -59,13 +59,16 @@ emergency_bypass: false
 - 2026-08-30 - Attached repair bead `ga-wwmw` after run 005 lane 1 proved the report-only
   reviewer needs a dedicated five-prefix Codex control policy; the broader default profile
   remains explicitly out of scope.
+- 2026-08-30 - Run 005 completed both isolated report-only lanes, release, comparison,
+  authoritative-output parity, zero-residue closeout, and exact-tree source publication. No
+  domain verdict, promotion, deployment, or authoritative-output mutation occurred.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)
 - Context reload steps:
   1. Read `sessions/current` and this plan.
   2. Read primary bead `ga-k0ry` through the rig-scoped bead surface.
-  3. Review `docs/ai/work-tracking/active/20260830-ga-k0ry-evidence-workflow-v1-ACTIVE/TRACKER.md` before changing implementation.
+  3. Review `docs/ai/work-tracking/archive/20260830-ga-k0ry-evidence-workflow-v1-COMPLETED/TRACKER.md` before changing implementation.
   4. Run `python3 scripts/codex-task plan sync` after tracker updates.
 - Outstanding risks/todos: preserve bead authority and avoid allocating shadow Taskmaster work.
 

@@ -105,3 +105,25 @@ merge.
 - **2026-08-30 16:03 CEST** - [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:plugins/gas-city-workflow/scripts/install_evidence_reviewer.py|E:bead:ga-25cw;tests:23-passed;install-plan:0bb089972880127b0e8b619fd35813945b69d9a990c1fef2030d0af7e3b05660] Attached blocking bead ga-25cw to the active ga-k0ry context, implemented a generic no-project-access evidence reviewer plus transactional installer and rollback, and matched the validated live candidate hashes without mutating Gas City.
 - **2026-08-30 18:24 CEST** - [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:codex:hooks/list+config/batchWrite|E:manifest:55e21a9d981805afb62da110b022bc847f7ad2b9a62bada45de95dbdfa472410;tests:56-passed] Replaced interactive hook memory with an exact, modular, supported-API trust transaction and proved it twice against a disposable copy of the real configuration.
 - **2026-08-30 19:25 CEST** - [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:plugins/gas-city-workflow/scripts/install_evidence_reviewer.py|E:bead:ga-wwmw;policy:dc2e7ac6fc66714a73e482e50bdff7fb3fc77936c7bff8a76723a6caa4d3b67d;tests:34-passed] Added the transactional five-prefix evidence-reviewer policy, real Codex positive/negative validation, exact rollback and idempotence coverage, and explicitly excluded the broader default profile.
+
+## Pilot completion
+
+- The merge-bound five-prefix reviewer policy was installed transactionally and proved by two
+  non-interactive native claims. No broader worker policy was installed.
+- Frozen run `hpf-nqzf-batch13-shadow-20260830-005` completed both report-only lanes. The
+  blind-solver report is SHA-256
+  `66aeac2db41ebbcf0e46eca510408df312ac74d8fe62698b5885a9e2afb3e7ff`; the adversarial-audit
+  report is SHA-256 `32790a8c177a5750348615ff0ae7e26c24ef8cc5c9782738f453846a1fab7d76`.
+- Release event SHA-256
+  `ef110d77273dfceec56f17377737e2196e560073dd8d67680f33bd9f8e289500` binds the pre-worker
+  Fable readback. Comparison SHA-256
+  `2b505f349a8bdb0d7758748efb99326f0bb0583a1ad0745941f9cb74def6461a` remains evidence-only
+  with `domain_verdict=null`.
+- Final bundle audits and manifest validation proved the authoritative batch13 tree remained
+  byte-identical. Both worker sessions drained; HPFetcher and every other project rig were
+  suspended with zero session, process, or tmux residue.
+- HPFetcher PR #367 merged signed head `7ee1f35a9260a27090720197b4487164b427df54` as
+  `652d81e74bdde97c3735b63b09639db9aa3c3c84`; the merged tree is byte-identical to
+  `c5c2450bae6db457c88df90d5a7b257c272a2355`.
+
+- **2026-08-30 20:02 CEST** - [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:evidence-workflow:closeout|E:bead:hpf-nqzf;run:hpf-nqzf-batch13-shadow-20260830-005;merge:652d81e74bdde97c3735b63b09639db9aa3c3c84] Completed the authorized shadow pilot, final validations, source publication, and zero-residue closeout without promotion, deployment, or authoritative-output mutation.
