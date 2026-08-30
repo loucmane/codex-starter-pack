@@ -16,5 +16,10 @@
 - 2026-08-30 — Cross-project closeout can reuse the canonical transactional archive safely when it
   treats legacy `.aegis` state as frozen evidence. The archive may update only the selected tracker,
   its bound plan/session references, and the transaction journal.
+- 2026-08-30 — Codex project trust and Codex hook trust are independent startup gates. A worker can
+  enter the reviewed project root yet still stop before instructions on changed/new hooks. Durable
+  unattended startup therefore must bind the manifest bytes, validate resolved hook metadata, and
+  install the exact runtime hashes through Codex's supported versioned config API; a bypass flag is
+  neither durable trust nor an acceptable repair.
 
 - 2026-08-30 — _Pending_ — document new findings here.
