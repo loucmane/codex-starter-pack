@@ -972,11 +972,29 @@ def retire_recovered_source_current_work(
     if not isinstance(fingerprint, str) or not re.fullmatch(r"[0-9a-f]{64}", fingerprint):
         raise SourceWorkflowStateError("source current-work recovery fingerprint is invalid")
     recovered_at = recovery.get("recovered_at")
+    created_at = payload.get("created_at")
+    updated_at = payload.get("updated_at")
     if (
         not isinstance(recovered_at, str)
         or not recovered_at
-        or payload.get("created_at") != recovered_at
-        or payload.get("updated_at") != recovered_at
+        or created_at != recovered_at
+        or not isinstance(updated_at, str)
+        or not updated_at
+    ):
+        raise SourceWorkflowStateError("source current-work recovery timestamps are invalid")
+    try:
+        recovered_timestamp = datetime.fromisoformat(recovered_at.replace("Z", "+00:00"))
+        updated_timestamp = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise SourceWorkflowStateError(
+            "source current-work recovery timestamps are invalid"
+        ) from exc
+    if (
+        recovered_timestamp.tzinfo is None
+        or recovered_timestamp.utcoffset() is None
+        or updated_timestamp.tzinfo is None
+        or updated_timestamp.utcoffset() is None
+        or updated_timestamp < recovered_timestamp
     ):
         raise SourceWorkflowStateError("source current-work recovery timestamps are invalid")
     core = {

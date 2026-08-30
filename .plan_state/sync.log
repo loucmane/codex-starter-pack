@@ -1012,5 +1012,11 @@
     "plan_hash": "5a277989f7dc696114fcdb5fe9e2dcc13ae12fc4fd0c05872ea7b02c3bd7eb7c",
     "tracker_hash": "bc28d05da179ea3af7b89d6a1631cea9de2f1aa9da2080947ab6f0a2cbfd443e",
     "synced_at": "2026-08-30T11:59:06.203751+02:00"
+  },
+  {
+    "plan": "plans/2026-08-30-ga-2mfo-workflow-identity-cache.md",
+    "plan_hash": "5a277989f7dc696114fcdb5fe9e2dcc13ae12fc4fd0c05872ea7b02c3bd7eb7c",
+    "tracker_hash": "9d9780f84ee2be07a5f91628b3a8190cd450216f7ba2b1f7b9eb674156f24dc8",
+    "synced_at": "2026-08-30T12:13:08.020292+02:00"
   }
 ]
