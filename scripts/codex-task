@@ -22,6 +22,8 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPT_DIR = Path(__file__).resolve().parent
+COMMAND_SOURCE_ROOT = REPO_ROOT
+SOURCE_WORKFLOW_HELPER_OVERRIDE: Optional[Path] = None
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 if str(SCRIPT_DIR) not in sys.path:
@@ -2559,8 +2561,66 @@ def handle_work_tracking_scaffold(args: argparse.Namespace) -> None:
     print(f"Created active work-tracking folder: {folder_path.relative_to(REPO_ROOT)}")
 
 
+def _git_common_dir(root: Path) -> Path:
+    result = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "--git-common-dir"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        raise TaskError(f"Source closeout target is not a Git worktree: {root}")
+    common = Path(result.stdout.strip())
+    return (root / common).resolve() if not common.is_absolute() else common.resolve()
+
+
+def _configure_source_closeout_target(value: object) -> None:
+    if value in {None, ""}:
+        return
+    if not isinstance(value, str):
+        raise TaskError("Source closeout target must be a path string")
+    target = Path(value).expanduser().resolve()
+    if not target.is_dir() or target.is_symlink():
+        raise TaskError("Source closeout target must be a real directory")
+    top_level = subprocess.run(
+        ["git", "-C", str(target), "rev-parse", "--show-toplevel"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if top_level.returncode != 0 or Path(top_level.stdout.strip()).resolve() != target:
+        raise TaskError("Source closeout target must be the root of a Git worktree")
+    if _git_common_dir(target) != _git_common_dir(COMMAND_SOURCE_ROOT):
+        raise TaskError("Source closeout target must be another worktree of this repository")
+
+    helper_path = COMMAND_SOURCE_ROOT / "scripts" / "_source_workflow_state.py"
+    if not helper_path.is_file() or helper_path.is_symlink():
+        raise TaskError("Executing source workflow helper is missing or unsafe")
+
+    global REPO_ROOT, REPO_STRUCTURE, SESSIONS_DIR, PLANS_DIR
+    global WORK_TRACKING_BASE, WORK_TRACKING_ACTIVE_REL, WORK_TRACKING_ARCHIVE_REL
+    global PLAN_CURRENT, PLAN_STATE_DIR, PLAN_SYNC_LOG, SESSION_STATE_PATH
+    global SOURCE_WORKFLOW_HELPER_OVERRIDE
+    REPO_ROOT = target
+    REPO_STRUCTURE = load_repo_structure(REPO_ROOT)
+    SESSIONS_DIR = REPO_STRUCTURE.sessions_root
+    PLANS_DIR = REPO_STRUCTURE.plans_root
+    WORK_TRACKING_BASE = REPO_STRUCTURE.work_tracking_active_root
+    WORK_TRACKING_ACTIVE_REL = WORK_TRACKING_BASE.relative_to(REPO_ROOT).as_posix()
+    WORK_TRACKING_ARCHIVE_REL = (
+        REPO_STRUCTURE.work_tracking_archive_root.relative_to(REPO_ROOT).as_posix()
+    )
+    PLAN_CURRENT = REPO_STRUCTURE.current_plan_link
+    PLAN_STATE_DIR = REPO_STRUCTURE.plan_state_dir
+    PLAN_SYNC_LOG = REPO_STRUCTURE.plan_sync_log
+    SESSION_STATE_PATH = REPO_STRUCTURE.session_state_path
+    SOURCE_WORKFLOW_HELPER_OVERRIDE = helper_path
+
+
 def _load_source_workflow_state_module():
-    helper_path = REPO_ROOT / "scripts" / "_source_workflow_state.py"
+    helper_path = SOURCE_WORKFLOW_HELPER_OVERRIDE or (
+        REPO_ROOT / "scripts" / "_source_workflow_state.py"
+    )
     if not helper_path.is_file():
         return None
     module_name = "_aegis_source_workflow_state_archive"
@@ -2947,6 +3007,7 @@ def _completed_source_archive_for_folder(folder_name: str) -> Path:
 
 
 def handle_work_tracking_reconcile(args: argparse.Namespace) -> None:
+    _configure_source_closeout_target(getattr(args, "target_dir", None))
     transaction = _load_source_closeout_transaction()
     if transaction is None:
         print("No pending source closeout transaction; repository lifecycle is IDLE or ACTIVE.")
@@ -3060,6 +3121,7 @@ def _handle_legacy_work_tracking_archive(args: argparse.Namespace) -> None:
 
 
 def handle_work_tracking_archive(args: argparse.Namespace) -> None:
+    _configure_source_closeout_target(getattr(args, "target_dir", None))
     if not _is_uninstalled_source_checkout_for_archive():
         _handle_legacy_work_tracking_archive(args)
         return
@@ -18743,11 +18805,19 @@ def build_parser() -> argparse.ArgumentParser:
 
     work_archive = work_sub.add_parser("archive", help="Archive the current active work-tracking folder")
     work_archive.add_argument("--folder", help="Specific ACTIVE folder relative name")
+    work_archive.add_argument(
+        "--target-dir",
+        help="Another worktree root of this same repository (source closeout only)",
+    )
     work_archive.set_defaults(func=handle_work_tracking_archive)
 
     work_reconcile = work_sub.add_parser(
         "reconcile",
         help="Resume and verify an interrupted transactional source closeout",
+    )
+    work_reconcile.add_argument(
+        "--target-dir",
+        help="Another worktree root of this same repository (source closeout only)",
     )
     work_reconcile.set_defaults(func=handle_work_tracking_reconcile)
 

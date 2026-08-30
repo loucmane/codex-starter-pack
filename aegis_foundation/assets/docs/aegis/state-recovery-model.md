@@ -73,6 +73,12 @@ and re-running archive against an already-completed bundle performs the same bou
 Installed, malformed, symlinked, tampered, or differently scoped current-work state is never
 deleted by this path.
 
+When the preserved closeout state lives in another linked worktree, run `work-tracking archive`
+or `work-tracking reconcile` with `--target-dir <worktree-root>` from a checkout containing the
+fixed helper. The command accepts only a real worktree root whose Git common directory matches
+the executing checkout, keeps all path derivation inside that target, and uses the executing
+checkout's reviewed source helper. Arbitrary repositories and nested directories are refused.
+
 ## Doctor Contract
 
 `aegis doctor` is the canonical diagnostic surface for recovery. It should return a structured report with:

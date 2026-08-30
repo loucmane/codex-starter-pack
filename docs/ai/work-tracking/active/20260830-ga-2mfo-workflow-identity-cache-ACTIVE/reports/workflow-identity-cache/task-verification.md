@@ -28,6 +28,9 @@
   - Matching recovered source current-work retires only after terminal archive verification.
   - Interrupted closeout replay and already-completed archive repair are idempotent.
   - Installed, malformed, symlinked, tampered, and differently scoped state is preserved and refused.
+- Supported preserved-worktree repair
+  - `work-tracking archive --target-dir <worktree-root>` and `work-tracking reconcile --target-dir <worktree-root>` accept only another worktree with the same Git common directory, refuse nested or unrelated repositories, derive every state path from the target, and use the executing checkout's reviewed helper.
+  - PASS: 286 closeout, command, packaged parity, release-distribution, and invocation tests; 2 optional wheel smokes skipped.
 
 ## Remaining acceptance work
 
