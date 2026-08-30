@@ -31,6 +31,5 @@ Bead `ga-k0ry` was kicked off via `python3 scripts/codex-task wizard kickoff --b
 - **[13:32]** — [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260830-ga-k0ry-evidence-workflow-v1-ACTIVE/TRACKER.md] Scaffolded the `ga-k0ry` ACTIVE work-tracking folder through the bead-native kickoff flow
 - **[13:32]** — [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:bd:show|E:bead:ga-k0ry] Bound the source-workflow record to primary bead `ga-k0ry`
 - **[13:32]** — [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:sessions/current|E:sessions/current] Repointed current session, plan, and session state to `ga-k0ry`
-
-### Progress Log
 - **[16:03]** - [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:plugins/gas-city-workflow/scripts/install_evidence_reviewer.py|E:bead:ga-25cw;tests:23-passed;install-plan:0bb089972880127b0e8b619fd35813945b69d9a990c1fef2030d0af7e3b05660] Attached blocking bead ga-25cw to the active ga-k0ry context, implemented a generic no-project-access evidence reviewer plus transactional installer and rollback, and matched the validated live candidate hashes without mutating Gas City.
+- **[17:07]** — [S:20260830|W:ga-k0ry-evidence-workflow-v1|H:plugins/gas-city-workflow/scripts/install_evidence_reviewer.py|E:bead:ga-ma7k;tests:46-passed;live-plan:e92d71604c4b464a980b1166aa55ed3c5a51c620c9a79275c954b4e77e558726] Prepared the transactional trust repair after run003 stopped before claim/report at the Codex directory-trust prompt.
