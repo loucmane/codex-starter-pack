@@ -18,3 +18,18 @@
   the exact timer substate during rollback.
 - 2026-08-31 — The vault is missing the direct `GasCity/gas-city` parent while the managed root itself is safe. The installer now permits only one direct `<project-id>` parent beneath the declared managed root and removes a newly created empty or solely managed parent on rollback; it cannot create arbitrary ancestors.
 - 2026-08-31 — Local full-suite execution reached the editable-package invocation tests, which require fetching a build dependency. Network-enabled package installation was correctly refused by the runtime safety boundary. All in-scope tests and adjacent offline integration modules pass; hosted CI remains the authority for those two network-dependent tests.
+- 2026-08-31 — The v0.6.2 live gate restored every installed byte, private-state manifest,
+  and managed output after HPFetcher's real history exceeded the legacy 2,000-agent ceiling
+  (`2421 > 2000`). Per-project reloads also produced two bounded 30-second read timeouts, and
+  `Persistent=true` made the predecessor timer briefly `elapsed` during rollback catch-up. The
+  WSL Obsidian process never changed PID or start tick; the missing-process observation was a
+  transient reload window, and a direct CLI read succeeded afterward.
+- 2026-08-31 — v0.6.3 aligns the agent ceiling with the existing 5,000-edge safety ceiling,
+  defers all live-index observations until every project/dashboard build finishes, coalesces
+  reloads by Obsidian executable and vault, and waits for rollback catch-up to settle before a
+  final byte-exact state/output restore.
+- 2026-08-31 — A later Codex sandbox check saw neither the WSL Obsidian process nor a reachable
+  CLI while the operator directly observed the WSL-native window still open. Process/CLI absence
+  in a restricted observer is therefore not application-liveness evidence. The runtime already
+  classifies this surface as `observer-limited`; host user-systemd execution and operator-visible
+  WSL state remain authoritative for live-index acceptance, and no relaunch or close is warranted.

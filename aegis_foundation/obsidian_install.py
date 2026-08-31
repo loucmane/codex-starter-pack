@@ -12,6 +12,7 @@ import shutil
 import stat
 import subprocess
 import tempfile
+import time
 from typing import NamedTuple, Sequence
 import zipfile
 
@@ -252,6 +253,32 @@ def _unit_state(unit: str) -> dict[str, object]:
         "substate": substate.stdout.strip() if substate.returncode == 0 else "",
         "result": result.stdout.strip() if result.returncode == 0 else "",
     }
+
+
+def _wait_for_timer_waiting(
+    timer: str,
+    service: str,
+    *,
+    timeout_seconds: float = 180,
+    poll_seconds: float = 0.25,
+) -> dict[str, object]:
+    deadline = time.monotonic() + timeout_seconds
+    timer_state = _unit_state(timer)
+    service_state = _unit_state(service)
+    while not (
+        timer_state["active"]
+        and timer_state["substate"] == "waiting"
+        and not service_state["active"]
+    ):
+        if time.monotonic() >= deadline:
+            raise RuntimeError(
+                "restored timer did not settle to waiting with an inactive service: "
+                f"timer={timer_state} service={service_state}"
+            )
+        time.sleep(poll_seconds)
+        timer_state = _unit_state(timer)
+        service_state = _unit_state(service)
+    return timer_state
 
 
 def _expected_files(
@@ -495,6 +522,17 @@ def install(
             started = _run_systemctl("start", timer)
             if started.returncode != 0:
                 rollback_errors.append(f"timer active restore failed: {started.stderr.strip()}")
+            elif before_timer["substate"] == "waiting":
+                try:
+                    _wait_for_timer_waiting(timer, service)
+                    if snapshots_captured:
+                        _restore_tree(state_dir, state_snapshot)
+                        for path, snapshot in output_snapshots.items():
+                            _restore_tree(path, snapshot)
+                except (OSError, RuntimeError) as rollback_exc:
+                    rollback_errors.append(
+                        f"timer catch-up restore failed: {rollback_exc}"
+                    )
         if before_service["active"]:
             started = _run_systemctl("start", service)
             if started.returncode != 0:

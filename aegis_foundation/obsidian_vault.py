@@ -93,7 +93,7 @@ class VaultLimits:
     max_tasks: int = 2_000
     max_sessions: int = 500
     max_branches: int = 500
-    max_agents: int = 2_000
+    max_agents: int = 5_000
     max_worktrees: int = 500
     max_identity_edges: int = 5_000
     max_evidence_notes: int = 1_000

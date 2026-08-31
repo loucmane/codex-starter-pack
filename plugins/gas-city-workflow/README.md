@@ -1,6 +1,6 @@
 # Gas City Workflow plugin
 
-Version `0.6.2` packages the common lifecycle, cross-project continuity audit, continuous
+Version `0.6.3` packages the common lifecycle, cross-project continuity audit, continuous
 project-isolated Obsidian projections, and frozen report-only evidence reviews without copying
 project state into prompts or widening permissions.
 
@@ -74,8 +74,9 @@ python3 plugins/gas-city-workflow/scripts/build_obsidian_registry.py --write --v
 python3 plugins/gas-city-workflow/scripts/build_obsidian_registry.py --check --validate-roots
 ```
 
-The installed user timer reconciles every enabled project and the dashboard. A changed projection
-is atomically replaced, gated, reloaded once in the live Obsidian app, and read back. A
+The installed user timer reconciles every enabled project and the dashboard. All changed
+projections are replaced and gated before the runtime reloads each shared Obsidian endpoint once
+and reads every managed probe. A
 byte-identical cycle performs only the managed-note read; it does not reload Obsidian. Missing
 direct project parents may be created only beneath the declared managed vault root. The installer
 quiesces the timer before capture and restores its files, private state, managed output trees,
@@ -86,6 +87,8 @@ generate the same lifecycle for a future project without another daemon or agent
 The timer always schedules a bounded first cycle after activation and later cycles after the
 oneshot becomes inactive. Installer control calls allow the complete multi-project cycle to finish;
 they do not reuse the 30-second per-probe timeout as a whole-transaction deadline.
+The bounded identity graph accepts up to 5,000 stable agent identities, matching its existing
+5,000-edge ceiling; larger histories still fail closed before rendering unbounded notes.
 
 For blind report lanes, `config/evidence-reviewer/` defines one generic rig-scoped Sol reviewer
 whose work directory is `/home/loucmane/gascity/evidence-runs`, whose additional writable-root

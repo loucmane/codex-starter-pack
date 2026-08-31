@@ -6,5 +6,8 @@
 - 2026-08-31 — Extended the installer control-plane deadline to cover a complete four-project
   cycle, made timer activation/repetition restart-safe, and added exact timer-substate rollback
   verification with byte-exact post-prime state/output restoration.
+- 2026-08-31 — Raised the still-bounded agent projection ceiling to 5,000, batched live-index
+  observation behind one reload per shared endpoint, and made rollback wait through persistent
+  timer catch-up before its final exact restore.
 
 - 2026-08-31 15:17 CEST — Initialized active work-tracking folder.

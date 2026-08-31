@@ -1522,5 +1522,17 @@
     "plan_hash": "f079c9d359b8816c5103c219dc4daecc2609694c719f5e288297d3452262c924",
     "tracker_hash": "015791217e4365dc314c86027ab45f49b19f78328026bca89a4b4e6fc9754ba5",
     "synced_at": "2026-08-31T16:24:23.626636+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-ur1c.3-continuously-reconcile-every-registered-project-into-obsidian.md",
+    "plan_hash": "f079c9d359b8816c5103c219dc4daecc2609694c719f5e288297d3452262c924",
+    "tracker_hash": "9aa981fed85bf88542257c1c66180309491cba6b6184724e6d9226ced72831c0",
+    "synced_at": "2026-08-31T16:48:41.456830+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-ur1c.3-continuously-reconcile-every-registered-project-into-obsidian.md",
+    "plan_hash": "f079c9d359b8816c5103c219dc4daecc2609694c719f5e288297d3452262c924",
+    "tracker_hash": "3bd22bd7446e55f532a18966312a85179713d72b289d542ba836c386eb7301b6",
+    "synced_at": "2026-08-31T16:49:56.881884+02:00"
   }
 ]

@@ -196,9 +196,11 @@ def test_install_failure_rolls_back_new_files(
     (state / "before.json").write_text('{"before":true}\n', encoding="utf-8")
     systemctl_calls: list[tuple[str, ...]] = []
     service_starts = 0
+    restoring_timer = False
+    timer_substate_reads = 0
 
     def systemctl(*arguments: str) -> subprocess.CompletedProcess[str]:
-        nonlocal service_starts
+        nonlocal restoring_timer, service_starts, timer_substate_reads
         systemctl_calls.append(arguments)
         if arguments[:2] == ("start", "aegis-obsidian-reconcile.service"):
             service_starts += 1
@@ -209,24 +211,47 @@ def test_install_failure_rolls_back_new_files(
             if service_starts == 1:
                 return subprocess.CompletedProcess(arguments, 1, "", "simulated refusal")
             return subprocess.CompletedProcess(arguments, 0, "", "")
+        if arguments[:2] == ("start", "aegis-obsidian-reconcile.timer"):
+            restoring_timer = True
+            (output / "before.md").write_text("catch-up\n", encoding="utf-8")
+            (output / "catch-up.md").write_text("catch-up\n", encoding="utf-8")
+            (state / "before.json").write_text('{"catch-up":true}\n', encoding="utf-8")
+            (state / "catch-up.json").write_text("{}\n", encoding="utf-8")
+            return subprocess.CompletedProcess(arguments, 0, "", "")
         if arguments[0] == "is-enabled":
             enabled = arguments[1] == "aegis-obsidian-reconcile.timer"
             return subprocess.CompletedProcess(
                 arguments, 0 if enabled else 1, "enabled\n" if enabled else "disabled\n", ""
             )
         if arguments[0] == "is-active":
-            active = arguments[1] == "aegis-obsidian-reconcile.timer"
+            active = arguments[1] == "aegis-obsidian-reconcile.timer" or (
+                arguments[1] == "aegis-obsidian-reconcile.service"
+                and restoring_timer
+                and timer_substate_reads <= 1
+            )
             return subprocess.CompletedProcess(
                 arguments, 0 if active else 1, "active\n" if active else "inactive\n", ""
             )
         if arguments[0] == "show" and "SubState" in arguments:
-            value = "waiting\n" if arguments[1] == "aegis-obsidian-reconcile.timer" else "dead\n"
+            if arguments[1] == "aegis-obsidian-reconcile.timer":
+                if restoring_timer:
+                    timer_substate_reads += 1
+                    value = "elapsed\n" if timer_substate_reads == 1 else "waiting\n"
+                else:
+                    value = "waiting\n"
+            else:
+                value = (
+                    "running\n"
+                    if restoring_timer and timer_substate_reads <= 1
+                    else "dead\n"
+                )
             return subprocess.CompletedProcess(arguments, 0, value, "")
         if arguments[0] == "show" and "Result" in arguments:
             return subprocess.CompletedProcess(arguments, 0, "success\n", "")
         return subprocess.CompletedProcess(arguments, 0, "", "")
 
     monkeypatch.setattr(obsidian_install, "_run_systemctl", systemctl)
+    monkeypatch.setattr(obsidian_install.time, "sleep", lambda _seconds: None)
 
     with pytest.raises(RuntimeError, match="initial reconciliation failed"):
         obsidian_install.install(
@@ -243,8 +268,11 @@ def test_install_failure_rolls_back_new_files(
     assert not (state / "transient.json").exists()
     assert (output / "before.md").read_text(encoding="utf-8") == "before\n"
     assert not (output / "transient.md").exists()
+    assert not (output / "catch-up.md").exists()
+    assert not (state / "catch-up.json").exists()
     assert ("reset-failed", "aegis-obsidian-reconcile.service") in systemctl_calls
     assert service_starts == 2
+    assert timer_substate_reads >= 2
 
 
 def test_install_refuses_missing_output_parent_before_writing(
