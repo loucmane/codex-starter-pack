@@ -5,3 +5,6 @@
   transactional workflow, Codex Task, and Aegis source/package validators.
 - 2026-08-31 11:38 CEST — Corrected blocking relationship semantics for begin and attach,
   with RED-first coverage and a 445-test affected regression pass.
+- 2026-08-31 11:48 CEST — Merged PR #329 as `9e1c423a`; GitHub verification is valid and
+  the merge tree is byte-identical to signed source head `8f0c6b59`.
+- 2026-08-31 11:50 CEST — Archived active work-tracking folder.

@@ -5,7 +5,7 @@ handler_target: .
 bead_ids: [ga-c8al]
 branch_policy: codex/ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl
 evidence_summary:
-  - docs/ai/work-tracking/active/20260831-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl-ACTIVE
+  - docs/ai/work-tracking/archive/20260831-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl-COMPLETED
   - .
   - bead:ga-c8al
   - scripts/codex-task
@@ -21,20 +21,20 @@ emergency_bypass: false
 - **Handler Target (H)**: .
 - **Bead IDs**: ga-c8al
 - **Branch Policy**: codex/ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl
-- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260831-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl-ACTIVE, ., bead:ga-c8al, scripts/codex-task
+- **Evidence Summary (E)**: docs/ai/work-tracking/archive/20260831-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl-COMPLETED, ., bead:ga-c8al, scripts/codex-task
 - **Plan Version**: v1
 - **Emergency Bypass**: false
 
 ## Plan Table
 | Step ID | Description | Evidence | Status |
 |---|---|---|---|
-| plan-step-scope | Confirm scope and authority for Support hierarchical Bead IDs in transactional workflow lifecycle | docs/ai/work-tracking/active/20260831-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl-ACTIVE/FINDINGS.md | completed |
-| plan-step-implement | Implement Support hierarchical Bead IDs in transactional workflow lifecycle through the reviewed helper surface | .; docs/ai/work-tracking/active/20260831-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl-ACTIVE/IMPLEMENTATION.md | completed |
-| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/active/20260831-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260831-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl-ACTIVE/TRACKER.md | completed |
+| plan-step-scope | Confirm scope and authority for Support hierarchical Bead IDs in transactional workflow lifecycle | docs/ai/work-tracking/archive/20260831-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl-COMPLETED/FINDINGS.md | completed |
+| plan-step-implement | Implement Support hierarchical Bead IDs in transactional workflow lifecycle through the reviewed helper surface | .; docs/ai/work-tracking/archive/20260831-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl-COMPLETED/IMPLEMENTATION.md | completed |
+| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/archive/20260831-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl-COMPLETED/HANDOFF.md; docs/ai/work-tracking/archive/20260831-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl-COMPLETED/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
-- `docs/ai/work-tracking/active/20260831-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl-ACTIVE`
+- `docs/ai/work-tracking/archive/20260831-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl-COMPLETED`
 - `.`
 - `scripts/codex-task`
 - `scripts/codex-guard`
@@ -54,7 +54,7 @@ emergency_bypass: false
 - Context reload steps:
   1. Read `sessions/current` and this plan.
   2. Read primary bead `ga-c8al` through the rig-scoped bead surface.
-  3. Review `docs/ai/work-tracking/active/20260831-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl-ACTIVE/TRACKER.md` before changing implementation.
+  3. Review `docs/ai/work-tracking/archive/20260831-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl-COMPLETED/TRACKER.md` before changing implementation.
   4. Run `python3 scripts/codex-task plan sync` after tracker updates.
 - Outstanding risks/todos: preserve bead authority and avoid allocating shadow Taskmaster work.
 
