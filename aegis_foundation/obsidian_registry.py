@@ -28,6 +28,18 @@ class LiveIndexConfig:
 
 
 @dataclass(frozen=True)
+class ContinuityDashboardConfig:
+    python: Path
+    entrypoint: Path
+    workflow_registry: Path
+    signing_policies: Path
+    output_dir: Path
+    freshness_sla_seconds: int = 180
+    capture_timeout_seconds: int = 30
+    live_index: LiveIndexConfig | None = None
+
+
+@dataclass(frozen=True)
 class ProjectConfig:
     id: str
     enabled: bool
@@ -46,6 +58,8 @@ class Registry:
     path: Path
     digest: str
     projects: tuple[ProjectConfig, ...]
+    continuity_dashboard: ContinuityDashboardConfig | None = None
+    managed_output_root: Path | None = None
 
 
 def _strict_json(content: str, path: Path) -> Any:
@@ -207,6 +221,70 @@ def _project(raw: Any, *, seen: set[str]) -> ProjectConfig:
     )
 
 
+def _absolute_path(raw: Any, *, field: str) -> Path:
+    value = str(raw or "")
+    path = Path(value).expanduser()
+    if not value or not path.is_absolute():
+        raise RegistryError(f"{field} must be an absolute path")
+    return path.absolute()
+
+
+def _continuity_dashboard(raw: Any) -> ContinuityDashboardConfig | None:
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise RegistryError("continuity_dashboard must be an object")
+    allowed = {
+        "python",
+        "entrypoint",
+        "workflow_registry",
+        "signing_policies",
+        "output_dir",
+        "freshness_sla_seconds",
+        "capture_timeout_seconds",
+        "live_index",
+    }
+    unknown = sorted(set(raw) - allowed)
+    if unknown:
+        raise RegistryError("unknown continuity_dashboard fields: " + ", ".join(unknown))
+    required = {
+        "python",
+        "entrypoint",
+        "workflow_registry",
+        "signing_policies",
+        "output_dir",
+    }
+    missing = sorted(required - set(raw))
+    if missing:
+        raise RegistryError("missing continuity_dashboard fields: " + ", ".join(missing))
+    return ContinuityDashboardConfig(
+        python=_absolute_path(raw.get("python"), field="continuity_dashboard python"),
+        entrypoint=_absolute_path(raw.get("entrypoint"), field="continuity_dashboard entrypoint"),
+        workflow_registry=_absolute_path(
+            raw.get("workflow_registry"),
+            field="continuity_dashboard workflow_registry",
+        ),
+        signing_policies=_absolute_path(
+            raw.get("signing_policies"),
+            field="continuity_dashboard signing_policies",
+        ),
+        output_dir=_absolute_path(raw.get("output_dir"), field="continuity_dashboard output_dir"),
+        freshness_sla_seconds=_integer(
+            raw.get("freshness_sla_seconds", 180),
+            field="continuity_dashboard freshness_sla_seconds",
+            minimum=60,
+            maximum=86_400,
+        ),
+        capture_timeout_seconds=_integer(
+            raw.get("capture_timeout_seconds", 30),
+            field="continuity_dashboard capture_timeout_seconds",
+            minimum=5,
+            maximum=120,
+        ),
+        live_index=_live_index(raw.get("live_index"), project_id="continuity-dashboard"),
+    )
+
+
 def load_registry(path: str | Path) -> Registry:
     registry_path = Path(path).expanduser()
     if registry_path.is_symlink() or not registry_path.is_file():
@@ -217,8 +295,19 @@ def load_registry(path: str | Path) -> Registry:
     payload = _strict_json(content.decode("utf-8"), registry_path)
     if not isinstance(payload, dict):
         raise RegistryError("registry root must be an object")
-    if set(payload) != {"schema_version", "projects"}:
-        raise RegistryError("registry root must contain only schema_version and projects")
+    allowed_root = {
+        "schema_version",
+        "projects",
+        "continuity_dashboard",
+        "managed_output_root",
+    }
+    if not {"schema_version", "projects"}.issubset(payload) or not set(payload).issubset(
+        allowed_root
+    ):
+        raise RegistryError(
+            "registry root must contain schema_version and projects, with optional "
+            "continuity_dashboard and managed_output_root"
+        )
     if payload.get("schema_version") != SCHEMA_VERSION:
         raise RegistryError(
             f"unsupported registry schema_version: {payload.get('schema_version')!r}"
@@ -230,15 +319,46 @@ def load_registry(path: str | Path) -> Registry:
     projects = tuple(_project(item, seen=seen) for item in projects_raw)
     if not any(item.enabled for item in projects):
         raise RegistryError("registry must enable at least one project")
+    dashboard = _continuity_dashboard(payload.get("continuity_dashboard"))
+    managed_output_root = (
+        _absolute_path(payload.get("managed_output_root"), field="managed_output_root")
+        if payload.get("managed_output_root") is not None
+        else None
+    )
+    if managed_output_root is not None:
+        for project in projects:
+            if (
+                project.output_dir.name != "Aegis"
+                or project.output_dir.parent.name != project.id
+                or project.output_dir.parent.parent != managed_output_root
+            ):
+                raise RegistryError(
+                    f"project {project.id} output_dir is outside the managed output contract"
+                )
+        if dashboard is not None and dashboard.output_dir.parent != managed_output_root:
+            raise RegistryError("continuity_dashboard output_dir is outside managed_output_root")
+    if dashboard is not None:
+        for project in projects:
+            if (
+                dashboard.output_dir == project.output_dir
+                or dashboard.output_dir in project.output_dir.parents
+                or project.output_dir in dashboard.output_dir.parents
+            ):
+                raise RegistryError(
+                    "continuity_dashboard output_dir must not overlap a project output_dir"
+                )
     return Registry(
         path=registry_path.resolve(),
         digest=hashlib.sha256(content).hexdigest(),
         projects=projects,
+        continuity_dashboard=dashboard,
+        managed_output_root=managed_output_root,
     )
 
 
 __all__ = [
     "LiveIndexConfig",
+    "ContinuityDashboardConfig",
     "ProjectConfig",
     "Registry",
     "RegistryError",

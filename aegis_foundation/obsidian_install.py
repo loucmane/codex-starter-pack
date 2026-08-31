@@ -8,6 +8,7 @@ import io
 import json
 import os
 from pathlib import Path
+import shutil
 import stat
 import subprocess
 import tempfile
@@ -17,6 +18,7 @@ import zipfile
 from aegis_foundation.obsidian_registry import Registry, load_registry
 
 RUNTIME_MODULES = (
+    "obsidian_continuity.py",
     "obsidian_reconcile_cli.py",
     "obsidian_reconciler.py",
     "obsidian_registry.py",
@@ -41,8 +43,7 @@ def build_runtime_bytes(source_root: str | Path) -> bytes:
     package = root / "aegis_foundation"
     files: dict[str, bytes] = {
         "__main__.py": (
-            "from aegis_foundation.obsidian_reconcile_cli import main\n"
-            "raise SystemExit(main())\n"
+            "from aegis_foundation.obsidian_reconcile_cli import main\nraise SystemExit(main())\n"
         ).encode(),
         "aegis_foundation/__init__.py": b'"""Installed Aegis Obsidian runtime."""\n',
     }
@@ -81,6 +82,8 @@ def render_assets(
         state,
         *(item.output_dir.parent for item in active_registry.projects if item.enabled),
     }
+    if active_registry.continuity_dashboard is not None:
+        writable.add(active_registry.continuity_dashboard.output_dir.parent)
     write_lines = "\n".join(f"ReadWritePaths={_unit_quote(path)}" for path in sorted(writable))
     service = f"""[Unit]
 Description=Reconcile deterministic Aegis evidence into Obsidian
@@ -177,8 +180,7 @@ def _expected_files(
         registry=registry,
     )
     files: dict[Path, tuple[bytes, int]] = {
-        home
-        / ".local/bin/aegis-obsidian-reconcile": (
+        home / ".local/bin/aegis-obsidian-reconcile": (
             build_runtime_bytes(source_root),
             0o755,
         ),
@@ -239,9 +241,22 @@ def install(
     output_parents = sorted(
         {project.output_dir.parent for project in registry.projects if project.enabled}
     )
+    if registry.continuity_dashboard is not None:
+        output_parents.append(registry.continuity_dashboard.output_dir.parent)
+        output_parents = sorted(set(output_parents))
+    created_output_parents: list[Path] = []
+    managed_root = registry.managed_output_root
+    if managed_root is not None and (managed_root.is_symlink() or not managed_root.is_dir()):
+        raise RuntimeError(f"managed Obsidian output root is missing or unsafe: {managed_root}")
     for parent in output_parents:
-        if parent.is_symlink() or not parent.is_dir():
+        if parent.is_dir() and not parent.is_symlink():
+            continue
+        if parent.exists() or parent.is_symlink():
+            raise RuntimeError(f"registered Obsidian output parent is unsafe: {parent}")
+        if managed_root is None or parent.parent != managed_root:
             raise RuntimeError(f"registered Obsidian output parent is missing or unsafe: {parent}")
+        parent.mkdir(mode=0o755)
+        created_output_parents.append(parent)
     previous_files = {
         path: (
             path.read_bytes() if path.is_file() and not path.is_symlink() else None,
@@ -316,6 +331,18 @@ def install(
             _run_systemctl("start", timer)
         if wrote_manifest:
             manifest_path.unlink(missing_ok=True)
+        for parent in reversed(created_output_parents):
+            if not parent.exists():
+                continue
+            entries = list(parent.iterdir())
+            if not entries:
+                parent.rmdir()
+                continue
+            managed = parent / "Aegis"
+            manifest = managed / ".aegis-vault.json"
+            if entries == [managed] and managed.is_dir() and manifest.is_file():
+                shutil.rmtree(managed)
+                parent.rmdir()
         raise
 
 

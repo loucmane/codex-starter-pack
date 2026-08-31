@@ -52,6 +52,22 @@ The automatic Obsidian freshness and live-index authority is:
   --require-live-index
 ```
 
+The installed registry is a generated projection of the canonical workflow project registry. It
+must contain Gas City Operations, Gas City, HPFetcher, and Blog, plus any later validated project;
+do not add projects by hand to the installed JSON. Regenerate the tracked source from the
+canonical checkout and require an exact check before installation:
+
+```bash
+python3 plugins/gas-city-workflow/scripts/build_obsidian_registry.py --write --validate-roots
+python3 plugins/gas-city-workflow/scripts/build_obsidian_registry.py --check --validate-roots
+```
+
+Each project is published only under `GasCity/<project-id>/Aegis`. The same timer also publishes
+`GasCity/Continuity/Status.md` and `report.json`, derived directly from the machine continuity
+report's Now, Next, Blocked, and Drift classifications. Project or dashboard publication failure
+fails the whole reconciliation; a later surface is never presented as current after an earlier
+project failed. Byte-identical cycles probe the live managed note without reloading Obsidian.
+
 ## Recovery classification
 
 Classify the stopped attempt before taking another action:

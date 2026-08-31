@@ -7,6 +7,22 @@
   "required": ["schema_version", "projects"],
   "properties": {
     "schema_version": {"const": "1"},
+    "managed_output_root": {"type": "string", "pattern": "^/"},
+    "continuity_dashboard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["python", "entrypoint", "workflow_registry", "signing_policies", "output_dir"],
+      "properties": {
+        "python": {"type": "string", "pattern": "^/"},
+        "entrypoint": {"type": "string", "pattern": "^/"},
+        "workflow_registry": {"type": "string", "pattern": "^/"},
+        "signing_policies": {"type": "string", "pattern": "^/"},
+        "output_dir": {"type": "string", "pattern": "^/"},
+        "freshness_sla_seconds": {"type": "integer", "minimum": 60, "maximum": 86400, "default": 180},
+        "capture_timeout_seconds": {"type": "integer", "minimum": 5, "maximum": 120, "default": 30},
+        "live_index": {"$ref": "#/$defs/live_index"}
+      }
+    },
     "projects": {
       "type": "array",
       "minItems": 1,
@@ -28,18 +44,21 @@
           "freshness_sla_seconds": {"type": "integer", "minimum": 60, "maximum": 86400, "default": 180},
           "min_interval_seconds": {"type": "integer", "minimum": 0, "maximum": 300, "default": 10},
           "export_timeout_seconds": {"type": "integer", "minimum": 5, "maximum": 120, "default": 30},
-          "live_index": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["obsidian_cli", "vault", "probe_path"],
-            "properties": {
-              "obsidian_cli": {"type": "string", "pattern": "^/"},
-              "vault": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"},
-              "probe_path": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+\\.md$"},
-              "timeout_seconds": {"type": "integer", "minimum": 5, "maximum": 60, "default": 15}
-            }
-          }
+          "live_index": {"$ref": "#/$defs/live_index"}
         }
+      }
+    }
+  },
+  "$defs": {
+    "live_index": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["obsidian_cli", "vault", "probe_path"],
+      "properties": {
+        "obsidian_cli": {"type": "string", "pattern": "^/"},
+        "vault": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"},
+        "probe_path": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+\\.md$"},
+        "timeout_seconds": {"type": "integer", "minimum": 5, "maximum": 60, "default": 15}
       }
     }
   }

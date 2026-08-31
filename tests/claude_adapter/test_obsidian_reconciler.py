@@ -140,6 +140,7 @@ def _registry(
     output: Path,
     *,
     live_index: dict[str, object] | None = None,
+    continuity_dashboard: dict[str, object] | None = None,
 ) -> Path:
     path = tmp_path / "registry.json"
     project: dict[str, object] = {
@@ -153,15 +154,14 @@ def _registry(
     }
     if live_index is not None:
         project["live_index"] = live_index
+    payload: dict[str, object] = {
+        "schema_version": "1",
+        "projects": [project],
+    }
+    if continuity_dashboard is not None:
+        payload["continuity_dashboard"] = continuity_dashboard
     path.write_text(
-        json.dumps(
-            {
-                "schema_version": "1",
-                "projects": [project],
-            },
-            indent=2,
-        )
-        + "\n",
+        json.dumps(payload, indent=2) + "\n",
         encoding="utf-8",
     )
     return path
@@ -229,6 +229,44 @@ def test_registry_live_index_contract_is_strict_and_not_arbitrary_argv(tmp_path:
         load_registry(registry_path)
 
 
+def test_registry_continuity_dashboard_is_strict_and_output_isolated(tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    output = tmp_path / "vault" / "project"
+    dashboard = {
+        "python": "/usr/bin/python3",
+        "entrypoint": "/srv/gas-city-ops/continuity.py",
+        "workflow_registry": "/srv/gas-city-ops/projects.json",
+        "signing_policies": "/etc/gas-city-signing/signing-policies.json",
+        "output_dir": str(tmp_path / "vault" / "Continuity"),
+        "live_index": {
+            "obsidian_cli": "/usr/bin/obsidian",
+            "vault": "main",
+            "probe_path": "GasCity/Continuity/Status.md",
+        },
+    }
+    registry_path = _registry(
+        tmp_path,
+        root,
+        output,
+        continuity_dashboard=dashboard,
+    )
+    registry = load_registry(registry_path)
+    assert registry.continuity_dashboard is not None
+    assert registry.continuity_dashboard.output_dir.name == "Continuity"
+
+    payload = json.loads(registry_path.read_text(encoding="utf-8"))
+    payload["continuity_dashboard"]["unknown"] = True
+    registry_path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(RegistryError, match="unknown continuity_dashboard fields"):
+        load_registry(registry_path)
+
+    payload["continuity_dashboard"].pop("unknown")
+    payload["continuity_dashboard"]["output_dir"] = str(output / "nested")
+    registry_path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(RegistryError, match="must not overlap"):
+        load_registry(registry_path)
+
+
 def test_reconcile_publishes_changed_snapshot_and_noops_when_current(tmp_path: Path) -> None:
     root = _repo(tmp_path)
     output = tmp_path / "vault"
@@ -268,6 +306,97 @@ def test_reconcile_publishes_changed_snapshot_and_noops_when_current(tmp_path: P
     state = json.loads((state_dir / "gas-city.json").read_text(encoding="utf-8"))
     assert state["last_success"]["source_digest"] == second["projects"][0]["source_digest"]
     assert state["last_error"] is None
+
+
+def test_reconcile_publishes_and_checks_continuity_dashboard(tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    project_output = tmp_path / "vault" / "project"
+    dashboard_output = tmp_path / "vault" / "Continuity"
+    registry = load_registry(
+        _registry(
+            tmp_path,
+            root,
+            project_output,
+            continuity_dashboard={
+                "python": "/usr/bin/python3",
+                "entrypoint": "/srv/gas-city-ops/continuity.py",
+                "workflow_registry": "/srv/gas-city-ops/projects.json",
+                "signing_policies": "/etc/gas-city-signing/signing-policies.json",
+                "output_dir": str(dashboard_output),
+            },
+        )
+    )
+    state_dir = tmp_path / "state"
+
+    def dashboard_runner(
+        argv: tuple[str, ...], _timeout: int
+    ) -> subprocess.CompletedProcess[bytes]:
+        output = Path(argv[argv.index("--output") + 1])
+        if "snapshot" in argv:
+            output.write_text("{}\n", encoding="utf-8")
+            return subprocess.CompletedProcess(argv, 0, b"", b"")
+        report = {
+            "schema": "gas-city-workflow.continuity-report.v1",
+            "ok": False,
+            "snapshot_sha256": "a" * 64,
+            "registry_sha256": "b" * 64,
+            "summary": {"counts": {"current": 1, "next": 0, "blocked": 0}},
+            "work": {
+                "current": [{"id": "ga-root", "title": "Initiative", "status": "open"}],
+                "next": [],
+                "blocked": [],
+                "deferred": [],
+                "legacy": [],
+                "generated": [],
+                "orphaned": [],
+            },
+            "findings": [],
+            "next_actions": [],
+            "projects": [],
+        }
+        output.write_text(json.dumps(report) + "\n", encoding="utf-8")
+        return subprocess.CompletedProcess(argv, 3, b"", b"")
+
+    def clock() -> datetime:
+        return datetime(2026, 8, 28, 20, 0, tzinfo=timezone.utc)
+
+    first = obsidian_reconciler.reconcile_registry(
+        registry,
+        state_dir=state_dir,
+        bead_exporter=lambda _argv, _timeout: _beads(),
+        event_reader=lambda _target: [],
+        dashboard_runner=dashboard_runner,
+        clock=clock,
+        force=True,
+    )
+    assert first["ok"] is True
+    assert first["continuity_dashboard"]["status"] == "built"
+    assert first["continuity_dashboard"]["report_ok"] is False
+    assert (dashboard_output / "Status.md").is_file()
+
+    second = obsidian_reconciler.reconcile_registry(
+        registry,
+        state_dir=state_dir,
+        bead_exporter=lambda _argv, _timeout: _beads(),
+        event_reader=lambda _target: [],
+        dashboard_runner=dashboard_runner,
+        clock=clock,
+        force=True,
+    )
+    assert second["ok"] is True
+    assert second["continuity_dashboard"]["status"] == "current"
+    assert second["continuity_dashboard"]["changed"] is False
+
+    checked = obsidian_reconciler.check_registry(
+        registry,
+        state_dir=state_dir,
+        bead_exporter=lambda _argv, _timeout: _beads(),
+        event_reader=lambda _target: [],
+        dashboard_runner=dashboard_runner,
+        clock=clock,
+    )
+    assert checked["ok"] is True
+    assert checked["continuity_dashboard"]["ok"] is True
 
 
 def test_changed_publication_refreshes_and_probes_live_index_once(tmp_path: Path) -> None:
@@ -323,8 +452,18 @@ def test_changed_publication_refreshes_and_probes_live_index_once(tmp_path: Path
     )
     assert second["ok"] is True
     assert second["projects"][0]["status"] == "current"
-    assert second["projects"][0]["live_index"]["status"] == "not-run-no-change"
-    assert calls == []
+    assert second["projects"][0]["live_index"]["status"] == "confirmed"
+    assert calls == [
+        (
+            (
+                "/usr/bin/obsidian",
+                "vault=main",
+                "read",
+                "path=GasCity/gas-city-operations/Aegis/Beads/ga-eiyt.md",
+            ),
+            15,
+        )
+    ]
 
 
 def test_closed_obsidian_is_observer_unavailable_not_publication_failure(tmp_path: Path) -> None:

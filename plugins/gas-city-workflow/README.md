@@ -1,8 +1,8 @@
 # Gas City Workflow plugin
 
-Version `0.5.0` packages the common lifecycle, cross-project continuity audit, and frozen
-report-only evidence reviews without
-copying project state into prompts or widening permissions.
+Version `0.6.0` packages the common lifecycle, cross-project continuity audit, continuous
+project-isolated Obsidian projections, and frozen report-only evidence reviews without copying
+project state into prompts or widening permissions.
 
 - `skills/gas-city-workflow/SKILL.md` is the small routing skill.
 - `scripts/project_context.py` emits the live read-only context capsule.
@@ -10,6 +10,8 @@ copying project state into prompts or widening permissions.
   `verify`, `publish`, and `finish` transitions.
 - `scripts/continuity.py` captures one immutable cross-project observation and renders identical
   machine and human Current/Next/Blocked/orphan views.
+- `scripts/build_obsidian_registry.py` deterministically projects that same validated project
+  registry into the continuous Obsidian reconciler configuration.
 - `config/projects.json` binds established canonical roots and exceptional worktree-root overrides.
 - `config/root-policy.json` is the single canonical/retired-root contract consumed by context and both user-level agent guards.
 - `.gas-city-workflow.json` descriptors onboard future projects without changing plugin code.
@@ -59,6 +61,25 @@ initiative scope from Beads, and checks Aegis, Git/worktrees, open PRs, lifecycl
 managed-signing receipts, structured follow-ups, and Obsidian coverage. A future project can be
 included with a validated local descriptor through repeatable `snapshot --project-root`; the
 auditor never scans arbitrary directories. See `references/continuity-contract.md`.
+
+The Obsidian registry is generated from that same project registry; it is never maintained as a
+second hand-written project list. Each registered project owns only
+`GasCity/<project-id>/Aegis`, and the global `GasCity/Continuity` dashboard is derived from the
+auditor's machine report rather than independently reclassifying work. Generate and validate the
+tracked registry with:
+
+```bash
+python3 plugins/gas-city-workflow/scripts/build_obsidian_registry.py --write --validate-roots
+python3 plugins/gas-city-workflow/scripts/build_obsidian_registry.py --check --validate-roots
+```
+
+The installed user timer reconciles every enabled project and the dashboard. A changed projection
+is atomically replaced, gated, reloaded once in the live Obsidian app, and read back. A
+byte-identical cycle performs only the managed-note read; it does not reload Obsidian. Missing
+direct project parents may be created only beneath the declared managed vault root and are removed
+on a failed fresh installation. Adding a valid project descriptor and project-registry entry is
+therefore sufficient to generate the same lifecycle for a future project without adding another
+daemon or relying on an agent's memory.
 
 For blind report lanes, `config/evidence-reviewer/` defines one generic rig-scoped Sol reviewer
 whose work directory is `/home/loucmane/gascity/evidence-runs`, whose additional writable-root

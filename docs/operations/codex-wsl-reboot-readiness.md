@@ -159,8 +159,13 @@ The project contract is uniform:
 | Blog | Blog rig bead | `GasCity/blog/Aegis/` | project services and Obsidian IPC |
 | New project | project bead from initialization | `GasCity/<project>/Aegis/` | only the host checks declared by that project |
 
+The generated registry also owns `GasCity/Continuity/`, whose `Status.md` and `report.json` are
+rendered from the continuity auditor's machine report. This dashboard is a view, not another work
+ledger: it must reproduce the auditor's Now, Next, Blocked, and Drift classifications exactly.
+
 All projects are entries in one strict registry and share one reboot-persistent user timer. A new
-project does not clone a daemon. Its adoption gate adds one enabled registry entry, regenerates the
+project does not clone a daemon. Its adoption gate validates the descriptor, adds one canonical
+workflow-registry entry, regenerates the Obsidian registry from that authority, regenerates the
 same user unit so its output parent is explicitly write-allowed, proves one initial atomic
 publication, then requires the timer and source-current doctor check to remain healthy.
 

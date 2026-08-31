@@ -200,8 +200,9 @@ def test_install_refuses_missing_output_parent_before_writing(
     monkeypatch.setattr(
         obsidian_install,
         "_run_systemctl",
-        lambda *arguments: calls.append(arguments)
-        or subprocess.CompletedProcess(arguments, 0, "", ""),
+        lambda *arguments: (
+            calls.append(arguments) or subprocess.CompletedProcess(arguments, 0, "", "")
+        ),
     )
 
     with pytest.raises(RuntimeError, match="output parent is missing or unsafe"):
@@ -214,3 +215,70 @@ def test_install_refuses_missing_output_parent_before_writing(
     assert calls == []
     assert not (home / ".local/bin/aegis-obsidian-reconcile").exists()
     assert not (home / ".local/state/aegis/obsidian-reconciler").exists()
+
+
+def test_install_creates_only_declared_parent_under_managed_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    home = tmp_path / "home"
+    managed_root = home / "vaults" / "main" / "GasCity"
+    managed_root.mkdir(parents=True)
+    registry = _source_registry(tmp_path, home)
+    payload = json.loads(registry.read_text(encoding="utf-8"))
+    payload["managed_output_root"] = str(managed_root)
+    payload["projects"][0]["output_dir"] = str(managed_root / "gas-city" / "Aegis")
+    registry.write_text(json.dumps(payload), encoding="utf-8")
+
+    def systemctl(*arguments: str) -> subprocess.CompletedProcess[str]:
+        if arguments[0] == "is-enabled":
+            return subprocess.CompletedProcess(arguments, 0, "enabled\n", "")
+        if arguments[0] == "is-active":
+            return subprocess.CompletedProcess(arguments, 0, "active\n", "")
+        return subprocess.CompletedProcess(arguments, 0, "", "")
+
+    monkeypatch.setattr(obsidian_install, "_run_systemctl", systemctl)
+    monkeypatch.setattr(
+        obsidian_install.subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(args, 0, '{"ok":true}\n', ""),
+    )
+
+    result = obsidian_install.install(
+        home=home,
+        source_root=Path(__file__).parents[2],
+        registry_source=registry,
+    )
+
+    assert result["ok"] is True
+    assert (managed_root / "gas-city").is_dir()
+
+
+def test_install_removes_new_empty_managed_parent_on_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    home = tmp_path / "home"
+    managed_root = home / "vaults" / "main" / "GasCity"
+    managed_root.mkdir(parents=True)
+    registry = _source_registry(tmp_path, home)
+    payload = json.loads(registry.read_text(encoding="utf-8"))
+    payload["managed_output_root"] = str(managed_root)
+    payload["projects"][0]["output_dir"] = str(managed_root / "gas-city" / "Aegis")
+    registry.write_text(json.dumps(payload), encoding="utf-8")
+
+    def systemctl(*arguments: str) -> subprocess.CompletedProcess[str]:
+        if arguments[:2] == ("start", "aegis-obsidian-reconcile.service"):
+            return subprocess.CompletedProcess(arguments, 1, "", "simulated refusal")
+        if arguments[0] in {"is-enabled", "is-active"}:
+            return subprocess.CompletedProcess(arguments, 1, "disabled\n", "")
+        return subprocess.CompletedProcess(arguments, 0, "", "")
+
+    monkeypatch.setattr(obsidian_install, "_run_systemctl", systemctl)
+
+    with pytest.raises(RuntimeError, match="initial reconciliation failed"):
+        obsidian_install.install(
+            home=home,
+            source_root=Path(__file__).parents[2],
+            registry_source=registry,
+        )
+
+    assert not (managed_root / "gas-city").exists()

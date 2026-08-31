@@ -13,9 +13,9 @@ import subprocess
 import tempfile
 from typing import Any
 
-from aegis_foundation import obsidian_live_index, obsidian_vault
+from aegis_foundation import obsidian_continuity, obsidian_live_index, obsidian_vault
 from aegis_foundation.obsidian_ledger_reader import read_events
-from aegis_foundation.obsidian_registry import ProjectConfig, Registry
+from aegis_foundation.obsidian_registry import ContinuityDashboardConfig, ProjectConfig, Registry
 
 SCHEMA_VERSION = "1"
 MAX_EXPORT_BYTES = 8 * 1024 * 1024
@@ -23,6 +23,7 @@ BeadExporter = Callable[[tuple[str, ...], int], bytes]
 EventReader = Callable[[Path], list[dict[str, Any]]]
 Clock = Callable[[], datetime]
 LiveIndexRunner = obsidian_live_index.Runner
+DashboardRunner = obsidian_continuity.Runner
 
 
 class ReconcileError(RuntimeError):
@@ -250,9 +251,10 @@ def _reconcile_project(
                 runner=live_index_runner,
             )
         else:
-            live_index = obsidian_live_index.not_run(
-                configured=True,
-                status="not-run-no-change",
+            live_index = obsidian_live_index.observe(
+                project.live_index,
+                refresh=False,
+                runner=live_index_runner,
             )
         bead_digest = hashlib.sha256(exported).hexdigest()
         _atomic_bytes(state_dir / f"{project.id}-beads.json", exported)
@@ -305,6 +307,96 @@ def _reconcile_project(
         lock_handle.close()
 
 
+def _reconcile_dashboard(
+    config: ContinuityDashboardConfig,
+    registry: Registry,
+    *,
+    state_dir: Path,
+    live_index_runner: LiveIndexRunner,
+    dashboard_runner: DashboardRunner,
+    clock: Clock,
+) -> dict[str, Any]:
+    state_path = state_dir / "continuity-dashboard.json"
+    previous = _read_state(state_path)
+    lock_handle, acquired = _lock(state_dir, "continuity-dashboard")
+    if not acquired:
+        lock_handle.close()
+        return {"ok": True, "status": "already-running", "changed": False}
+    attempted_at = _iso(clock())
+    try:
+        report = obsidian_continuity.capture_report(
+            config,
+            installed_registry=registry.path,
+            state_dir=state_dir,
+            runner=dashboard_runner,
+        )
+        built = obsidian_continuity.build_dashboard(report, config.output_dir)
+        gate = obsidian_continuity.gate_dashboard(report, config.output_dir)
+        if not gate["ok"]:
+            raise ReconcileError("continuity dashboard gate failed: " + "; ".join(gate["problems"]))
+        if config.live_index is None:
+            live_index = obsidian_live_index.not_run(
+                configured=False,
+                status="not-configured",
+            )
+        else:
+            live_index = obsidian_live_index.observe(
+                config.live_index,
+                refresh=bool(built["changed"]),
+                runner=live_index_runner,
+            )
+        success = {
+            "completed_at": attempted_at,
+            "snapshot_sha256": report["snapshot_sha256"],
+            "report_sha256": built["report_sha256"],
+            "dashboard_status": built["status"],
+            "file_count": built["file_count"],
+            "report_ok": bool(report["ok"]),
+            "live_index": live_index,
+        }
+        _atomic_json(
+            state_path,
+            {
+                "schema_version": SCHEMA_VERSION,
+                "registry_digest": registry.digest,
+                "output_dir": config.output_dir.as_posix(),
+                "last_attempt_at": attempted_at,
+                "last_success": success,
+                "last_error": None,
+                "previous_attempt_at": previous.get("last_attempt_at"),
+            },
+        )
+        return {
+            "ok": True,
+            "status": built["status"],
+            "changed": built["changed"],
+            "output": config.output_dir.as_posix(),
+            "file_count": built["file_count"],
+            "snapshot_sha256": report["snapshot_sha256"],
+            "report_sha256": built["report_sha256"],
+            "report_ok": bool(report["ok"]),
+            "live_index": live_index,
+        }
+    except (obsidian_continuity.DashboardError, ReconcileError, OSError) as exc:
+        message = _redact_error(exc)
+        _atomic_json(
+            state_path,
+            {
+                "schema_version": SCHEMA_VERSION,
+                "registry_digest": registry.digest,
+                "output_dir": config.output_dir.as_posix(),
+                "last_attempt_at": attempted_at,
+                "last_success": previous.get("last_success"),
+                "last_error": {"failed_at": attempted_at, "message": message},
+                "previous_attempt_at": previous.get("last_attempt_at"),
+            },
+        )
+        return {"ok": False, "status": "failed", "changed": False, "error": message}
+    finally:
+        fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
+        lock_handle.close()
+
+
 def reconcile_registry(
     registry: Registry,
     *,
@@ -312,6 +404,7 @@ def reconcile_registry(
     bead_exporter: BeadExporter = export_beads,
     event_reader: EventReader = read_events,
     live_index_runner: LiveIndexRunner = obsidian_live_index.run_command,
+    dashboard_runner: DashboardRunner = obsidian_continuity.run_command,
     clock: Clock = _now,
     force: bool = False,
 ) -> dict[str, Any]:
@@ -332,12 +425,32 @@ def reconcile_registry(
         for project in registry.projects
         if project.enabled
     ]
+    dashboard: dict[str, Any] | None = None
+    if registry.continuity_dashboard is not None:
+        if all(item["ok"] for item in projects):
+            dashboard = _reconcile_dashboard(
+                registry.continuity_dashboard,
+                registry,
+                state_dir=state,
+                live_index_runner=live_index_runner,
+                dashboard_runner=dashboard_runner,
+                clock=clock,
+            )
+        else:
+            dashboard = {
+                "ok": False,
+                "status": "skipped-project-failure",
+                "changed": False,
+            }
     return {
         "schema_version": SCHEMA_VERSION,
-        "ok": bool(projects) and all(item["ok"] for item in projects),
+        "ok": bool(projects)
+        and all(item["ok"] for item in projects)
+        and (dashboard is None or bool(dashboard["ok"])),
         "registry": registry.path.as_posix(),
         "registry_digest": registry.digest,
         "projects": projects,
+        "continuity_dashboard": dashboard,
     }
 
 
@@ -348,6 +461,7 @@ def check_registry(
     bead_exporter: BeadExporter = export_beads,
     event_reader: EventReader = read_events,
     live_index_runner: LiveIndexRunner = obsidian_live_index.run_command,
+    dashboard_runner: DashboardRunner = obsidian_continuity.run_command,
     clock: Clock = _now,
     require_live_index: bool = False,
 ) -> dict[str, Any]:
@@ -430,12 +544,84 @@ def check_registry(
                 "problems": problems,
             }
         )
+    dashboard_check: dict[str, Any] | None = None
+    config = registry.continuity_dashboard
+    if config is not None:
+        dashboard_problems: list[str] = []
+        state_payload = _read_state(state / "continuity-dashboard.json")
+        last_success = state_payload.get("last_success")
+        success_time = _parse_time(
+            last_success.get("completed_at") if isinstance(last_success, dict) else None
+        )
+        age = (clock() - success_time).total_seconds() if success_time is not None else None
+        if age is None or age > config.freshness_sla_seconds:
+            dashboard_problems.append(
+                "last successful dashboard reconciliation exceeds freshness SLA"
+            )
+        try:
+            report = obsidian_continuity.capture_report(
+                config,
+                installed_registry=registry.path,
+                state_dir=state,
+                runner=dashboard_runner,
+            )
+            gate = obsidian_continuity.gate_dashboard(report, config.output_dir)
+            dashboard_problems.extend(gate["problems"])
+            snapshot_sha256 = report["snapshot_sha256"]
+        except (obsidian_continuity.DashboardError, OSError) as exc:
+            dashboard_problems.append(_redact_error(exc))
+            snapshot_sha256 = None
+        if require_live_index and not dashboard_problems:
+            if config.live_index is None:
+                live_index = obsidian_live_index.not_run(
+                    configured=False,
+                    status="not-configured",
+                )
+            else:
+                live_index = obsidian_live_index.observe(
+                    config.live_index,
+                    refresh=False,
+                    runner=live_index_runner,
+                )
+        elif require_live_index:
+            live_index = obsidian_live_index.not_run(
+                configured=config.live_index is not None,
+                status="skipped-filesystem-invalid",
+            )
+        else:
+            raw_success = last_success if isinstance(last_success, dict) else {}
+            saved_observation = raw_success.get("live_index")
+            live_index = (
+                saved_observation
+                if isinstance(saved_observation, dict)
+                else obsidian_live_index.not_run(
+                    configured=config.live_index is not None,
+                    status="not-yet-observed",
+                )
+            )
+        if require_live_index and live_index.get("status") != "confirmed":
+            dashboard_problems.append(
+                "live Obsidian dashboard index is not confirmed: "
+                + str(live_index.get("status") or "unknown")
+            )
+        dashboard_check = {
+            "ok": not dashboard_problems,
+            "fresh": not dashboard_problems,
+            "live_index_required": require_live_index,
+            "live_index": live_index,
+            "age_seconds": age,
+            "snapshot_sha256": snapshot_sha256,
+            "problems": dashboard_problems,
+        }
     return {
         "schema_version": SCHEMA_VERSION,
-        "ok": bool(checked) and all(item["ok"] for item in checked),
+        "ok": bool(checked)
+        and all(item["ok"] for item in checked)
+        and (dashboard_check is None or bool(dashboard_check["ok"])),
         "registry_digest": registry.digest,
         "live_index_required": require_live_index,
         "projects": checked,
+        "continuity_dashboard": dashboard_check,
     }
 
 
