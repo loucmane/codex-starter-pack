@@ -27,8 +27,12 @@ from project_context import CITY, GC, build_context  # noqa: E402
 OBSIDIAN_REGISTRY = Path.home() / ".config" / "aegis" / "obsidian-projects.json"
 OBSIDIAN_STATE = Path.home() / ".local" / "state" / "aegis" / "obsidian-reconciler"
 SIGNING_POLICIES = Path("/etc/gas-city-signing/signing-policies.json")
+RESIDUE_DISPOSITIONS = (
+    SCRIPT_DIR.parent / "config" / "continuity-residue-dispositions.json"
+)
 OPERATOR_PATH = "/home/loucmane/gascity/bin:/usr/local/bin:/usr/bin:/bin"
 FOLLOWUP_SCHEMA = "gas-city-workflow.followups.v1"
+RESIDUE_DISPOSITIONS_SCHEMA = "gas-city-workflow.residue-dispositions.v1"
 BRANCH_PREFIX = "refs/heads/"
 TRACKER_TITLE = re.compile(r"^# Bead (?P<bead>\S+)\b", re.MULTILINE)
 LEGACY_TRACKER_FOLDER = re.compile(r"^\d{8}-(?P<legacy>[A-Za-z0-9_.]+)-")
@@ -36,6 +40,9 @@ MANAGED_BRANCH = re.compile(
     r"^(?:refs/heads/)?codex/(?P<bead>[a-z][a-z0-9]*-[a-z0-9]+"
     r"(?:\.[1-9][0-9]*)*)(?:-|$)"
 )
+DISPOSITION_ID_PATTERN = re.compile(r"^[a-z][a-z0-9-]*$")
+GIT_COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}(?:[0-9a-f]{24})?$")
+DIGEST_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 
 
 class ReadOnlyRunner:
@@ -198,6 +205,30 @@ def _parse_worktrees(text: str, bead_ids: set[str]) -> list[dict[str, Any]]:
             }
         )
     return sorted(result, key=lambda item: (item["bead_id"], item["path"]))
+
+
+def _capture_worktree_cleanliness(
+    worktrees: list[dict[str, Any]],
+    runner: ReadOnlyRunner,
+    *,
+    required_paths: set[str],
+) -> list[dict[str, Any]]:
+    captured = []
+    for item in worktrees:
+        path = item.get("path")
+        head = item.get("head")
+        if not isinstance(path, str) or not Path(path).is_absolute():
+            raise ContinuityError("managed worktree path must be absolute")
+        if not isinstance(head, str) or not GIT_COMMIT_PATTERN.fullmatch(head):
+            raise ContinuityError(f"managed worktree HEAD is invalid: {path}")
+        if path not in required_paths:
+            captured.append(item)
+            continue
+        status = runner.run(
+            ["git", "-C", path, "status", "--porcelain=v1", "--untracked-files=normal"]
+        ).stdout
+        captured.append({**item, "clean": not bool(status.strip())})
+    return captured
 
 
 def _active_trackers(root: Path) -> list[dict[str, Any]]:
@@ -472,6 +503,151 @@ def _receipt_index(signing_policies: Path) -> dict[str, list[dict[str, Any]]]:
     return result
 
 
+def _verify_disposition_evidence(
+    evidence: Mapping[str, Any],
+    *,
+    disposition_head: str,
+    project: Mapping[str, Any],
+    runner: ReadOnlyRunner,
+) -> None:
+    kind = evidence.get("kind")
+    if kind == "git-merge":
+        expected_keys = {"kind", "ref", "merge_commit", "merged_head"}
+        if set(evidence) != expected_keys:
+            raise ContinuityError("git-merge disposition evidence fields are invalid")
+        merged_head = evidence.get("merged_head")
+        merge_commit = evidence.get("merge_commit")
+        ref = evidence.get("ref")
+        if (
+            not isinstance(merged_head, str)
+            or not GIT_COMMIT_PATTERN.fullmatch(merged_head)
+            or merged_head != disposition_head
+            or not isinstance(merge_commit, str)
+            or not GIT_COMMIT_PATTERN.fullmatch(merge_commit)
+            or not isinstance(ref, str)
+            or not ref.startswith("refs/")
+        ):
+            raise ContinuityError("git-merge disposition evidence identity is invalid")
+        root = Path(str(project.get("root"))).resolve()
+        parents = runner.run(
+            ["git", "-C", str(root), "show", "-s", "--format=%H %P", merge_commit]
+        ).stdout.strip().split()
+        if not parents or parents[0] != merge_commit or merged_head not in parents[1:]:
+            raise ContinuityError("git-merge disposition does not bind the preserved HEAD")
+        runner.run(
+            ["git", "-C", str(root), "merge-base", "--is-ancestor", merge_commit, ref],
+            cwd=root,
+        )
+        return
+    if kind == "sha256-file":
+        expected_keys = {"kind", "path", "sha256"}
+        if set(evidence) != expected_keys:
+            raise ContinuityError("sha256-file disposition evidence fields are invalid")
+        raw_path = evidence.get("path")
+        digest = evidence.get("sha256")
+        if (
+            not isinstance(raw_path, str)
+            or not Path(raw_path).is_absolute()
+            or not isinstance(digest, str)
+            or not DIGEST_PATTERN.fullmatch(digest)
+        ):
+            raise ContinuityError("sha256-file disposition evidence identity is invalid")
+        path = Path(raw_path)
+        if not path.is_file() or path.is_symlink():
+            raise ContinuityError(f"disposition evidence is not a regular file: {path}")
+        observed = hashlib.sha256(path.read_bytes()).hexdigest()
+        if observed != digest:
+            raise ContinuityError(f"disposition evidence digest drift: {path}")
+        return
+    raise ContinuityError("residue disposition evidence kind is invalid")
+
+
+def _load_residue_dispositions(
+    path: Path | None,
+    projects: Sequence[Mapping[str, Any]],
+    runner: ReadOnlyRunner,
+) -> dict[str, list[dict[str, Any]]]:
+    if path is None:
+        return {}
+    payload = _read_object(path, "residue dispositions")
+    if set(payload) != {"schema", "dispositions"}:
+        raise ContinuityError("residue dispositions top-level fields are invalid")
+    if payload.get("schema") != RESIDUE_DISPOSITIONS_SCHEMA:
+        raise ContinuityError("residue dispositions schema is invalid")
+    raw_dispositions = payload.get("dispositions")
+    if not isinstance(raw_dispositions, list):
+        raise ContinuityError("residue dispositions must be a list")
+    project_index = {str(project.get("id")): project for project in projects}
+    result: dict[str, list[dict[str, Any]]] = {}
+    targets: set[tuple[str, str, str]] = set()
+    ids: set[str] = set()
+    for raw in raw_dispositions:
+        disposition = dict(_read_object_value(raw, "residue disposition"))
+        surface = disposition.get("surface")
+        expected_keys = {
+            "id",
+            "project_id",
+            "surface",
+            "identity",
+            "bead_id",
+            "head",
+            "reason",
+            "evidence",
+        }
+        if surface == "worktree":
+            expected_keys.add("required_clean")
+        if set(disposition) != expected_keys:
+            raise ContinuityError("residue disposition fields are invalid")
+        disposition_id = disposition.get("id")
+        project_id = disposition.get("project_id")
+        identity = disposition.get("identity")
+        bead_id = disposition.get("bead_id")
+        head = disposition.get("head")
+        reason = disposition.get("reason")
+        evidence = disposition.get("evidence")
+        if (
+            not isinstance(disposition_id, str)
+            or not DISPOSITION_ID_PATTERN.fullmatch(disposition_id)
+            or disposition_id in ids
+        ):
+            raise ContinuityError("residue disposition id is invalid or duplicated")
+        if project_id not in project_index:
+            raise ContinuityError(f"residue disposition project is not registered: {project_id}")
+        if surface not in {"branch", "worktree"}:
+            raise ContinuityError("residue disposition surface is invalid")
+        if not isinstance(identity, str) or not identity:
+            raise ContinuityError("residue disposition identity is invalid")
+        if surface == "branch" and not identity.startswith("codex/"):
+            raise ContinuityError("branch residue identity must be a codex/* branch")
+        if surface == "worktree" and not Path(identity).is_absolute():
+            raise ContinuityError("worktree residue identity must be absolute")
+        if not isinstance(bead_id, str) or not BEAD_ID_PATTERN.fullmatch(bead_id):
+            raise ContinuityError("residue disposition Bead identity is invalid")
+        if not isinstance(head, str) or not GIT_COMMIT_PATTERN.fullmatch(head):
+            raise ContinuityError("residue disposition HEAD is invalid")
+        if not isinstance(reason, str) or not reason.strip():
+            raise ContinuityError("residue disposition reason is invalid")
+        if surface == "worktree" and disposition.get("required_clean") is not True:
+            raise ContinuityError("worktree residue dispositions must require clean state")
+        if not isinstance(evidence, Mapping):
+            raise ContinuityError("residue disposition evidence must be an object")
+        target = (str(project_id), str(surface), identity)
+        if target in targets:
+            raise ContinuityError("residue disposition target is duplicated")
+        _verify_disposition_evidence(
+            evidence,
+            disposition_head=head,
+            project=project_index[str(project_id)],
+            runner=runner,
+        )
+        ids.add(disposition_id)
+        targets.add(target)
+        result.setdefault(str(project_id), []).append(disposition)
+    for project_id in result:
+        result[project_id].sort(key=lambda item: str(item["id"]))
+    return result
+
+
 def capture_snapshot(
     registry_path: Path,
     *,
@@ -479,6 +655,7 @@ def capture_snapshot(
     obsidian_registry: Path = OBSIDIAN_REGISTRY,
     obsidian_state: Path = OBSIDIAN_STATE,
     signing_policies: Path = SIGNING_POLICIES,
+    residue_dispositions: Path | None = None,
     runner: ReadOnlyRunner | None = None,
 ) -> dict[str, Any]:
     runner = runner or ReadOnlyRunner()
@@ -517,6 +694,7 @@ def capture_snapshot(
         registry_cycle_status=obsidian_cycle_status,
     )
     receipts = _receipt_index(signing_policies)
+    dispositions = _load_residue_dispositions(residue_dispositions, projects, runner)
     captured = []
     beads_by_rig: dict[str, list[dict[str, Any]]] = {}
     for registered in sorted(projects, key=lambda item: str(item.get("id"))):
@@ -554,18 +732,44 @@ def capture_snapshot(
             for bead in beads
             if isinstance(bead.get("id"), str) and BEAD_ID_PATTERN.fullmatch(str(bead["id"]))
         }
-        worktrees = _parse_worktrees(
-            runner.run(["git", "-C", str(root), "worktree", "list", "--porcelain"]).stdout,
-            bead_ids,
+        worktrees = _capture_worktree_cleanliness(
+            _parse_worktrees(
+                runner.run(
+                    ["git", "-C", str(root), "worktree", "list", "--porcelain"]
+                ).stdout,
+                bead_ids,
+            ),
+            runner,
+            required_paths={
+                str(disposition["identity"])
+                for disposition in dispositions.get(project_id, [])
+                if disposition.get("surface") == "worktree"
+            },
         )
         branch_lines = runner.run(
-            ["git", "-C", str(root), "for-each-ref", "--format=%(refname)", "refs/heads/codex"]
+            [
+                "git",
+                "-C",
+                str(root),
+                "for-each-ref",
+                "--format=%(refname)%00%(objectname)",
+                "refs/heads/codex",
+            ]
         ).stdout.splitlines()
         branches = []
-        for branch in sorted(line.strip() for line in branch_lines if line.strip()):
+        for line in sorted(line for line in branch_lines if line):
+            branch, separator, head = line.partition("\0")
+            if not separator or not GIT_COMMIT_PATTERN.fullmatch(head):
+                raise ContinuityError("managed branch ref output is invalid")
             bead_id = _bead_for_branch(branch, bead_ids)
             if bead_id is not None:
-                branches.append({"bead_id": bead_id, "head": branch.removeprefix(BRANCH_PREFIX)})
+                branches.append(
+                    {
+                        "bead_id": bead_id,
+                        "branch": branch.removeprefix(BRANCH_PREFIX),
+                        "head": head,
+                    }
+                )
         prs = _json_list(
             runner.run(
                 [
@@ -642,6 +846,7 @@ def capture_snapshot(
                     },
                 ),
                 "followups": _followups(root),
+                "residue_dispositions": dispositions.get(project_id, []),
             }
         )
     return {
