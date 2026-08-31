@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gas-city.local/schemas/continuity-residue-dispositions.v1.json",
+  "title": "Gas City continuity residue dispositions",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "dispositions"],
+  "properties": {
+    "schema": {"const": "gas-city-workflow.residue-dispositions.v1"},
+    "dispositions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "project_id",
+          "surface",
+          "identity",
+          "bead_id",
+          "head",
+          "reason",
+          "evidence"
+        ],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+          "project_id": {"type": "string", "minLength": 1},
+          "surface": {"enum": ["branch", "worktree"]},
+          "identity": {"type": "string", "minLength": 1},
+          "bead_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*(\\.[1-9][0-9]*)*$"
+          },
+          "head": {"type": "string", "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$"},
+          "required_clean": {"const": true},
+          "reason": {"type": "string", "minLength": 1},
+          "evidence": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["kind", "ref", "merge_commit", "merged_head"],
+                "properties": {
+                  "kind": {"const": "git-merge"},
+                  "ref": {"type": "string", "pattern": "^refs/"},
+                  "merge_commit": {"type": "string", "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$"},
+                  "merged_head": {"type": "string", "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$"}
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["kind", "path", "sha256"],
+                "properties": {
+                  "kind": {"const": "sha256-file"},
+                  "path": {"type": "string", "pattern": "^/"},
+                  "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+                }
+              }
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"surface": {"const": "worktree"}}},
+            "then": {"required": ["required_clean"]},
+            "else": {"not": {"required": ["required_clean"]}}
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "schema": "gas-city-workflow.residue-dispositions.v1",
+  "dispositions": [
+    {
+      "id": "gas-city-ci-n6ks-branch",
+      "project_id": "gas-city",
+      "surface": "branch",
+      "identity": "codex/ci-n6ks-provider-version-stdout",
+      "bead_id": "ci-n6ks",
+      "head": "f1c4bb79128d492983b201c0d521a012e15dd43d",
+      "reason": "merged source branch retained as campaign evidence",
+      "evidence": {
+        "kind": "git-merge",
+        "ref": "refs/remotes/origin/main",
+        "merge_commit": "3716493aa971a5faf2729eb703afca824797e852",
+        "merged_head": "f1c4bb79128d492983b201c0d521a012e15dd43d"
+      }
+    },
+    {
+      "id": "gas-city-ci-n6ks-worktree",
+      "project_id": "gas-city",
+      "surface": "worktree",
+      "identity": "/home/loucmane/codex/worktrees/gc-managed-worker-release-4ca0347d",
+      "bead_id": "ci-n6ks",
+      "head": "f1c4bb79128d492983b201c0d521a012e15dd43d",
+      "required_clean": true,
+      "reason": "clean merged worktree retained as campaign evidence",
+      "evidence": {
+        "kind": "git-merge",
+        "ref": "refs/remotes/origin/main",
+        "merge_commit": "3716493aa971a5faf2729eb703afca824797e852",
+        "merged_head": "f1c4bb79128d492983b201c0d521a012e15dd43d"
+      }
+    },
+    {
+      "id": "gas-city-signing-canary-branch",
+      "project_id": "gas-city",
+      "surface": "branch",
+      "identity": "codex/signing-canary",
+      "bead_id": "signing-canary",
+      "head": "043989ab27d4e1c1937055160e0ae5b9ec20c4ab",
+      "reason": "revoked-key grandfather verification target retained as historical evidence",
+      "evidence": {
+        "kind": "sha256-file",
+        "path": "/home/loucmane/codex/scratchpad/gas-city-retired-verifier-live-gate-r2-package-2026-08-27.md",
+        "sha256": "2de9d983532d6bac1450e02c9630e2678c7eba0131803d975df6ef5b65fe08cc"
+      }
+    },
+    {
+      "id": "gas-city-signing-canary-worktree",
+      "project_id": "gas-city",
+      "surface": "worktree",
+      "identity": "/home/loucmane/gascity-core-worktrees/signing-canary",
+      "bead_id": "signing-canary",
+      "head": "043989ab27d4e1c1937055160e0ae5b9ec20c4ab",
+      "required_clean": true,
+      "reason": "clean revoked-key grandfather verification target retained as historical evidence",
+      "evidence": {
+        "kind": "sha256-file",
+        "path": "/home/loucmane/codex/scratchpad/gas-city-retired-verifier-live-gate-r2-package-2026-08-27.md",
+        "sha256": "2de9d983532d6bac1450e02c9630e2678c7eba0131803d975df6ef5b65fe08cc"
+      }
+    },
+    {
+      "id": "gas-city-signing-sandbox-branch",
+      "project_id": "gas-city",
+      "surface": "branch",
+      "identity": "codex/signing-sandbox-preflight-20260825",
+      "bead_id": "signing-sandbox",
+      "head": "cedb1f06abdddb3b9f406664d345e3ef017654e8",
+      "reason": "failed nested-sandbox signing preflight retained as historical evidence",
+      "evidence": {
+        "kind": "sha256-file",
+        "path": "/home/loucmane/codex/scratchpad/gascity-signing-sandbox-preflight-2026-08-25.md",
+        "sha256": "7ef246fab7d61a7ddb08792cc429cff3b22e96c4cd3c6ced2d2cd447de7114b5"
+      }
+    },
+    {
+      "id": "gas-city-signing-sandbox-worktree",
+      "project_id": "gas-city",
+      "surface": "worktree",
+      "identity": "/home/loucmane/gascity-core-worktrees/signing-sandbox-preflight-20260825",
+      "bead_id": "signing-sandbox",
+      "head": "cedb1f06abdddb3b9f406664d345e3ef017654e8",
+      "required_clean": true,
+      "reason": "clean failed nested-sandbox signing preflight retained as historical evidence",
+      "evidence": {
+        "kind": "sha256-file",
+        "path": "/home/loucmane/codex/scratchpad/gascity-signing-sandbox-preflight-2026-08-25.md",
+        "sha256": "7ef246fab7d61a7ddb08792cc429cff3b22e96c4cd3c6ced2d2cd447de7114b5"
+      }
+    },
+    {
+      "id": "gas-city-operations-ci-0x17-branch",
+      "project_id": "gas-city-operations",
+      "surface": "branch",
+      "identity": "codex/ci-0x17-evidence-prompt-port",
+      "bead_id": "ci-0x17",
+      "head": "49b2e05a8d2cffed799795fc918bd0007d528949",
+      "reason": "merged source branch retained with its archived Aegis closeout",
+      "evidence": {
+        "kind": "git-merge",
+        "ref": "refs/remotes/origin/main",
+        "merge_commit": "d7846a4a0ac44367cf89e4a12d45488802c4d1ff",
+        "merged_head": "49b2e05a8d2cffed799795fc918bd0007d528949"
+      }
+    },
+    {
+      "id": "gas-city-operations-ci-0x17-worktree",
+      "project_id": "gas-city-operations",
+      "surface": "worktree",
+      "identity": "/home/loucmane/gas-city-ops-worktrees/ci-0x17-evidence-prompt-port",
+      "bead_id": "ci-0x17",
+      "head": "49b2e05a8d2cffed799795fc918bd0007d528949",
+      "required_clean": true,
+      "reason": "clean merged worktree retained with its archived Aegis closeout",
+      "evidence": {
+        "kind": "git-merge",
+        "ref": "refs/remotes/origin/main",
+        "merge_commit": "d7846a4a0ac44367cf89e4a12d45488802c4d1ff",
+        "merged_head": "49b2e05a8d2cffed799795fc918bd0007d528949"
+      }
+    }
+  ]
+}

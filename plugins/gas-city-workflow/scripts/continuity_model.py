@@ -15,6 +15,8 @@ BEAD_ID_PATTERN = re.compile(
     r"^[a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*(?:\.[1-9][0-9]*)*$"
 )
 DIGEST_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+GIT_COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}(?:[0-9a-f]{24})?$")
+DISPOSITION_ID_PATTERN = re.compile(r"^[a-z][a-z0-9-]*$")
 NONBLOCKING_DEPENDENCIES = frozenset(
     {"parent-child", "relates-to", "tracks", "discovered-from"}
 )
@@ -170,11 +172,114 @@ def _finding(
 
 
 def _identity(item: Mapping[str, Any], surface: str) -> str:
-    for key in ("path", "head", "commit", "id", "number"):
+    for key in ("path", "branch", "head", "commit", "id", "number"):
         value = item.get(key)
         if value is not None:
             return str(value)
     return surface
+
+
+def _residue_disposition_index(
+    project: Mapping[str, Any],
+) -> dict[tuple[str, str, str], Mapping[str, Any]]:
+    project_label = str(project.get("id"))
+    result: dict[tuple[str, str, str], Mapping[str, Any]] = {}
+    ids: set[str] = set()
+    for raw in _list(
+        project.get("residue_dispositions", []),
+        f"project {project_label} residue dispositions",
+    ):
+        disposition = _mapping(raw, f"project {project_label} residue disposition")
+        surface = disposition.get("surface")
+        expected_keys = {
+            "id",
+            "project_id",
+            "surface",
+            "identity",
+            "bead_id",
+            "head",
+            "reason",
+            "evidence",
+        }
+        if surface == "worktree":
+            expected_keys.add("required_clean")
+        if set(disposition) != expected_keys:
+            raise ContinuityError("residue disposition fields are invalid")
+        disposition_id = _string(
+            disposition.get("id"),
+            "residue disposition id",
+            pattern=DISPOSITION_ID_PATTERN,
+        )
+        if disposition_id in ids:
+            raise ContinuityError("residue disposition ids must be unique")
+        ids.add(disposition_id)
+        project_id = _string(disposition.get("project_id"), "disposition project id")
+        if surface not in {"branch", "worktree"}:
+            raise ContinuityError("residue disposition surface is invalid")
+        identity = _string(disposition.get("identity"), "disposition identity")
+        _string(
+            disposition.get("bead_id"),
+            "disposition Bead id",
+            pattern=BEAD_ID_PATTERN,
+        )
+        head = _string(
+            disposition.get("head"),
+            "disposition HEAD",
+            pattern=GIT_COMMIT_PATTERN,
+        )
+        _string(disposition.get("reason"), "disposition reason")
+        if surface == "branch" and not identity.startswith("codex/"):
+            raise ContinuityError("branch residue identity must be a codex/* branch")
+        if surface == "worktree" and not identity.startswith("/"):
+            raise ContinuityError("worktree residue identity must be absolute")
+        if surface == "worktree" and disposition.get("required_clean") is not True:
+            raise ContinuityError("worktree residue disposition must require clean state")
+        evidence = _mapping(disposition.get("evidence"), "disposition evidence")
+        kind = evidence.get("kind")
+        expected_evidence = (
+            {"kind", "ref", "merge_commit", "merged_head"}
+            if kind == "git-merge"
+            else {"kind", "path", "sha256"}
+            if kind == "sha256-file"
+            else set()
+        )
+        if not expected_evidence or set(evidence) != expected_evidence:
+            raise ContinuityError("residue disposition evidence is invalid")
+        if kind == "git-merge":
+            if evidence.get("merged_head") != head:
+                raise ContinuityError("git-merge evidence does not bind disposition HEAD")
+            _string(
+                evidence.get("merge_commit"),
+                "merge evidence commit",
+                pattern=GIT_COMMIT_PATTERN,
+            )
+            ref = _string(evidence.get("ref"), "merge evidence ref")
+            if not ref.startswith("refs/"):
+                raise ContinuityError("merge evidence ref is invalid")
+        else:
+            path = _string(evidence.get("path"), "file evidence path")
+            if not path.startswith("/"):
+                raise ContinuityError("file evidence path must be absolute")
+            _string(
+                evidence.get("sha256"),
+                "file evidence digest",
+                pattern=DIGEST_PATTERN,
+            )
+        key = (project_id, str(surface), identity)
+        if key in result:
+            raise ContinuityError("residue disposition targets must be unique")
+        result[key] = disposition
+    return result
+
+
+def _disposition_matches(
+    disposition: Mapping[str, Any], item: Mapping[str, Any], bead_id: str | None
+) -> bool:
+    if disposition.get("bead_id") != bead_id or disposition.get("head") != item.get("head"):
+        return False
+    if disposition.get("surface") == "worktree":
+        return item.get("clean") is disposition.get("required_clean")
+    return True
 
 
 def _validate_snapshot(
@@ -230,6 +335,8 @@ def _classify_project(
     bead_index = dict(zip(bead_ids, beads, strict=True))
     work = {category: [] for category in WORK_CATEGORIES}
     findings: list[dict[str, Any]] = []
+    dispositions = _residue_disposition_index(project)
+    observed_dispositions: set[tuple[str, str, str]] = set()
 
     for bead in beads:
         bead_id = str(bead["id"])
@@ -359,6 +466,30 @@ def _classify_project(
                     bead_id=bead_id,
                 )
             if finding is not None:
+                disposition_key = (surface_project_id, surface, identity)
+                disposition = dispositions.get(disposition_key)
+                if disposition is not None:
+                    observed_dispositions.add(disposition_key)
+                    if _disposition_matches(disposition, item, bead_id):
+                        preserved = _finding(
+                            code=f"preserved-{finding['code']}",
+                            project_id=surface_project_id,
+                            surface=surface,
+                            identity=identity,
+                            bead_id=bead_id,
+                            severity="warning",
+                        )
+                        preserved["disposition_id"] = disposition["id"]
+                        findings.append(preserved)
+                        continue
+                    finding = _finding(
+                        code="residue-disposition-drift",
+                        project_id=surface_project_id,
+                        surface=surface,
+                        identity=identity,
+                        bead_id=bead_id,
+                    )
+                    finding["disposition_id"] = disposition["id"]
                 findings.append(finding)
                 work["orphaned"].append(
                     {
@@ -371,6 +502,43 @@ def _classify_project(
                         "blockers": [],
                     }
                 )
+            else:
+                disposition_key = (surface_project_id, surface, identity)
+                disposition = dispositions.get(disposition_key)
+                if disposition is not None:
+                    observed_dispositions.add(disposition_key)
+                    finding = _finding(
+                        code="residue-disposition-no-longer-required",
+                        project_id=surface_project_id,
+                        surface=surface,
+                        identity=identity,
+                        bead_id=bead_id,
+                    )
+                    finding["disposition_id"] = disposition["id"]
+                    findings.append(finding)
+
+    for key in sorted(set(dispositions) - observed_dispositions):
+        disposition = dispositions[key]
+        finding = _finding(
+            code="stale-residue-disposition",
+            project_id=key[0],
+            surface=key[1],
+            identity=key[2],
+            bead_id=str(disposition["bead_id"]),
+        )
+        finding["disposition_id"] = disposition["id"]
+        findings.append(finding)
+        work["orphaned"].append(
+            {
+                "id": f"{project_id}:{key[1]}:{key[2]}",
+                "project_id": key[0],
+                "bead_id": disposition["bead_id"],
+                "title": "stale-residue-disposition",
+                "status": "orphaned",
+                "reason": "stale-residue-disposition",
+                "blockers": [],
+            }
+        )
 
     followups = _list(project.get("followups", []), f"project {project_id} followups")
     for raw in followups:
@@ -507,6 +675,14 @@ def _ledger_project(
             for member in members
             for followup in _list(
                 member.get("followups", []), f"project {member.get('id')} followups"
+            )
+        ],
+        "residue_dispositions": [
+            dict(disposition)
+            for member in members
+            for disposition in _list(
+                member.get("residue_dispositions", []),
+                f"project {member.get('id')} residue dispositions",
             )
         ],
     }

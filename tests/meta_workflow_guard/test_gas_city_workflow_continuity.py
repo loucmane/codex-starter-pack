@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import json
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+from jsonschema import Draft202012Validator
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = REPO_ROOT / "plugins" / "gas-city-workflow" / "scripts"
@@ -69,6 +71,7 @@ def _project(project_id: str, beads: list[dict[str, object]]) -> dict[str, objec
             "live_index_status": "confirmed",
         },
         "followups": [],
+        "residue_dispositions": [],
     }
 
 
@@ -190,6 +193,269 @@ def test_report_detects_unbound_surfaces_and_terminal_generated_residue() -> Non
     assert report["ok"] is False
     assert len(report["work"]["orphaned"]) == 4
     assert not any(finding["surface"] == "transaction" for finding in report["findings"])
+
+
+def _preserve(
+    *,
+    surface: str,
+    identity: str,
+    bead_id: str,
+    head: str,
+    clean: bool | None = None,
+) -> dict[str, object]:
+    disposition: dict[str, object] = {
+        "id": f"fixture-{surface}",
+        "project_id": "gas-city",
+        "surface": surface,
+        "identity": identity,
+        "bead_id": bead_id,
+        "head": head,
+        "reason": "fixture evidence",
+        "evidence": {
+            "kind": "sha256-file",
+            "path": "/evidence/fixture.json",
+            "sha256": "c" * 64,
+        },
+    }
+    if clean is not None:
+        disposition["required_clean"] = clean
+    return disposition
+
+
+def test_exact_residue_dispositions_remain_visible_without_blocking() -> None:
+    model = _load("continuity_model")
+    project = _project("gas-city", [])
+    branch_head = "d" * 40
+    project["git"] = {
+        "branches": [
+            {
+                "bead_id": "ga-missing",
+                "branch": "codex/ga-missing-history",
+                "head": branch_head,
+            }
+        ],
+        "worktrees": [
+            {
+                "bead_id": "ga-missing",
+                "branch": "codex/ga-missing-history",
+                "path": "/worktrees/ga-missing",
+                "head": branch_head,
+                "clean": True,
+            }
+        ],
+        "open_prs": [],
+    }
+    branch = _preserve(
+        surface="branch",
+        identity="codex/ga-missing-history",
+        bead_id="ga-missing",
+        head=branch_head,
+    )
+    worktree = _preserve(
+        surface="worktree",
+        identity="/worktrees/ga-missing",
+        bead_id="ga-missing",
+        head=branch_head,
+        clean=True,
+    )
+    worktree["id"] = "fixture-worktree"
+    project["residue_dispositions"] = [branch, worktree]
+
+    report = model.build_report(_snapshot([project]))
+
+    assert report["ok"] is True
+    assert report["work"]["orphaned"] == []
+    assert [finding["code"] for finding in report["findings"]] == [
+        "preserved-unbound-branch",
+        "preserved-unbound-worktree",
+    ]
+    assert all(finding["severity"] == "warning" for finding in report["findings"])
+
+
+@pytest.mark.parametrize(
+    ("observed_head", "clean"),
+    [("e" * 40, True), ("d" * 40, False)],
+)
+def test_residue_disposition_head_or_cleanliness_drift_blocks(
+    observed_head: str, clean: bool
+) -> None:
+    model = _load("continuity_model")
+    project = _project("gas-city", [])
+    project["git"]["worktrees"] = [
+        {
+            "bead_id": "ga-missing",
+            "branch": "codex/ga-missing-history",
+            "path": "/worktrees/ga-missing",
+            "head": observed_head,
+            "clean": clean,
+        }
+    ]
+    project["residue_dispositions"] = [
+        _preserve(
+            surface="worktree",
+            identity="/worktrees/ga-missing",
+            bead_id="ga-missing",
+            head="d" * 40,
+            clean=True,
+        )
+    ]
+
+    report = model.build_report(_snapshot([project]))
+
+    assert report["ok"] is False
+    assert report["findings"][0]["code"] == "residue-disposition-drift"
+    assert report["work"]["orphaned"][0]["reason"] == "residue-disposition-drift"
+
+
+def test_missing_residue_target_is_a_stale_blocking_disposition() -> None:
+    model = _load("continuity_model")
+    project = _project("gas-city", [])
+    project["residue_dispositions"] = [
+        _preserve(
+            surface="branch",
+            identity="codex/ga-missing-history",
+            bead_id="ga-missing",
+            head="d" * 40,
+        )
+    ]
+
+    report = model.build_report(_snapshot([project]))
+
+    assert report["ok"] is False
+    assert report["findings"][0]["code"] == "stale-residue-disposition"
+
+
+def test_disposition_on_non_orphan_surface_blocks_as_no_longer_required() -> None:
+    model = _load("continuity_model")
+    project = _project("gas-city", [_bead("ga-live", "in_progress")])
+    project["git"]["branches"] = [
+        {
+            "bead_id": "ga-live",
+            "branch": "codex/ga-live-history",
+            "head": "d" * 40,
+        }
+    ]
+    project["residue_dispositions"] = [
+        _preserve(
+            surface="branch",
+            identity="codex/ga-live-history",
+            bead_id="ga-live",
+            head="d" * 40,
+        )
+    ]
+
+    report = model.build_report(_snapshot([project]))
+
+    assert report["ok"] is False
+    assert report["findings"][0]["code"] == "residue-disposition-no-longer-required"
+
+
+def test_tracked_residue_dispositions_validate_against_their_schema() -> None:
+    schema = json.loads(
+        (SCRIPTS.parent / "config" / "continuity-residue-dispositions.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    payload = json.loads(
+        (SCRIPTS.parent / "config" / "continuity-residue-dispositions.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    Draft202012Validator.check_schema(schema)
+    Draft202012Validator(schema).validate(payload)
+
+
+def test_collector_verifies_file_evidence_and_rejects_digest_drift(tmp_path: Path) -> None:
+    capture = _load("continuity_capture")
+    evidence = tmp_path / "evidence.json"
+    evidence.write_text("preserved\n", encoding="utf-8")
+    digest = hashlib.sha256(evidence.read_bytes()).hexdigest()
+    dispositions = tmp_path / "dispositions.json"
+    payload = {
+        "schema": "gas-city-workflow.residue-dispositions.v1",
+        "dispositions": [
+            {
+                "id": "fixture-branch",
+                "project_id": "gas-city",
+                "surface": "branch",
+                "identity": "codex/ga-missing-history",
+                "bead_id": "ga-missing",
+                "head": "d" * 40,
+                "reason": "fixture evidence",
+                "evidence": {
+                    "kind": "sha256-file",
+                    "path": str(evidence),
+                    "sha256": digest,
+                },
+            }
+        ],
+    }
+    dispositions.write_text(json.dumps(payload), encoding="utf-8")
+
+    loaded = capture._load_residue_dispositions(
+        dispositions,
+        [{"id": "gas-city", "root": str(tmp_path)}],
+        capture.ReadOnlyRunner(),
+    )
+    assert loaded["gas-city"][0]["head"] == "d" * 40
+
+    evidence.write_text("drifted\n", encoding="utf-8")
+    with pytest.raises(capture.ContinuityError, match="evidence digest drift"):
+        capture._load_residue_dispositions(
+            dispositions,
+            [{"id": "gas-city", "root": str(tmp_path)}],
+            capture.ReadOnlyRunner(),
+        )
+
+
+def test_collector_checks_cleanliness_only_for_disposition_bound_worktrees(
+    tmp_path: Path,
+) -> None:
+    capture = _load("continuity_capture")
+    tracked = tmp_path / "tracked"
+    tracked.mkdir()
+    subprocess.run(["git", "init", "-b", "main"], cwd=tracked, check=True, capture_output=True)
+    (tracked / "file.txt").write_text("fixture\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=tracked, check=True, capture_output=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@example.test",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "-m",
+            "fixture",
+        ],
+        cwd=tracked,
+        check=True,
+        capture_output=True,
+    )
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=tracked,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    missing = tmp_path / "missing"
+    items = [
+        {"bead_id": "ga-bound", "path": str(tracked), "head": head},
+        {"bead_id": "ga-other", "path": str(missing), "head": head},
+    ]
+
+    result = capture._capture_worktree_cleanliness(
+        items,
+        capture.ReadOnlyRunner(),
+        required_paths={str(tracked)},
+    )
+
+    assert result[0]["clean"] is True
+    assert "clean" not in result[1]
 
 
 def test_followups_require_a_real_bead_or_explicit_disposition() -> None:

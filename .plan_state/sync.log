@@ -1666,5 +1666,23 @@
     "plan_hash": "a7703333c86207860f3be39e0de9e595a0500f91dfbee6b3661da9f54af805ed",
     "tracker_hash": "0b3c6cc04cd21de5e77a4beb36424de29d2a1d3f06dea9f54db9c90b64248143",
     "synced_at": "2026-08-31T22:21:56.689309+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-35mj-exclude-closed-work-from-continuity-current-view.md",
+    "plan_hash": "768007394b0eb98a85f64ec5a9bb4052acc5bf758372278ca3f2e4f9f308c930",
+    "tracker_hash": "b16923a8bc5d869e2e3bb27c6415d4d9a93ca90c816d0c43e8d8c9f933d7db4f",
+    "synced_at": "2026-08-31T23:06:32.788401+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-35mj-exclude-closed-work-from-continuity-current-view.md",
+    "plan_hash": "79f59aa98deb1e9f6618d9b3c50c6e9f2864d3e696df23942ec13b660243e85d",
+    "tracker_hash": "4162176855e227b35ca85a99cdd97dbddfe85c405ba48d417b7c6a7274ea040e",
+    "synced_at": "2026-08-31T23:09:06.571506+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-35mj-exclude-closed-work-from-continuity-current-view.md",
+    "plan_hash": "79f59aa98deb1e9f6618d9b3c50c6e9f2864d3e696df23942ec13b660243e85d",
+    "tracker_hash": "4162176855e227b35ca85a99cdd97dbddfe85c405ba48d417b7c6a7274ea040e",
+    "synced_at": "2026-08-31T23:09:07.390022+02:00"
   }
 ]

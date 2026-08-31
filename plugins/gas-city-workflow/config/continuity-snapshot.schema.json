@@ -34,7 +34,8 @@
           "git",
           "runtime",
           "obsidian",
-          "followups"
+          "followups",
+          "residue_dispositions"
         ]
       }
     }

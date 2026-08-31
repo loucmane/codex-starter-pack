@@ -19,6 +19,7 @@ from continuity_model import ContinuityError, build_report, render_status  # noq
 from continuity_capture import (  # noqa: E402
     OBSIDIAN_REGISTRY,
     OBSIDIAN_STATE,
+    RESIDUE_DISPOSITIONS,
     SIGNING_POLICIES,
     capture_snapshot,
 )
@@ -49,6 +50,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     snapshot.add_argument("--obsidian-registry", type=Path, default=OBSIDIAN_REGISTRY)
     snapshot.add_argument("--obsidian-state", type=Path, default=OBSIDIAN_STATE)
     snapshot.add_argument("--signing-policies", type=Path, default=SIGNING_POLICIES)
+    snapshot.add_argument(
+        "--residue-dispositions", type=Path, default=RESIDUE_DISPOSITIONS
+    )
     snapshot.add_argument(
         "--project-root",
         type=Path,
@@ -84,6 +88,7 @@ def main(argv: list[str] | None = None) -> int:
                 obsidian_registry=args.obsidian_registry,
                 obsidian_state=args.obsidian_state,
                 signing_policies=args.signing_policies,
+                residue_dispositions=args.residue_dispositions,
             )
             rendered = json.dumps(snapshot, indent=2, sort_keys=True) + "\n"
             if args.output is None:

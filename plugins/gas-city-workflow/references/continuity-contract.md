@@ -59,6 +59,15 @@ Projects record promises in `.gas-city-workflow/followups.json` using
 `config/followups.schema.json`. Prose is not parsed and chat memory is never evidence. Historical
 Taskmaster ACTIVE folders are identified as legacy warnings rather than fabricated Beads.
 
+Historical branches and worktrees that must remain as evidence use the tracked
+`config/continuity-residue-dispositions.json` contract. A disposition is not an allowlist or a
+cleanup bypass: it binds one project, surface, identity, Bead candidate, exact commit, required
+clean worktree state, reason, and independently verified merge or file-digest evidence. Exact
+matches remain visible as non-blocking `preserved-*` warnings. A missing artifact, changed HEAD,
+dirty worktree, invalid evidence, redundant disposition, or other mismatch fails closed. Removing
+or changing preserved history therefore requires an explicit append-forward disposition update;
+the auditor never infers that history is safe to erase.
+
 Exit `0` means the report is internally complete and has no error finding. Exit `3` means the
 snapshot was valid but current cross-surface drift blocks acceptance. Exit `2` means the snapshot
 or a provider contract was invalid.
