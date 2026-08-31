@@ -15,7 +15,12 @@ from typing import Any
 
 from aegis_foundation import obsidian_continuity, obsidian_live_index, obsidian_vault
 from aegis_foundation.obsidian_ledger_reader import read_events
-from aegis_foundation.obsidian_registry import ContinuityDashboardConfig, ProjectConfig, Registry
+from aegis_foundation.obsidian_registry import (
+    ContinuityDashboardConfig,
+    LiveIndexConfig,
+    ProjectConfig,
+    Registry,
+)
 
 SCHEMA_VERSION = "1"
 MAX_EXPORT_BYTES = 8 * 1024 * 1024
@@ -196,6 +201,7 @@ def _reconcile_project(
     live_index_runner: LiveIndexRunner,
     clock: Clock,
     force: bool,
+    defer_live_index: bool = False,
 ) -> dict[str, Any]:
     state_path = state_dir / f"{project.id}.json"
     previous = _read_state(state_path)
@@ -243,6 +249,11 @@ def _reconcile_project(
             live_index = obsidian_live_index.not_run(
                 configured=False,
                 status="not-configured",
+            )
+        elif defer_live_index:
+            live_index = obsidian_live_index.not_run(
+                configured=True,
+                status="pending-cycle-observation",
             )
         elif built["changed"]:
             live_index = obsidian_live_index.observe(
@@ -315,6 +326,7 @@ def _reconcile_dashboard(
     live_index_runner: LiveIndexRunner,
     dashboard_runner: DashboardRunner,
     clock: Clock,
+    defer_live_index: bool = False,
 ) -> dict[str, Any]:
     state_path = state_dir / "continuity-dashboard.json"
     previous = _read_state(state_path)
@@ -338,6 +350,11 @@ def _reconcile_dashboard(
             live_index = obsidian_live_index.not_run(
                 configured=False,
                 status="not-configured",
+            )
+        elif defer_live_index:
+            live_index = obsidian_live_index.not_run(
+                configured=True,
+                status="pending-cycle-observation",
             )
         else:
             live_index = obsidian_live_index.observe(
@@ -397,6 +414,15 @@ def _reconcile_dashboard(
         lock_handle.close()
 
 
+def _record_live_index(state_path: Path, observation: Mapping[str, Any]) -> None:
+    payload = _read_state(state_path)
+    last_success = payload.get("last_success")
+    if not isinstance(last_success, dict):
+        return
+    payload["last_success"] = {**last_success, "live_index": dict(observation)}
+    _atomic_json(state_path, payload)
+
+
 def reconcile_registry(
     registry: Registry,
     *,
@@ -411,20 +437,25 @@ def reconcile_registry(
     state = Path(state_dir).expanduser().resolve()
     state.mkdir(parents=True, exist_ok=True, mode=0o700)
     os.chmod(state, 0o700)
-    projects = [
-        _reconcile_project(
+    project_results = [
+        (
             project,
-            registry,
-            state_dir=state,
-            bead_exporter=bead_exporter,
-            event_reader=event_reader,
-            live_index_runner=live_index_runner,
-            clock=clock,
-            force=force,
+            _reconcile_project(
+                project,
+                registry,
+                state_dir=state,
+                bead_exporter=bead_exporter,
+                event_reader=event_reader,
+                live_index_runner=live_index_runner,
+                clock=clock,
+                force=force,
+                defer_live_index=True,
+            ),
         )
         for project in registry.projects
         if project.enabled
     ]
+    projects = [result for _project, result in project_results]
     dashboard: dict[str, Any] | None = None
     if registry.continuity_dashboard is not None:
         if all(item["ok"] for item in projects):
@@ -435,6 +466,7 @@ def reconcile_registry(
                 live_index_runner=live_index_runner,
                 dashboard_runner=dashboard_runner,
                 clock=clock,
+                defer_live_index=True,
             )
         else:
             dashboard = {
@@ -442,6 +474,40 @@ def reconcile_registry(
                 "status": "skipped-project-failure",
                 "changed": False,
             }
+
+    live_configs: list[tuple[str, LiveIndexConfig]] = []
+    refresh_ids: set[str] = set()
+    result_bindings: dict[str, tuple[dict[str, Any], Path]] = {}
+    for project, result in project_results:
+        if not result.get("ok") or project.live_index is None or "live_index" not in result:
+            continue
+        identity = f"project:{project.id}"
+        live_configs.append((identity, project.live_index))
+        if result.get("changed"):
+            refresh_ids.add(identity)
+        result_bindings[identity] = (result, state / f"{project.id}.json")
+    dashboard_config = registry.continuity_dashboard
+    if (
+        dashboard is not None
+        and dashboard.get("ok")
+        and dashboard_config is not None
+        and dashboard_config.live_index is not None
+        and "live_index" in dashboard
+    ):
+        identity = "continuity-dashboard"
+        live_configs.append((identity, dashboard_config.live_index))
+        if dashboard.get("changed"):
+            refresh_ids.add(identity)
+        result_bindings[identity] = (dashboard, state / "continuity-dashboard.json")
+    observations = obsidian_live_index.observe_many(
+        live_configs,
+        refresh_ids=refresh_ids,
+        runner=live_index_runner,
+    )
+    for identity, observation in observations.items():
+        result, state_path = result_bindings[identity]
+        result["live_index"] = observation
+        _record_live_index(state_path, observation)
     return {
         "schema_version": SCHEMA_VERSION,
         "ok": bool(projects)

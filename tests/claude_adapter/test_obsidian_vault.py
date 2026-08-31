@@ -373,6 +373,24 @@ def test_limits_fail_closed_before_rendering_unbounded_task_graph(tmp_path: Path
         )
 
 
+def test_default_identity_ceiling_covers_large_bounded_project_history(tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    events = [
+        {
+            "event_id": f"event-{index:04d}",
+            "ts": f"2026-07-14T10:{index % 60:02d}:00Z",
+            "event_type": "session_begin",
+            "agent_id": f"agent-{index:04d}",
+        }
+        for index in range(2_421)
+    ]
+
+    snapshot = obsidian_vault.collect_snapshot(root, events)
+
+    assert len(snapshot["identities"]) == 2_421
+    assert snapshot["limits"]["max_agents"] == snapshot["limits"]["max_identity_edges"]
+
+
 def test_linked_worktree_uses_common_repository_name_and_identity(tmp_path: Path) -> None:
     root = _repo(tmp_path)
     sibling = tmp_path / "agent-worktree"

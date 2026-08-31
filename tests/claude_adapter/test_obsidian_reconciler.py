@@ -466,7 +466,78 @@ def test_changed_publication_refreshes_and_probes_live_index_once(tmp_path: Path
     ]
 
 
-def test_closed_obsidian_is_observer_unavailable_not_publication_failure(tmp_path: Path) -> None:
+def test_changed_multi_project_cycle_reloads_shared_obsidian_endpoint_once(
+    tmp_path: Path,
+) -> None:
+    first_root = _repo(tmp_path)
+    second_parent = tmp_path / "second"
+    second_parent.mkdir()
+    second_root = _repo(second_parent)
+    registry_path = _registry(
+        tmp_path,
+        first_root,
+        tmp_path / "vault" / "gas-city",
+        live_index={
+            "obsidian_cli": "/usr/bin/obsidian",
+            "vault": "main",
+            "probe_path": "GasCity/gas-city/Aegis/Home.md",
+            "timeout_seconds": 15,
+        },
+    )
+    payload = json.loads(registry_path.read_text(encoding="utf-8"))
+    payload["projects"].append(
+        {
+            "id": "blog",
+            "enabled": True,
+            "target_dir": str(second_root),
+            "output_dir": str(tmp_path / "vault" / "blog"),
+            "bead_export_argv": ["/usr/bin/bd", "list", "--json"],
+            "include_bead_content": False,
+            "freshness_sla_seconds": 180,
+            "live_index": {
+                "obsidian_cli": "/usr/bin/obsidian",
+                "vault": "main",
+                "probe_path": "GasCity/blog/Aegis/Home.md",
+                "timeout_seconds": 15,
+            },
+        }
+    )
+    registry_path.write_text(json.dumps(payload), encoding="utf-8")
+    registry = load_registry(registry_path)
+    calls: list[tuple[tuple[str, ...], int]] = []
+
+    def run(argv: tuple[str, ...], timeout: int) -> subprocess.CompletedProcess[bytes]:
+        calls.append((argv, timeout))
+        return subprocess.CompletedProcess(argv, 0, b"ok\n", b"")
+
+    result = obsidian_reconciler.reconcile_registry(
+        registry,
+        state_dir=tmp_path / "state",
+        bead_exporter=lambda _argv, _timeout: _beads(),
+        event_reader=lambda _target: [],
+        live_index_runner=run,
+        force=True,
+    )
+
+    assert result["ok"] is True
+    assert [call for call in calls if call[0][-1] == "reload"] == [
+        (("/usr/bin/obsidian", "vault=main", "reload"), 15)
+    ]
+    assert sorted(call[0][-1] for call in calls if "read" in call[0]) == [
+        "path=GasCity/blog/Aegis/Home.md",
+        "path=GasCity/gas-city/Aegis/Home.md",
+    ]
+    for project in result["projects"]:
+        assert project["live_index"]["status"] == "confirmed"
+        state = json.loads(
+            (tmp_path / "state" / f"{project['id']}.json").read_text(encoding="utf-8")
+        )
+        assert state["last_success"]["live_index"]["status"] == "confirmed"
+
+
+def test_unobservable_obsidian_is_observer_limited_not_publication_failure(
+    tmp_path: Path,
+) -> None:
     root = _repo(tmp_path)
     output = tmp_path / "vault"
     registry = load_registry(

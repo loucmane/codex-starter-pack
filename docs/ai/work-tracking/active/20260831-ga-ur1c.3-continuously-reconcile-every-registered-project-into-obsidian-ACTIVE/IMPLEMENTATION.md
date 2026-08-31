@@ -18,6 +18,11 @@
   bindings, raises the bounded live-index timeout to 30 seconds, and upgrades installation
   rollback to snapshot and restore private state, managed output trees, service result, and timer
   state after quiescing the reconciler.
+- Plugin v0.6.3 raises only the agent-identity ceiling to the pre-existing 5,000-edge bound,
+  batches every configured live-index probe after filesystem publication, and reloads a shared
+  Obsidian executable/vault endpoint at most once per cycle. Rollback waits through any persistent
+  timer catch-up execution, then restores captured state and output trees again before asserting
+  the predecessor timer substate.
 
 ## Verification to Date
 - `ruff check`: PASS for every changed Python source and test.
@@ -28,3 +33,9 @@
 - Two temporary editable-install tests require a network build-dependency fetch and are intentionally deferred to hosted CI; no package installation or safety bypass was used locally.
 - `ga-ve57` repair regression: 48 focused Obsidian/plugin tests plus the 158-test Aegis
   installer suite PASS (one certification smoke skipped by its explicit opt-in guard).
+- v0.6.3 focused regression: 33 PASS, including a 2,421-agent real-scale fixture, two changed
+  projects sharing one reload, and an `elapsed` to `waiting` rollback catch-up with final exact
+  tree restoration.
+- Expanded v0.6.3 regression: 226 PASS / 1 explicit certification skip across all Obsidian,
+  continuity, plugin, and Aegis-installer suites. Registry generation/root validation,
+  work-tracking audit, S:W:H:E guard, and `git diff --check` also pass.
