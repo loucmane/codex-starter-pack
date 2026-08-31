@@ -1686,6 +1686,60 @@
     "synced_at": "2026-08-31T22:07:22.374124+02:00"
   },
   {
+    "plan": "plans/2026-08-31-ga-35mj-exclude-closed-work-from-continuity-current-view.md",
+    "plan_hash": "6650db37e75bce3cad5475ced326e15c82cd182f69814ebb405a6afb5f1087c4",
+    "tracker_hash": "92dae9241daddec80c55d2a3d18a75f928623f42da37c443b2f3a0763088dc77",
+    "synced_at": "2026-08-31T22:17:46.973622+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-35mj-exclude-closed-work-from-continuity-current-view.md",
+    "plan_hash": "6650db37e75bce3cad5475ced326e15c82cd182f69814ebb405a6afb5f1087c4",
+    "tracker_hash": "92dae9241daddec80c55d2a3d18a75f928623f42da37c443b2f3a0763088dc77",
+    "synced_at": "2026-08-31T22:19:36.143667+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-35mj-exclude-closed-work-from-continuity-current-view.md",
+    "plan_hash": "6650db37e75bce3cad5475ced326e15c82cd182f69814ebb405a6afb5f1087c4",
+    "tracker_hash": "92dae9241daddec80c55d2a3d18a75f928623f42da37c443b2f3a0763088dc77",
+    "synced_at": "2026-08-31T22:19:45.580943+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-35mj-exclude-closed-work-from-continuity-current-view.md",
+    "plan_hash": "aaeabd5460f32213b079098959ec409c9b596727c50ec5fc6fc2dc8f35d89287",
+    "tracker_hash": "12b69c4b4ba0ddb6658abfc5c539d61257778ea1fe8f3753af834d8a2dc8b1d4",
+    "synced_at": "2026-08-31T22:20:10.609652+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-35mj-exclude-closed-work-from-continuity-current-view.md",
+    "plan_hash": "a7703333c86207860f3be39e0de9e595a0500f91dfbee6b3661da9f54af805ed",
+    "tracker_hash": "34c01c2fb1aa2c90f258b342dcd8b69cbefdcda803b43a7fe309fdf7602f49be",
+    "synced_at": "2026-08-31T22:20:45.767234+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-35mj-exclude-closed-work-from-continuity-current-view.md",
+    "plan_hash": "a7703333c86207860f3be39e0de9e595a0500f91dfbee6b3661da9f54af805ed",
+    "tracker_hash": "34c01c2fb1aa2c90f258b342dcd8b69cbefdcda803b43a7fe309fdf7602f49be",
+    "synced_at": "2026-08-31T22:20:46.068377+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-35mj-exclude-closed-work-from-continuity-current-view.md",
+    "plan_hash": "a7703333c86207860f3be39e0de9e595a0500f91dfbee6b3661da9f54af805ed",
+    "tracker_hash": "0b3c6cc04cd21de5e77a4beb36424de29d2a1d3f06dea9f54db9c90b64248143",
+    "synced_at": "2026-08-31T22:21:31.124807+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-35mj-exclude-closed-work-from-continuity-current-view.md",
+    "plan_hash": "a7703333c86207860f3be39e0de9e595a0500f91dfbee6b3661da9f54af805ed",
+    "tracker_hash": "0b3c6cc04cd21de5e77a4beb36424de29d2a1d3f06dea9f54db9c90b64248143",
+    "synced_at": "2026-08-31T22:21:31.445262+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-35mj-exclude-closed-work-from-continuity-current-view.md",
+    "plan_hash": "a7703333c86207860f3be39e0de9e595a0500f91dfbee6b3661da9f54af805ed",
+    "tracker_hash": "0b3c6cc04cd21de5e77a4beb36424de29d2a1d3f06dea9f54db9c90b64248143",
+    "synced_at": "2026-08-31T22:21:56.689309+02:00"
+  },
+  {
     "plan": "plans/2026-08-31-ga-ob3l-obsidian-cycle-consistency.md",
     "plan_hash": "941e6c514bd06d4dd7f9c3561b1d8fcd92418de677addfdc651cfa87c44ca224",
     "tracker_hash": "2dbf1f848461549c0468c4457976b6120818fa11c8699584f010e6d30de11c64",
