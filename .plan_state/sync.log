@@ -1432,5 +1432,41 @@
     "plan_hash": "e051bc6a9f8c98bd3496874c33245324382b364d787bab4b526157de4d55aeb7",
     "tracker_hash": "836742a85e7e03142352d6bdb00fb82616e8888b2056ee693c513a006d5d3ff5",
     "synced_at": "2026-08-31T15:08:47.155275+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-ur1c.3-continuously-reconcile-every-registered-project-into-obsidian.md",
+    "plan_hash": "bc051c7f3916bc93850f544d690c550e4c4ad72dbdce5648012d2dd3926983b9",
+    "tracker_hash": "bdeb119162a31893bac32bdc54217b04138cb9cd4647c8549b5f09503e7b7ffd",
+    "synced_at": "2026-08-31T15:17:59.171156+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-ur1c.3-continuously-reconcile-every-registered-project-into-obsidian.md",
+    "plan_hash": "8924205084c3815b72c6136533eb7a7a83315cfa0f47d208060a3152ddf1ad72",
+    "tracker_hash": "1bc305850d3f5d764927cd32c2a4dc3d6c1b0a8d80643b3fbff4e495184debd3",
+    "synced_at": "2026-08-31T15:20:24.870767+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-ur1c.3-continuously-reconcile-every-registered-project-into-obsidian.md",
+    "plan_hash": "8924205084c3815b72c6136533eb7a7a83315cfa0f47d208060a3152ddf1ad72",
+    "tracker_hash": "1bc305850d3f5d764927cd32c2a4dc3d6c1b0a8d80643b3fbff4e495184debd3",
+    "synced_at": "2026-08-31T15:44:04.210950+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-ur1c.3-continuously-reconcile-every-registered-project-into-obsidian.md",
+    "plan_hash": "8924205084c3815b72c6136533eb7a7a83315cfa0f47d208060a3152ddf1ad72",
+    "tracker_hash": "1bc305850d3f5d764927cd32c2a4dc3d6c1b0a8d80643b3fbff4e495184debd3",
+    "synced_at": "2026-08-31T15:44:15.389772+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-ur1c.3-continuously-reconcile-every-registered-project-into-obsidian.md",
+    "plan_hash": "c2ef18ce36e15c3c6750859cab5170aa2340418ae63e57fdbac6532279eaf325",
+    "tracker_hash": "1c06f7af69db99d04b5ce11473c2ea7e25fd4f8dba74f597b98d667de022a7e6",
+    "synced_at": "2026-08-31T15:45:13.797898+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-ur1c.3-continuously-reconcile-every-registered-project-into-obsidian.md",
+    "plan_hash": "c2ef18ce36e15c3c6750859cab5170aa2340418ae63e57fdbac6532279eaf325",
+    "tracker_hash": "1c06f7af69db99d04b5ce11473c2ea7e25fd4f8dba74f597b98d667de022a7e6",
+    "synced_at": "2026-08-31T15:45:21.089789+02:00"
   }
 ]
