@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gas-city.local/schemas/followups.v1.json",
+  "title": "Gas City structured follow-ups",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "followups"],
+  "properties": {
+    "schema": {"const": "gas-city-workflow.followups.v1"},
+    "followups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "summary"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "summary": {"type": "string", "minLength": 1},
+          "bead_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*(\\.[1-9][0-9]*)*$"
+          },
+          "disposition": {"type": "string", "minLength": 1}
+        },
+        "oneOf": [
+          {"required": ["bead_id"], "not": {"required": ["disposition"]}},
+          {"required": ["disposition"], "not": {"required": ["bead_id"]}}
+        ]
+      }
+    }
+  }
+}

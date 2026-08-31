@@ -1,12 +1,15 @@
 # Gas City Workflow plugin
 
-Version `0.4.2` packages the common lifecycle and frozen report-only evidence reviews without
+Version `0.5.0` packages the common lifecycle, cross-project continuity audit, and frozen
+report-only evidence reviews without
 copying project state into prompts or widening permissions.
 
 - `skills/gas-city-workflow/SKILL.md` is the small routing skill.
 - `scripts/project_context.py` emits the live read-only context capsule.
 - `scripts/workflow.py` executes journaled `begin`, `resume`, `recover`, `attach`, `checkpoint`,
   `verify`, `publish`, and `finish` transitions.
+- `scripts/continuity.py` captures one immutable cross-project observation and renders identical
+  machine and human Current/Next/Blocked/orphan views.
 - `config/projects.json` binds established canonical roots and exceptional worktree-root overrides.
 - `.gas-city-workflow.json` descriptors onboard future projects without changing plugin code.
 - `adapters/` keeps Codex execution and Fable read-only review on the same contract.
@@ -38,6 +41,12 @@ The evidence workflow similarly cannot grant dispatch or calculate a domain verd
 tracked project assets and external inputs, audits blind bundles and exact report directories,
 validates evidence-only reports, and enforces seal/readback/dispatch/release ordering. Only
 `mode=shadow` exists in v1. See `references/evidence-profile-contract.md`.
+
+The continuity workflow is read-only. It de-duplicates shared Bead stores by rig, derives active
+initiative scope from Beads, and checks Aegis, Git/worktrees, open PRs, lifecycle transactions,
+managed-signing receipts, structured follow-ups, and Obsidian coverage. A future project can be
+included with a validated local descriptor through repeatable `snapshot --project-root`; the
+auditor never scans arbitrary directories. See `references/continuity-contract.md`.
 
 For blind report lanes, `config/evidence-reviewer/` defines one generic rig-scoped Sol reviewer
 whose work directory is `/home/loucmane/gascity/evidence-runs`, whose additional writable-root

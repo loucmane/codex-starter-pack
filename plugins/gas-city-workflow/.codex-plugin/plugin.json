@@ -1,7 +1,7 @@
 {
   "name": "gas-city-workflow",
-  "version": "0.4.2+codex.20260830200900",
-  "description": "Transactional Beads-first lifecycle and frozen report-only evidence workflows for Gas City projects.",
+  "version": "0.5.0+codex.20260831130000",
+  "description": "Transactional Beads-first lifecycle, continuity audit, and frozen evidence workflows for Gas City projects.",
   "author": {
     "name": "Gas City maintainers"
   },
@@ -12,13 +12,14 @@
     "aegis",
     "workflow",
     "project-context",
-    "evidence"
+    "evidence",
+    "continuity"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Gas City Workflow",
     "shortDescription": "Orient and work safely in Gas City projects",
-    "longDescription": "Gas City Workflow provides a deterministic project-context capsule, journaled lifecycle transitions, and digest-bound report-only evidence reviews. It keeps Beads authoritative, preserves Aegis evidence, and applies the same lifecycle across Gas City, HPFetcher, Blog, and descriptor-based future projects without granting new permissions or calculating project verdicts.",
+    "longDescription": "Gas City Workflow provides a deterministic project-context capsule, journaled lifecycle transitions, a cross-project continuity auditor, and digest-bound report-only evidence reviews. It keeps Beads authoritative, preserves Aegis evidence, and applies the same lifecycle across Gas City, HPFetcher, Blog, and descriptor-based future projects without granting new permissions or calculating project verdicts.",
     "developerName": "Gas City maintainers",
     "category": "Developer Tools",
     "capabilities": [
@@ -27,6 +28,7 @@
     "defaultPrompt": [
       "Begin or resume this Gas City bead through the journaled project workflow",
       "Inspect the current bead, plan, session, journal, and next safe workflow step",
+      "Audit the active initiative and detect unbound workflow residue across registered projects",
       "Freeze and validate a report-only evidence run without changing project outputs"
     ]
   }
