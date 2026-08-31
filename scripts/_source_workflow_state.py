@@ -42,6 +42,12 @@ SOURCE_CLOSEOUT_PHASES = (
 LIFECYCLE_IDLE = "IDLE"
 LIFECYCLE_ACTIVE = "ACTIVE"
 LIFECYCLE_CLOSEOUT_PENDING = "CLOSEOUT_PENDING"
+BEAD_ID_PATTERN = re.compile(
+    r"^[a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*(?:\.[1-9][0-9]*)*$"
+)
+NATIVE_BEAD_BRANCH_PATTERN = re.compile(
+    r"^codex/(?P<bead>[a-z][a-z0-9]*-[a-z0-9]+(?:\.[1-9][0-9]*)*)(?:[-/].*)?$"
+)
 
 
 class SourceWorkflowStateError(RuntimeError):
@@ -105,8 +111,8 @@ def task_id_from_branch(branch: str) -> str | None:
 
 
 def bead_id_from_branch(branch: str) -> str | None:
-    match = re.fullmatch(r"codex/([a-z][a-z0-9]*-[a-z0-9]+)(?:[-/].*)?", branch)
-    return match.group(1) if match else None
+    match = NATIVE_BEAD_BRANCH_PATTERN.fullmatch(branch)
+    return match.group("bead") if match else None
 
 
 def _task_token_pattern(task_id: str) -> re.Pattern[str]:
@@ -248,7 +254,7 @@ def _work_identity_from_current_pointers(root: Path) -> tuple[str, str]:
     else:
         assert bead_ids_match is not None
         bead_items = [item.strip().strip("'\"") for item in bead_ids_match.group(1).split(",")]
-        if len(bead_items) != 1 or not re.fullmatch(r"[a-z][a-z0-9]*-[a-z0-9]+", bead_items[0]):
+        if len(bead_items) != 1 or not BEAD_ID_PATTERN.fullmatch(bead_items[0]):
             raise SourceWorkflowStateError("current plan must declare exactly one valid bead ID")
         work_kind = "bead"
         work_id = bead_items[0]
@@ -322,8 +328,15 @@ def read_source_closeout_transaction(root: Path) -> dict[str, object] | None:
     if not isinstance(work, dict) or work.get("kind") not in {"task", "bead"}:
         raise SourceWorkflowStateError("source closeout journal work identity is invalid")
     work_id = work.get("id")
-    work_pattern = r"\d+" if work.get("kind") == "task" else r"[a-z][a-z0-9]*-[a-z0-9-]+"
-    if not isinstance(work_id, str) or not re.fullmatch(work_pattern, work_id):
+    valid_work_id = (
+        isinstance(work_id, str)
+        and (
+            bool(re.fullmatch(r"\d+", work_id))
+            if work.get("kind") == "task"
+            else bool(BEAD_ID_PATTERN.fullmatch(work_id))
+        )
+    )
+    if not valid_work_id:
         raise SourceWorkflowStateError("source closeout journal work ID is invalid")
     paths = payload.get("paths")
     if not isinstance(paths, dict) or set(paths) != {"active", "archive", "plan", "session"}:

@@ -6,7 +6,7 @@
   "repository": {
     "full_name": "loucmane/gas-city-operations",
     "default_branch": "main",
-    "task_branch_pattern": "^(?:codex/[a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*-[a-z0-9-]+|feat/task-[0-9]+-[a-z0-9-]+)$"
+    "task_branch_pattern": "^(?:codex/[a-z][a-z0-9]*-[a-z0-9]+(?:\\.[1-9][0-9]*)*(?:-[a-z0-9-]+)?|feat/task-[0-9]+-[a-z0-9-]+)$"
   },
   "authority": {
     "status": "active",

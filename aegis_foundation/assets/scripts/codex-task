@@ -2868,7 +2868,7 @@ def _load_source_closeout_transaction() -> Optional[Dict[str, object]]:
 
 def _work_identity_from_active_folder(folder: Path) -> Tuple[str, str]:
     match = re.match(
-        r"^\d{8}-(?:task-?(?P<task>\d+)|(?P<bead>[a-z][a-z0-9]*-[a-z0-9]+))(?:-|$)",
+        r"^\d{8}-(?:task-?(?P<task>\d+)|(?P<bead>[a-z][a-z0-9]*-[a-z0-9]+(?:\.[1-9][0-9]*)*))(?:-|$)",
         folder.name,
         re.IGNORECASE,
     )

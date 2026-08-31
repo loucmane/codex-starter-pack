@@ -40,7 +40,7 @@ EXIT_CODE_BY_CLASS = {
 
 TASK_BRANCH_RE = re.compile(r"task-?(\d+)", re.IGNORECASE)
 BEAD_BRANCH_RE = re.compile(
-    r"(?:^|/)([a-z][a-z0-9]*-[a-z0-9]+)(?:-|$)",
+    r"(?:^|/)([a-z][a-z0-9]*-[a-z0-9]+(?:\.[1-9][0-9]*)*)(?:-|$)",
     re.IGNORECASE,
 )
 DONE_FLIP_ADDED_RE = re.compile(

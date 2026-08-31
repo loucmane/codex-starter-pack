@@ -17,10 +17,12 @@ from scripts._source_workflow_state import (
     LIFECYCLE_CLOSEOUT_PENDING,
     LIFECYCLE_IDLE,
     SourceWorkflowStateError,
+    bead_id_from_branch,
     derive_completed_source_work,
     derive_source_lifecycle,
     recover_source_current_work,
     retire_recovered_source_current_work,
+    read_source_closeout_transaction,
 )
 from scripts import _aegis_installer
 
@@ -367,6 +369,52 @@ def test_completed_source_work_supports_bead_native_closeout(tmp_path: Path) -> 
     assert state.work_id == "ga-test1"
     assert state.tracker_path == tracker.resolve()
     assert not (root / ".taskmaster").exists()
+
+
+def test_source_identity_accepts_native_hierarchy_and_rejects_malformed_levels(
+    tmp_path: Path,
+) -> None:
+    assert (
+        bead_id_from_branch("codex/ga-ur1c.1-continuity-status-auditor")
+        == "ga-ur1c.1"
+    )
+    for branch in (
+        "codex/ga-ur1c.0-continuity-status-auditor",
+        "codex/ga-ur1c.01-continuity-status-auditor",
+        "codex/ga-ur1c..1-continuity-status-auditor",
+    ):
+        assert bead_id_from_branch(branch) is None
+
+    root = tmp_path / "journal"
+    journal = root / ".plan_state" / "source-closeout-transaction.json"
+    _write(
+        journal,
+        json.dumps(
+            {
+                "schema": "aegis.source-closeout-transaction.v1",
+                "transaction_id": "a" * 64,
+                "phase": "prepared",
+                "work": {"kind": "bead", "id": "ga-ur1c.1"},
+                "paths": {
+                    "active": "active",
+                    "archive": "archive",
+                    "plan": "plan",
+                    "session": "session",
+                },
+                "timestamps": {
+                    "created_at": "2030-01-01T00:00:00+00:00",
+                    "date": "2030-01-01",
+                    "display": "2030-01-01 00:00 UTC",
+                    "tracker": "2030-01-01 00:00",
+                },
+            }
+        ),
+    )
+
+    assert read_source_closeout_transaction(root)["work"] == {
+        "kind": "bead",
+        "id": "ga-ur1c.1",
+    }
 
 
 def test_source_lifecycle_classifies_idle_active_and_closeout_pending(

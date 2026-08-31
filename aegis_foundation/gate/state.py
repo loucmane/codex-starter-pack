@@ -8,6 +8,9 @@ import subprocess
 from pathlib import Path
 from typing import Iterable
 
+NATIVE_BEAD_BRANCH_PATTERN = re.compile(
+    r"^codex/(?P<bead>[a-z][a-z0-9]*-[a-z0-9]+(?:\.[1-9][0-9]*)*)(?:[-/].*)?$"
+)
 
 
 def run_git(root: Path, *args: str) -> tuple[int, str, str]:
@@ -52,8 +55,8 @@ def task_id_from_branch(branch: str) -> str | None:
 
 
 def bead_id_from_branch(branch: str) -> str | None:
-    match = re.fullmatch(r"codex/([a-z][a-z0-9]*-[a-z0-9]+)(?:[-/].*)?", branch)
-    return match.group(1) if match else None
+    match = NATIVE_BEAD_BRANCH_PATTERN.fullmatch(branch)
+    return match.group("bead") if match else None
 
 
 def plan_bead_ids(plan_text: str) -> set[str]:
