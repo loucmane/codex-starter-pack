@@ -19,3 +19,6 @@
 - Real-root read-only proof resolved Gas City Operations, Gas City, HPFetcher, and Blog through the expected descriptor/registry identities without project mutation.
 - Source/package installer, contract, and schema bytes are identical; `git diff --check` passes.
 - Repository pre-commit passes all configured hooks: secret scan, guard validation, and strict drift check.
+- PR #343 first hosted matrix run exposed four stale expectation assertions, not runtime failures: three managed-update golden plans omitted the two new managed delegation files and the modular hook inventory omitted `delegation.py`.
+- Regenerated plan counts/digests and the explicit module inventory pass the exact failed tests; the branch-relevant verification set now reports 925 passed and one expected opt-in certification skip.
+- The repository's three configured hook commands pass on the append-forward candidate: secret scan, S:W:H:E guard validation, and strict drift check with zero findings.

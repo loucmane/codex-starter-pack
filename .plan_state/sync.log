@@ -1588,5 +1588,11 @@
     "plan_hash": "105acb3a9ceb3f0cca30a7323cd714569a95e6717b1bfa4bf7af26a9d0a3e887",
     "tracker_hash": "24793eb450d924de4e0a52018e2e4052fa93cab0e75af4765dbd0a4aa86dbd91",
     "synced_at": "2026-08-31T18:13:16.264350+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-ur1c.4-enforce-gas-city-delegation-in-managed-projects.md",
+    "plan_hash": "105acb3a9ceb3f0cca30a7323cd714569a95e6717b1bfa4bf7af26a9d0a3e887",
+    "tracker_hash": "24793eb450d924de4e0a52018e2e4052fa93cab0e75af4765dbd0a4aa86dbd91",
+    "synced_at": "2026-08-31T18:26:56.464378+02:00"
   }
 ]
