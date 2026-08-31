@@ -226,12 +226,21 @@ plan.write_text(
     return root, registry
 
 
-def _bead(*, status: str = "open", dependency_status: str | None = None):
+def _bead(
+    *,
+    bead_id: str = "ga-test",
+    status: str = "open",
+    dependency_status: str | None = None,
+    dependency_type: str | None = None,
+):
     dependencies = []
     if dependency_status is not None:
-        dependencies.append({"id": "ga-parent", "status": dependency_status})
+        dependency = {"id": "ga-parent", "status": dependency_status}
+        if dependency_type is not None:
+            dependency["dependency_type"] = dependency_type
+        dependencies.append(dependency)
     return {
-        "id": "ga-test",
+        "id": bead_id,
         "title": "Fixture transition",
         "status": status,
         "dependencies": dependencies,
@@ -787,3 +796,133 @@ def test_begin_refuses_unresolved_dependencies_before_creating_state(tmp_path: P
         )
 
     assert not (tmp_path / "future-project-worktrees").exists()
+
+
+def test_begin_accepts_hierarchical_bead_id_across_identity_surfaces(
+    tmp_path: Path,
+) -> None:
+    root, registry = _fixture_project(tmp_path)
+    bead_id = "ga-parent.1.2"
+
+    result = begin(
+        root,
+        bead_id,
+        slug="fixture",
+        goals=[],
+        registry=registry,
+        runner=FixtureRunner(_bead(bead_id=bead_id)),
+    )
+
+    worktree = Path(result["spec"]["worktree"])
+    journal = Path(result["journal"])
+    assert result["spec"]["bead_id"] == bead_id
+    assert result["spec"]["branch"] == f"codex/{bead_id}-fixture"
+    assert worktree.name == f"{bead_id}-fixture"
+    assert plan_bead_ids(worktree) == [bead_id]
+    assert journal.name == f"{bead_id}.json"
+
+
+@pytest.mark.parametrize(
+    "bead_id",
+    [
+        "ga-test.",
+        "ga-test..1",
+        ".ga-test",
+        "ga-test/1",
+        "ga-test.0",
+        "ga-test.child",
+        "ga-test.../escape",
+    ],
+)
+def test_begin_refuses_unsafe_hierarchical_bead_ids_before_creating_state(
+    tmp_path: Path,
+    bead_id: str,
+) -> None:
+    root, registry = _fixture_project(tmp_path)
+
+    with pytest.raises(WorkflowError, match="invalid bead id"):
+        begin(
+            root,
+            bead_id,
+            slug="fixture",
+            goals=[],
+            registry=registry,
+            runner=FixtureRunner(_bead(bead_id=bead_id)),
+        )
+
+    assert not (tmp_path / "future-project-worktrees").exists()
+
+
+@pytest.mark.parametrize("dependency_type", ["parent-child", "relates-to", "tracks"])
+def test_begin_ignores_open_nonblocking_relationships(
+    tmp_path: Path,
+    dependency_type: str,
+) -> None:
+    root, registry = _fixture_project(tmp_path)
+
+    result = begin(
+        root,
+        "ga-test",
+        slug="fixture",
+        goals=[],
+        registry=registry,
+        runner=FixtureRunner(
+            _bead(dependency_status="open", dependency_type=dependency_type)
+        ),
+    )
+
+    assert result["phase"] == "ready"
+
+
+def test_begin_refuses_open_explicit_blocker_before_creating_state(tmp_path: Path) -> None:
+    root, registry = _fixture_project(tmp_path)
+
+    with pytest.raises(WorkflowError, match="unresolved dependencies: ga-parent"):
+        begin(
+            root,
+            "ga-test",
+            slug="fixture",
+            goals=[],
+            registry=registry,
+            runner=FixtureRunner(
+                _bead(dependency_status="open", dependency_type="blocks")
+            ),
+        )
+
+    assert not (tmp_path / "future-project-worktrees").exists()
+
+
+def test_attach_refuses_open_nonblocking_relationship(tmp_path: Path) -> None:
+    root, registry = _fixture_project(tmp_path)
+    beads = {
+        "ga-test": _bead(),
+        "ga-related": {
+            "id": "ga-related",
+            "title": "Related but nonblocking work",
+            "status": "open",
+            "dependencies": [],
+        },
+    }
+    runner = MultiBeadRunner(beads, "ga-test")
+    started = begin(
+        root,
+        "ga-test",
+        slug="fixture",
+        goals=[],
+        registry=registry,
+        runner=runner,
+    )
+    worktree = Path(started["spec"]["worktree"])
+    beads["ga-test"]["dependencies"] = [
+        {
+            "id": "ga-related",
+            "status": "open",
+            "dependency_type": "relates-to",
+        }
+    ]
+
+    with pytest.raises(WorkflowError, match="not a declared dependency"):
+        attach(worktree, "ga-related", runner, registry=registry)
+
+    assert beads["ga-related"]["status"] == "open"
+    assert plan_bead_ids(worktree) == ["ga-test"]

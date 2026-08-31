@@ -5526,6 +5526,16 @@ def test_bead_kickoff_creates_bead_native_ready_state(tmp_path: Path) -> None:
     assert "READY | task=ga-zbmk" in readiness.stdout
 
 
+def test_aegis_kickoff_accepts_hierarchical_bead_id() -> None:
+    assert aegis_installer._normalize_bead_id("ga-parent.1.2") == "ga-parent.1.2"
+
+
+@pytest.mark.parametrize("bead_id", ["ga-parent.0", "ga-parent.child", "ga-parent..1"])
+def test_aegis_kickoff_rejects_invalid_hierarchical_bead_id(bead_id: str) -> None:
+    with pytest.raises(AegisError, match="requires a lowercase bead id"):
+        aegis_installer._normalize_bead_id(bead_id)
+
+
 def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_path: Path) -> None:
     target = tmp_path / "portable-repo"
     target.mkdir()

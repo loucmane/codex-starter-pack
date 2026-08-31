@@ -13,6 +13,7 @@ from workflow_common import (
     CommandRunner,
     WorkflowError,
     active_bead_id,
+    is_blocking_dependency,
     load_bead,
     managed_environment,
     plan_bead_ids,
@@ -26,7 +27,7 @@ def _dependency_ids(bead: Mapping[str, Any]) -> set[str]:
     return {
         str(item.get("id") or item.get("depends_on_id") or "")
         for item in bead.get("dependencies", [])
-        if isinstance(item, Mapping)
+        if isinstance(item, Mapping) and is_blocking_dependency(item)
     } - {""}
 
 

@@ -18,8 +18,13 @@ from project_context import DEFAULT_REGISTRY, build_context
 WORKFLOW_SCHEMA = "gas-city-workflow.transition.v1"
 RESULT_SCHEMA = "gas-city-workflow.result.v1"
 PHASES = ("planned", "worktree-created", "scaffolded", "claimed", "ready")
-BEAD_PATTERN = re.compile(r"^[a-z][a-z0-9-]*$")
+BEAD_PATTERN = re.compile(
+    r"^[a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*(?:\.[1-9][0-9]*)*$"
+)
 SLUG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+NONBLOCKING_RELATIONSHIP_TYPES = frozenset(
+    {"parent-child", "relates-to", "tracks"}
+)
 
 PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 SOURCE_ROOT = PLUGIN_ROOT.parent.parent
@@ -163,6 +168,19 @@ def load_bead(
     return bead
 
 
+def is_blocking_dependency(item: Mapping[str, Any]) -> bool:
+    """Treat only known non-blocking relationships as informational.
+
+    Missing and unknown relationship types remain blocking so an API/schema change cannot
+    silently make real prerequisites startable.
+    """
+
+    relationship_type = str(
+        item.get("dependency_type") or item.get("type") or ""
+    ).strip()
+    return relationship_type not in NONBLOCKING_RELATIONSHIP_TYPES
+
+
 def require_bead_ready(bead: Mapping[str, Any]) -> None:
     status = str(bead.get("status") or "")
     if status not in {"open", "in_progress"}:
@@ -170,7 +188,11 @@ def require_bead_ready(bead: Mapping[str, Any]) -> None:
     open_dependencies = [
         str(item.get("id") or item.get("depends_on_id") or "<unknown>")
         for item in bead.get("dependencies", [])
-        if isinstance(item, Mapping) and str(item.get("status") or "closed") != "closed"
+        if (
+            isinstance(item, Mapping)
+            and str(item.get("status") or "closed") != "closed"
+            and is_blocking_dependency(item)
+        )
     ]
     if open_dependencies:
         raise WorkflowError(

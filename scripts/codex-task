@@ -133,7 +133,9 @@ TASKMASTER_TASKS_JSON_REL = REPO_STRUCTURE.taskmaster_tasks_json.relative_to(REP
 SESSIONS_CURRENT_REL = REPO_STRUCTURE.current_session_link.relative_to(REPO_ROOT).as_posix()
 PLANS_CURRENT_REL = REPO_STRUCTURE.current_plan_link.relative_to(REPO_ROOT).as_posix()
 SESSION_STATE_REL = REPO_STRUCTURE.session_state_path.relative_to(REPO_ROOT).as_posix()
-BEAD_ID_PATTERN = re.compile(r"^[a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*$")
+BEAD_ID_PATTERN = re.compile(
+    r"^[a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*(?:\.[1-9][0-9]*)*$"
+)
 BOOTSTRAP_SETUP_REL = ".codex/bootstrap/FOUNDATION-SETUP.md"
 BOOTSTRAP_STRUCTURE_KEYS = tuple(DEFAULT_REPO_STRUCTURE.keys())
 AGENT_COMPATIBILITY_MATRIX = REPO_ROOT / "templates" / "registry" / "agent-compatibility-matrix.json"
