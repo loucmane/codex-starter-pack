@@ -50,7 +50,9 @@ def test_rendered_user_units_are_reboot_persistent_and_output_scoped(tmp_path: P
     assert "NoNewPrivileges=true" in service
     assert "ProtectSystem=strict" in service
     assert "OnBootSec=45s" in timer
-    assert "OnUnitActiveSec=60s" in timer
+    assert "OnActiveSec=60s" in timer
+    assert "OnUnitInactiveSec=60s" in timer
+    assert "OnUnitActiveSec=" not in timer
     assert "Persistent=true" in timer
 
 
@@ -95,6 +97,24 @@ def test_source_installer_plans_from_external_working_directory(tmp_path: Path) 
     )
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout)["schema_version"] == "1"
+
+
+def test_systemctl_start_uses_reconciliation_wide_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[tuple[object, ...], dict[str, object]]] = []
+
+    def run(*args: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        calls.append((args, kwargs))
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr(obsidian_install.subprocess, "run", run)
+
+    obsidian_install._run_systemctl("start", "aegis-obsidian-reconcile.service")
+    obsidian_install._run_systemctl("start", "aegis-obsidian-reconcile.timer")
+
+    assert calls[0][1]["timeout"] == 360
+    assert calls[1][1]["timeout"] == 30
 
 
 def _source_registry(tmp_path: Path, home: Path) -> Path:
@@ -175,17 +195,35 @@ def test_install_failure_rolls_back_new_files(
     state.chmod(0o700)
     (state / "before.json").write_text('{"before":true}\n', encoding="utf-8")
     systemctl_calls: list[tuple[str, ...]] = []
+    service_starts = 0
 
     def systemctl(*arguments: str) -> subprocess.CompletedProcess[str]:
+        nonlocal service_starts
         systemctl_calls.append(arguments)
         if arguments[:2] == ("start", "aegis-obsidian-reconcile.service"):
+            service_starts += 1
             (output / "before.md").write_text("mutated\n", encoding="utf-8")
             (output / "transient.md").write_text("transient\n", encoding="utf-8")
             (state / "before.json").write_text('{"before":false}\n', encoding="utf-8")
             (state / "transient.json").write_text("{}\n", encoding="utf-8")
-            return subprocess.CompletedProcess(arguments, 1, "", "simulated refusal")
-        if arguments[0] in {"is-enabled", "is-active"}:
-            return subprocess.CompletedProcess(arguments, 1, "disabled\n", "")
+            if service_starts == 1:
+                return subprocess.CompletedProcess(arguments, 1, "", "simulated refusal")
+            return subprocess.CompletedProcess(arguments, 0, "", "")
+        if arguments[0] == "is-enabled":
+            enabled = arguments[1] == "aegis-obsidian-reconcile.timer"
+            return subprocess.CompletedProcess(
+                arguments, 0 if enabled else 1, "enabled\n" if enabled else "disabled\n", ""
+            )
+        if arguments[0] == "is-active":
+            active = arguments[1] == "aegis-obsidian-reconcile.timer"
+            return subprocess.CompletedProcess(
+                arguments, 0 if active else 1, "active\n" if active else "inactive\n", ""
+            )
+        if arguments[0] == "show" and "SubState" in arguments:
+            value = "waiting\n" if arguments[1] == "aegis-obsidian-reconcile.timer" else "dead\n"
+            return subprocess.CompletedProcess(arguments, 0, value, "")
+        if arguments[0] == "show" and "Result" in arguments:
+            return subprocess.CompletedProcess(arguments, 0, "success\n", "")
         return subprocess.CompletedProcess(arguments, 0, "", "")
 
     monkeypatch.setattr(obsidian_install, "_run_systemctl", systemctl)
@@ -206,6 +244,7 @@ def test_install_failure_rolls_back_new_files(
     assert (output / "before.md").read_text(encoding="utf-8") == "before\n"
     assert not (output / "transient.md").exists()
     assert ("reset-failed", "aegis-obsidian-reconcile.service") in systemctl_calls
+    assert service_starts == 2
 
 
 def test_install_refuses_missing_output_parent_before_writing(

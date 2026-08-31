@@ -10,5 +10,11 @@
   read. File rollback was exact, but transient private state and a failed oneshot result required
   explicit reconciliation. Repair bead `ga-ve57` therefore makes rig roots declarative and the
   entire user-level transaction rollback-exact.
+- 2026-08-31 — The merge-bound retry restored files, state, and outputs exactly but exposed two
+  controller-level timing assumptions: the 30-second subprocess deadline was shorter than a valid
+  four-project reconciliation, and restarting an elapsed `OnUnitActiveSec` timer does not schedule
+  a future trigger. The predecessor was restored to waiting after one normal old-runtime cycle;
+  v0.6.2 uses a 360-second whole-cycle bound plus activation/inactivity timer semantics and verifies
+  the exact timer substate during rollback.
 - 2026-08-31 — The vault is missing the direct `GasCity/gas-city` parent while the managed root itself is safe. The installer now permits only one direct `<project-id>` parent beneath the declared managed root and removes a newly created empty or solely managed parent on rollback; it cannot create arbitrary ancestors.
 - 2026-08-31 — Local full-suite execution reached the editable-package invocation tests, which require fetching a build dependency. Network-enabled package installation was correctly refused by the runtime safety boundary. All in-scope tests and adjacent offline integration modules pass; hosted CI remains the authority for those two network-dependent tests.
