@@ -136,6 +136,7 @@ def test_source_policy_and_packaged_assets_are_valid_and_identical() -> None:
     )
     branch_pattern = policy["repository"]["task_branch_pattern"]
     assert re.fullmatch(branch_pattern, "codex/ga-zbmk-aegis-beads-obsidian")
+    assert re.fullmatch(branch_pattern, "codex/ga-ur1c.1-continuity-status-auditor")
     assert re.fullmatch(branch_pattern, "feat/task-247-routine-change")
     assert SCRIPT_PATH.read_bytes() == PACKAGED_SCRIPT_PATH.read_bytes()
     assert SCHEMA_PATH.read_bytes() == PACKAGED_SCHEMA_PATH.read_bytes()

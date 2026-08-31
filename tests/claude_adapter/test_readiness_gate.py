@@ -236,6 +236,18 @@ def test_ready_when_bead_source_branch_session_plan_and_tracker_align(tmp_path: 
     assert "plan-step statuses align" in result.stdout
 
 
+def test_ready_when_hierarchical_bead_source_surfaces_align(tmp_path: Path) -> None:
+    repo = make_bead_source_repo(tmp_path, bead_id="ga-ur1c.1")
+
+    result = readiness(repo)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "STATE: READY" in result.stdout
+    assert "TASK: ga-ur1c.1" in result.stdout
+    assert "bead-native source work ga-ur1c.1" in result.stdout
+    assert "plan-step statuses align" in result.stdout
+
+
 def test_bead_source_readiness_blocks_when_plan_declares_another_bead(tmp_path: Path) -> None:
     repo = make_bead_source_repo(tmp_path)
     plan = (repo / "plans" / "current").resolve()

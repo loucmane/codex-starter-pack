@@ -8542,3 +8542,19 @@ def test_handle_bootstrap_init_supports_cross_project_repo_shapes(tmp_path) -> N
         assert (target / shape.roots["reports_root"] / "template-performance").is_dir()
         assert (target / shape.roots["reports_root"] / "cost-tracking").is_dir()
         assert (target / shape.roots["reports_root"] / "migration-health").is_dir()
+
+
+def test_active_folder_identity_accepts_native_hierarchical_bead() -> None:
+    module = load_task_module()
+
+    assert module._work_identity_from_active_folder(
+        Path("20260831-ga-ur1c.1-continuity-status-auditor-ACTIVE")
+    ) == ("bead", "ga-ur1c.1")
+
+    for name in (
+        "20260831-ga-ur1c.0-continuity-status-auditor-ACTIVE",
+        "20260831-ga-ur1c.01-continuity-status-auditor-ACTIVE",
+        "20260831-ga-ur1c..1-continuity-status-auditor-ACTIVE",
+    ):
+        with pytest.raises(module.TaskError, match="Could not derive exactly one work identity"):
+            module._work_identity_from_active_folder(Path(name))
