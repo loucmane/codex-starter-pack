@@ -7,7 +7,7 @@ description: Orient and execute repository work in Gas City, HPFetcher, Blog, or
 
 Start from live state, never memory.
 
-1. Run `python3 <PLUGIN_ROOT>/scripts/project_context.py --root <project-root>` and stop if it blocks.
+1. Run `python3 <PLUGIN_ROOT>/scripts/project_context.py --root <project-root>` and stop if it blocks. The shared root policy rejects the preserved `/home/loucmane/codex` checkout and every linked worktree owned by its Git common directory; use the reported `/home/loucmane/gas-city-ops` canonical root for new Gas City Operations work.
 2. Read the project’s `AGENTS.md` and `CLAUDE.md`; the project-local instructions override generic examples.
 3. Treat the capsule’s `workflow.authority`, exact `project.rig`, and `workspace` policy as binding. The canonical checkout is `workspace.canonical_root`; create linked worktrees only as direct children of `workspace.worktree_root`. Never choose a worktree location from memory or filesystem writability.
 4. Before answering “what is current/next/left?” across projects, run the continuity snapshot and status commands from `<PLUGIN_ROOT>/scripts/continuity.py`. Do not reconstruct the initiative from chat, prose notes, or a filesystem listing. A BLOCKED report is a finding to route through its Bead, not a reason to invent a plan.

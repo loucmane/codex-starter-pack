@@ -1,15 +1,16 @@
 # Gas City Operations repository and workspace migration
 
-Status: prepared, not executed. This document and its auditor authorize no
-GitHub rename, clone, consumer rewrite, worktree removal, or workspace cleanup.
+Status: repository/workspace cutover complete; historical-root mutation retirement is enforced by
+the versioned Gas City Workflow root policy and its transactional user-level adapter installer.
+This document and its auditor authorize no worktree removal or workspace cleanup.
 
 ## Objective
 
 - Rename `loucmane/codex-starter-pack` to
   `loucmane/gas-city-operations`.
 - Establish a fresh canonical clone at `/home/loucmane/gas-city-ops`.
-- Keep `/home/loucmane/codex` intact as a compatibility/evidence root until a
-  later retirement audit proves it has no active consumers.
+- Keep `/home/loucmane/codex` intact as a compatibility/evidence root while making it fail closed
+  for new source mutation and directing cold starts to `/home/loucmane/gas-city-ops`.
 - Keep Aegis Foundation, Gas City, Gas City Workflow, and `codex/*` named as
   specified in `repository-and-product-naming.md`.
 
@@ -76,12 +77,17 @@ and generated tool/cache directories at every depth.
    Beads/readiness/guard/closeout behavior, CI, and Obsidian publication from
    the new clone before declaring it canonical.
 8. Record a digest-backed old-to-new mapping. Leave the old checkout intact.
+9. Install the merge-bound shared root policy through
+   `plugins/gas-city-workflow/scripts/install_root_policy.py`. It must add one user-level guard per
+   client, mark only the old Codex project entry untrusted, repoint only Claude's Aegis source,
+   prove exact historical Git/worktree non-interference, and preserve byte-exact rollback evidence.
 
 ## Rollback and stop rules
 
-Before old-root retirement, rollback is to point active consumers back at the
-still-intact old checkout and leave the new clone inert. Stop on head/tree or
+Before root-policy installation, rollback is to leave both clients unchanged and keep using the
+already-canonical checkout. A failed installation restores every managed user file byte-exact and
+leaves the historical checkout intact. Stop on head/tree or
 signature drift, dirty/unowned worktrees, unknown consumers, failed Aegis or
 plugin startup, missing evidence, CI failure, or any need to overwrite/delete
-unrelated state. Retiring the old root or any worktree requires a later,
-separately reviewed gate.
+unrelated state. Deleting the old root or any worktree remains forbidden and requires a later,
+separately reviewed gate; mutation retirement does not mean filesystem deletion.

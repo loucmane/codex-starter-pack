@@ -1,6 +1,6 @@
 {
   "name": "gas-city-workflow",
-  "version": "0.5.0+codex.20260831130000",
+  "version": "0.5.0+codex.20260831160000",
   "description": "Transactional Beads-first lifecycle, continuity audit, and frozen evidence workflows for Gas City projects.",
   "author": {
     "name": "Gas City maintainers"

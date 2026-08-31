@@ -19,6 +19,14 @@ python3 <PLUGIN_ROOT>/scripts/project_context.py --root /absolute/project/root
 
 The result binds repository identity, exact rig, canonical checkout, approved linked-worktree root, branch/head/cleanliness, current plan/session pointers, ACTIVE trackers, adapter instructions, and literal Beads read commands. Stop if the root is not an exact Git worktree root, registry/descriptor identity is ambiguous, the current worktree is outside the approved root, or authority is not `beads`.
 
+Before registry or descriptor resolution, the context command applies `config/root-policy.json` to
+the Git common directory. `/home/loucmane/codex` is preserved historical evidence, not a source
+root; its main checkout and all of its linked worktrees fail with the canonical replacement path.
+The same evaluator is installed as one user-level Codex and Claude PreToolUse hook, preventing a
+cold-start agent from mutating the historical root even before it remembers to run context. Project
+trust is defense in depth only; the hook is the active mutation boundary. Canonical IDLE and active
+task states use the same identity contract and remain valid.
+
 ## Lifecycle transitions
 
 Run `workflow.py begin --root <canonical-root> --bead <id>` instead of remembering the

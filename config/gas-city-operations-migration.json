@@ -17,7 +17,7 @@
     "legacy_root": "/home/loucmane/codex",
     "canonical_root": "/home/loucmane/gas-city-ops",
     "strategy": "fresh-clone",
-    "legacy_retirement": "separate-gate"
+    "legacy_retirement": "user-hooks-and-shared-root-policy"
   },
   "compatibility": {
     "branch_namespace": "codex/*",
@@ -55,7 +55,15 @@
     "config/gas-city-operations-migration.json",
     "docs/operations/gas-city-operations-workspace-migration.md",
     "docs/operations/repository-and-product-naming.md",
+    "plugins/gas-city-workflow/README.md",
+    "plugins/gas-city-workflow/adapters/codex.md",
+    "plugins/gas-city-workflow/adapters/fable.md",
+    "plugins/gas-city-workflow/config/root-policy.json",
+    "plugins/gas-city-workflow/references/workflow-contract.md",
+    "plugins/gas-city-workflow/scripts/install_root_policy.py",
+    "plugins/gas-city-workflow/skills/gas-city-workflow/SKILL.md",
     "scripts/gas-city-operations-migration",
-    "tests/meta_workflow_guard/test_gas_city_operations_migration.py"
+    "tests/meta_workflow_guard/test_gas_city_operations_migration.py",
+    "tests/meta_workflow_guard/test_gas_city_root_policy.py"
   ]
 }

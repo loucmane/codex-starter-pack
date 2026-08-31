@@ -9,10 +9,11 @@ This repository has four related identities. They are deliberately distinct:
 | Multi-project agent runtime | **Gas City** | `gc`, Gas City rigs, Gas City beads |
 | Codex/Fable project-context plugin | **Gas City Workflow** | `gas-city-workflow` |
 
-`codex-starter-pack` was the repository's bootstrap name. It is a legacy
-repository alias, not the product name. `/home/loucmane/codex` is the legacy
-canonical checkout and remains an evidence/worktree compatibility root until a
-separate retirement audit reports no remaining consumers.
+`codex-starter-pack` was the repository's bootstrap name. It is a legacy repository alias, not
+the product name. `/home/loucmane/codex` is the preserved historical checkout. It remains readable
+as an evidence/worktree compatibility root but is fail-closed for new source mutation; the
+versioned Gas City Workflow root policy directs both Codex and Claude to
+`/home/loucmane/gas-city-ops`.
 
 ## Compatibility decisions
 
@@ -42,8 +43,9 @@ The migration has a hard two-stage boundary:
    update active URLs and absolute-path consumers. Verify each consumer from
    the new clone before designating it canonical.
 
-The old checkout is not moved or deleted. Its eventual retirement is a separate
-gate because linked worktrees contain absolute administrative paths.
+The old checkout is not moved or deleted. Mutation retirement is enforced against its Git common
+directory, so linked worktrees cannot evade the guard. Any eventual filesystem deletion remains a
+separate gate because those worktrees contain absolute administrative paths.
 
 The machine-readable source of this contract is
 `config/gas-city-operations-migration.json`. The auditor

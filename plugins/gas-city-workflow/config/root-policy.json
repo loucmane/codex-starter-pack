@@ -1,0 +1,14 @@
+{
+  "schema": "gas-city-workflow.root-policy.v1",
+  "canonical": {
+    "root": "/home/loucmane/gas-city-ops",
+    "repository": "loucmane/gas-city-operations"
+  },
+  "retired": [
+    {
+      "root": "/home/loucmane/codex",
+      "repository": "loucmane/gas-city-operations",
+      "reason": "preserved historical evidence; new work uses canonical root"
+    }
+  ]
+}

@@ -11,8 +11,15 @@ import sys
 from pathlib import Path
 from typing import Any
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from root_policy import RootPolicyError, require_active_root  # noqa: E402
+
 PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_REGISTRY = PLUGIN_ROOT / "config" / "projects.json"
+DEFAULT_ROOT_POLICY = PLUGIN_ROOT / "config" / "root-policy.json"
 DESCRIPTOR_NAME = ".gas-city-workflow.json"
 REGISTRY_SCHEMA = "gas-city-workflow.project-registry.v1"
 DESCRIPTOR_SCHEMA = "gas-city-workflow.project.v1"
@@ -29,9 +36,7 @@ GC = "/home/loucmane/gascity/bin/gc"
 BD = "/home/loucmane/gascity/bin/bd"
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9-]*$")
 REPOSITORY_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
-BASE_REF_PATTERN = re.compile(
-    r"^(?:[0-9a-f]{40}|refs/(?:heads|remotes)/[A-Za-z0-9._/-]+)$"
-)
+BASE_REF_PATTERN = re.compile(r"^(?:[0-9a-f]{40}|refs/(?:heads|remotes)/[A-Za-z0-9._/-]+)$")
 GITHUB_REMOTE_PATTERNS = (
     re.compile(r"^git@github\.com:(?P<repo>[^/]+/[^/]+?)(?:\.git)?$"),
     re.compile(r"^ssh://git@github\.com/(?P<repo>[^/]+/[^/]+?)(?:\.git)?$"),
@@ -299,6 +304,10 @@ def build_context(root: Path, registry_path: Path) -> dict[str, Any]:
     if PLUGIN_VERSION == "unknown":
         raise ContextError("plugin manifest version is unavailable")
     root = _resolve_git_root(root)
+    try:
+        require_active_root(root, DEFAULT_ROOT_POLICY)
+    except RootPolicyError as exc:
+        raise ContextError(str(exc)) from exc
     canonical_root = _canonical_git_root(root)
     project, identity_source, registered = _resolve_project(
         root,
