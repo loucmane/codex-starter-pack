@@ -19,6 +19,7 @@
 - **2026-08-31** — [S:20260831|W:ga-ur1c.2-canonical-root-lifecycle-parity|H:plugins/gas-city-workflow/scripts/install_root_policy.py|E:transactional-user-install] Implemented scoped Codex/Claude configuration, exact backups, hook trust, idempotence, historical non-interference, and rollback.
 - **2026-08-31** — [S:20260831|W:ga-ur1c.2-canonical-root-lifecycle-parity|H:tests/meta_workflow_guard/test_gas_city_root_policy.py|E:pytest:9-passed] Focused root-policy suite passed; Ruff passed on changed Python surfaces.
 - **2026-08-31 14:50** — [S:20260831|W:ga-ur1c.2-canonical-root-lifecycle-parity|H:tests/meta_workflow_guard/test_gas_city_root_policy.py|E:pytest:2395-passed-21-skipped] Full regression passed: 2,395 tests passed and 21 intentionally skipped in 283.74s; changed Python surfaces pass Ruff/Black, the focused root-policy suite passes 9/9, and an isolated real Codex app-server readback proved the exact user-hook trust key can be marked trusted without changing unrelated configuration.
+- **2026-08-31 14:58** — [S:20260831|W:ga-ur1c.2-canonical-root-lifecycle-parity|H:tests/meta_workflow_guard/test_gas_city_root_policy.py|E:github:pr-335-py311-fixture-failure] Hosted Python 3.11 exposed a non-hermetic rollback-test fixture that implicitly depended on this host's historical checkout; the production installer was not implicated. Bound both fixture roots explicitly and corrected their Codex/Claude fixture paths; focused suite passes 9/9.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope

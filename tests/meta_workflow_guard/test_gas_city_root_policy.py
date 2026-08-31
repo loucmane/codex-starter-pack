@@ -250,6 +250,8 @@ def test_transaction_rolls_back_every_target_on_postwrite_failure(
     module = _load(INSTALLER_SCRIPT, "gas_city_root_policy_installer_rollback_test")
     retired = _repository(tmp_path / "retired", "gas-city-operations")
     canonical = _repository(tmp_path / "canonical", "gas-city-operations")
+    monkeypatch.setattr(module, "RETIRED_ROOT", retired.as_posix())
+    monkeypatch.setattr(module, "CANONICAL_ROOT", canonical.as_posix())
     policy = _policy(tmp_path / "root-policy.json", retired, canonical)
     runtime = tmp_path / "runtime"
     codex_home = tmp_path / ".codex"
@@ -261,14 +263,22 @@ def test_transaction_rolls_back_every_target_on_postwrite_failure(
     codex_config = codex_home / "config.toml"
     claude_config = tmp_path / ".claude.json"
     codex_config.write_text(
-        '[projects."/home/loucmane/codex"]\ntrust_level = "trusted"\n'
-        '[projects."/home/loucmane/gas-city-ops"]\ntrust_level = "trusted"\n',
+        f'[projects."{retired}"]\ntrust_level = "trusted"\n'
+        f'[projects."{canonical}"]\ntrust_level = "trusted"\n',
         encoding="utf-8",
     )
     claude_settings.write_text('{"theme":"dark"}\n', encoding="utf-8")
     claude_config.write_text(
-        '{"mcpServers":{"aegis":{"args":["--from","/home/loucmane/codex",'
-        '"aegis-mcp-server"]}}}\n',
+        json.dumps(
+            {
+                "mcpServers": {
+                    "aegis": {
+                        "args": ["--from", retired.as_posix(), "aegis-mcp-server"]
+                    }
+                }
+            }
+        )
+        + "\n",
         encoding="utf-8",
     )
     before = {path: path.read_bytes() for path in (codex_config, claude_settings, claude_config)}
