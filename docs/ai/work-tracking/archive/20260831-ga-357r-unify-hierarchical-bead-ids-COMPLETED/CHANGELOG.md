@@ -3,3 +3,5 @@
 - 2026-08-31 12:01 CEST — Initialized active work-tracking folder.
 - 2026-08-31 12:08 CEST — Added hierarchical Bead support to every readiness/evidence inference surface and RED/GREEN cross-surface coverage.
 - 2026-08-31 12:19 CEST — Completed 394 affected and 2372 repository-wide passing tests; prepared the exact signed publication candidate.
+- 2026-08-31 12:26 CEST — Merged PR #331 with exact-head/base, green-CI, CLEAN/MERGEABLE, zero-thread, byte-identical-tree, and valid-signature evidence.
+- 2026-08-31 12:27 CEST — Archived active work-tracking folder.
