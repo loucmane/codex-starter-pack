@@ -46,3 +46,8 @@
 - v0.6.4 regression: the same 226-test surface remains PASS with one explicit certification skip;
   the dashboard test now proves confirmed project state is captured before dashboard publication,
   and the rollback test proves predecessor timer reload precedes failed-state cleanup.
+- Hosted CI passed on Python 3.11 through 3.14 and every required delivery/guard workflow. PR #341
+  merged exact signed head `1259ccee` as `e56d4899` with byte-identical tree `7912ae77`.
+- Installed v0.6.4 digests: runtime `118a75b4`, service `9e3e9df1`, timer `85a227e0`, registry
+  `ab3b8a76`. Host acceptance confirmed every project/dashboard live index and one byte-identical
+  no-reload cycle while preserving WSL Obsidian PID `3168034` and suspended rigs.

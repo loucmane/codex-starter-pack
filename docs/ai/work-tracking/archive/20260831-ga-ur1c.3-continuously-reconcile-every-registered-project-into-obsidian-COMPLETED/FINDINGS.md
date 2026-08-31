@@ -39,3 +39,10 @@
   byte/output and the exact service/timer/Obsidian/rig state, but called `reset-failed` before the
   predecessor timer had reloaded the restored unit. v0.6.4 fixes both ordering defects without
   weakening the dashboard gate or accepting a partial rollback.
+- 2026-08-31 — The merge-bound v0.6.4 transaction passed. A host-required check confirmed
+  filesystem and live-index freshness for Gas City Operations, Gas City, HPFetcher, Blog, and the
+  Continuity dashboard. A forced steady-state cycle returned `changed=false` and
+  `refresh_attempted=false` everywhere and preserved aggregate projection digest
+  `47fe642d82b22289822a29d793e9bc9792158a88d476babe2d687f7f8d433db6`. Obsidian remained the
+  same WSL process (`3168034`); the timer is enabled/waiting and every project rig stayed suspended.
+- 2026-08-31 — Archive preconditions were satisfied and the completed bundle was preserved.

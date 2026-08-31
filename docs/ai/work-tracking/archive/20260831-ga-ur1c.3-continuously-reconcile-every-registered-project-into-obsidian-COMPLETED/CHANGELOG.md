@@ -12,5 +12,9 @@
 - 2026-08-31 — Ordered project live-index observation before continuity-dashboard capture so the
   dashboard and its immediate check share one state; moved rollback `reset-failed` after the
   restored timer/service reload and added exact final service-state verification.
+- 2026-08-31 — Merged and installed v0.6.4, published all four registered project projections
+  plus Continuity, and proved host live-index freshness, a byte-identical no-reload cycle, an
+  unchanged WSL Obsidian process epoch, a healthy persistent timer, and suspended project rigs.
 
 - 2026-08-31 15:17 CEST — Initialized active work-tracking folder.
+- 2026-08-31 17:23 CEST — Archived active work-tracking folder.
