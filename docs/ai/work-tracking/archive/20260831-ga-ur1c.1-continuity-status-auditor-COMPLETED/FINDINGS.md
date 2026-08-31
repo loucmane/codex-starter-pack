@@ -8,3 +8,4 @@
 - 2026-08-31 — `ga-ur1c.1` briefly read as open after the preserved lifecycle recovery. Explicit reclaim restored `in_progress`/`loucmane`; subsequent `list` and `show` observations agree.
 - 2026-08-31 — The machine-generated `resume --root <worktree>` command failed when the original begin used an explicit slug different from the title-derived slug. Resume now recovers the immutable slug from the existing transaction journal, eliminating the memory-only workaround.
 - 2026-08-31 — The first snapshot serialized complete Bead payloads and duplicated the shared `gascity` store, producing 75,230 lines and risking publication of cross-project notes. The final contract stores each rig once, projects only classification fields, and keeps the raw snapshot out of the public source tree while committing its digest-bound report.
+- 2026-08-31 — Archive preconditions were satisfied and the completed bundle was preserved.

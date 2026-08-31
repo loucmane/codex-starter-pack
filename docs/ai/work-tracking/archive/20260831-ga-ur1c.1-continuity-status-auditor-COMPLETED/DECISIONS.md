@@ -7,3 +7,4 @@
 - 2026-08-31 — Require structured `.gas-city-workflow/followups.json`; prose and chat memory are not continuity inputs. Every promise needs a real Bead or an explicit disposition.
 - 2026-08-31 — Make descriptor-only future projects explicit repeatable inputs and fail closed on registry ID/root collisions.
 - 2026-08-31 — A valid report may be operationally BLOCKED. Exit 3 means observed drift, while exit 2 means the input/provider contract itself is invalid.
+- 2026-08-31 — Archived through the supported archive helper; no evidence was deleted.
