@@ -271,6 +271,9 @@ def test_install_failure_rolls_back_new_files(
     assert not (output / "catch-up.md").exists()
     assert not (state / "catch-up.json").exists()
     assert ("reset-failed", "aegis-obsidian-reconcile.service") in systemctl_calls
+    assert systemctl_calls.index(
+        ("start", "aegis-obsidian-reconcile.timer")
+    ) < systemctl_calls.index(("reset-failed", "aegis-obsidian-reconcile.service"))
     assert service_starts == 2
     assert timer_substate_reads >= 2
 

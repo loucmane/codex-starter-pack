@@ -312,21 +312,42 @@ def test_reconcile_publishes_and_checks_continuity_dashboard(tmp_path: Path) -> 
     root = _repo(tmp_path)
     project_output = tmp_path / "vault" / "project"
     dashboard_output = tmp_path / "vault" / "Continuity"
+    project_probe = "GasCity/gas-city/Aegis/Home.md"
+    dashboard_probe = "GasCity/Continuity/Status.md"
     registry = load_registry(
         _registry(
             tmp_path,
             root,
             project_output,
+            live_index={
+                "obsidian_cli": "/usr/bin/obsidian",
+                "vault": "main",
+                "probe_path": project_probe,
+                "timeout_seconds": 15,
+            },
             continuity_dashboard={
                 "python": "/usr/bin/python3",
                 "entrypoint": "/srv/gas-city-ops/continuity.py",
                 "workflow_registry": "/srv/gas-city-ops/projects.json",
                 "signing_policies": "/etc/gas-city-signing/signing-policies.json",
                 "output_dir": str(dashboard_output),
+                "live_index": {
+                    "obsidian_cli": "/usr/bin/obsidian",
+                    "vault": "main",
+                    "probe_path": dashboard_probe,
+                    "timeout_seconds": 15,
+                },
             },
         )
     )
     state_dir = tmp_path / "state"
+    live_calls: list[tuple[str, ...]] = []
+
+    def live_index_runner(
+        argv: tuple[str, ...], _timeout: int
+    ) -> subprocess.CompletedProcess[bytes]:
+        live_calls.append(argv)
+        return subprocess.CompletedProcess(argv, 0, b"ok\n", b"")
 
     def dashboard_runner(
         argv: tuple[str, ...], _timeout: int
@@ -335,6 +356,10 @@ def test_reconcile_publishes_and_checks_continuity_dashboard(tmp_path: Path) -> 
         if "snapshot" in argv:
             output.write_text("{}\n", encoding="utf-8")
             return subprocess.CompletedProcess(argv, 0, b"", b"")
+        project_state = json.loads(
+            (state_dir / "gas-city.json").read_text(encoding="utf-8")
+        )
+        assert project_state["last_success"]["live_index"]["status"] == "confirmed"
         report = {
             "schema": "gas-city-workflow.continuity-report.v1",
             "ok": False,
@@ -365,6 +390,7 @@ def test_reconcile_publishes_and_checks_continuity_dashboard(tmp_path: Path) -> 
         state_dir=state_dir,
         bead_exporter=lambda _argv, _timeout: _beads(),
         event_reader=lambda _target: [],
+        live_index_runner=live_index_runner,
         dashboard_runner=dashboard_runner,
         clock=clock,
         force=True,
@@ -373,12 +399,20 @@ def test_reconcile_publishes_and_checks_continuity_dashboard(tmp_path: Path) -> 
     assert first["continuity_dashboard"]["status"] == "built"
     assert first["continuity_dashboard"]["report_ok"] is False
     assert (dashboard_output / "Status.md").is_file()
+    assert live_calls == [
+        ("/usr/bin/obsidian", "vault=main", "reload"),
+        ("/usr/bin/obsidian", "vault=main", "read", f"path={project_probe}"),
+        ("/usr/bin/obsidian", "vault=main", "reload"),
+        ("/usr/bin/obsidian", "vault=main", "read", f"path={dashboard_probe}"),
+    ]
 
+    live_calls.clear()
     second = obsidian_reconciler.reconcile_registry(
         registry,
         state_dir=state_dir,
         bead_exporter=lambda _argv, _timeout: _beads(),
         event_reader=lambda _target: [],
+        live_index_runner=live_index_runner,
         dashboard_runner=dashboard_runner,
         clock=clock,
         force=True,
@@ -386,12 +420,17 @@ def test_reconcile_publishes_and_checks_continuity_dashboard(tmp_path: Path) -> 
     assert second["ok"] is True
     assert second["continuity_dashboard"]["status"] == "current"
     assert second["continuity_dashboard"]["changed"] is False
+    assert live_calls == [
+        ("/usr/bin/obsidian", "vault=main", "read", f"path={project_probe}"),
+        ("/usr/bin/obsidian", "vault=main", "read", f"path={dashboard_probe}"),
+    ]
 
     checked = obsidian_reconciler.check_registry(
         registry,
         state_dir=state_dir,
         bead_exporter=lambda _argv, _timeout: _beads(),
         event_reader=lambda _target: [],
+        live_index_runner=live_index_runner,
         dashboard_runner=dashboard_runner,
         clock=clock,
     )

@@ -33,3 +33,9 @@
   in a restricted observer is therefore not application-liveness evidence. The runtime already
   classifies this surface as `observer-limited`; host user-systemd execution and operator-visible
   WSL state remain authoritative for live-index acceptance, and no relaunch or close is warranted.
+- 2026-08-31 — The v0.6.3 live transaction proved all four project publications and host live
+  reads, then refused because the dashboard had been captured while project live-index state was
+  still provisional and was checked after that state became confirmed. Its rollback restored every
+  byte/output and the exact service/timer/Obsidian/rig state, but called `reset-failed` before the
+  predecessor timer had reloaded the restored unit. v0.6.4 fixes both ordering defects without
+  weakening the dashboard gate or accepting a partial rollback.
