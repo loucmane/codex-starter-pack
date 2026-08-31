@@ -70,7 +70,7 @@ def _validate_project(project: dict[str, Any], *, allow_root: bool) -> dict[str,
     }
     optional = {"base_ref"}
     if allow_root:
-        optional.add("worktree_root")
+        optional.update({"rig_root", "worktree_root"})
     if allow_root:
         expected.add("root")
     if not expected.issubset(project) or not set(project).issubset(expected | optional):
@@ -112,6 +112,11 @@ def _validate_project(project: dict[str, Any], *, allow_root: bool) -> dict[str,
             not isinstance(worktree_root, str) or not Path(worktree_root).is_absolute()
         ):
             raise ContextError("registered project worktree_root must be absolute")
+        rig_root = project.get("rig_root")
+        if rig_root is not None and (
+            not isinstance(rig_root, str) or not Path(rig_root).is_absolute()
+        ):
+            raise ContextError("registered project rig_root must be absolute")
     return result
 
 
@@ -223,7 +228,9 @@ def _resolve_project(
         )
     if descriptor is not None and registered is not None:
         comparable = {
-            key: value for key, value in registered.items() if key not in {"root", "worktree_root"}
+            key: value
+            for key, value in registered.items()
+            if key not in {"rig_root", "root", "worktree_root"}
         }
         if descriptor != comparable:
             raise ContextError("project descriptor disagrees with the central registry")
@@ -235,7 +242,7 @@ def _resolve_project(
             {
                 key: value
                 for key, value in registered.items()
-                if key not in {"root", "worktree_root"}
+                if key not in {"rig_root", "root", "worktree_root"}
             },
             "registry",
             registered,

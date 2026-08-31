@@ -54,7 +54,8 @@ The automatic Obsidian freshness and live-index authority is:
 
 The installed registry is a generated projection of the canonical workflow project registry. It
 must contain Gas City Operations, Gas City, HPFetcher, and Blog, plus any later validated project;
-do not add projects by hand to the installed JSON. Regenerate the tracked source from the
+do not add projects by hand to the installed JSON. Every host registry entry declares the exact
+absolute `rig_root`; never derive it from the city name or project ID. Regenerate the tracked source from the
 canonical checkout and require an exact check before installation:
 
 ```bash
@@ -67,6 +68,9 @@ Each project is published only under `GasCity/<project-id>/Aegis`. The same time
 report's Now, Next, Blocked, and Drift classifications. Project or dashboard publication failure
 fails the whole reconciliation; a later surface is never presented as current after an earlier
 project failed. Byte-identical cycles probe the live managed note without reloading Obsidian.
+The installer stops the timer before capturing rollback state. A failed refresh restores the
+installed files, private reconciler state, every managed output tree, the service result, and the
+timer's enabled/active state before another attempt is eligible.
 
 ## Recovery classification
 

@@ -167,10 +167,22 @@ def test_install_failure_rolls_back_new_files(
 ) -> None:
     home = tmp_path / "home"
     registry = _source_registry(tmp_path, home)
-    (home / "vaults/main/GasCity").mkdir(parents=True)
+    output = home / "vaults/main/GasCity/Aegis"
+    output.mkdir(parents=True)
+    (output / "before.md").write_text("before\n", encoding="utf-8")
+    state = home / ".local/state/aegis/obsidian-reconciler"
+    state.mkdir(parents=True)
+    state.chmod(0o700)
+    (state / "before.json").write_text('{"before":true}\n', encoding="utf-8")
+    systemctl_calls: list[tuple[str, ...]] = []
 
     def systemctl(*arguments: str) -> subprocess.CompletedProcess[str]:
+        systemctl_calls.append(arguments)
         if arguments[:2] == ("start", "aegis-obsidian-reconcile.service"):
+            (output / "before.md").write_text("mutated\n", encoding="utf-8")
+            (output / "transient.md").write_text("transient\n", encoding="utf-8")
+            (state / "before.json").write_text('{"before":false}\n', encoding="utf-8")
+            (state / "transient.json").write_text("{}\n", encoding="utf-8")
             return subprocess.CompletedProcess(arguments, 1, "", "simulated refusal")
         if arguments[0] in {"is-enabled", "is-active"}:
             return subprocess.CompletedProcess(arguments, 1, "disabled\n", "")
@@ -189,6 +201,11 @@ def test_install_failure_rolls_back_new_files(
     assert not (home / ".config/aegis/obsidian-projects.json").exists()
     assert not (home / ".config/systemd/user/aegis-obsidian-reconcile.service").exists()
     assert not (home / ".local/state/aegis/obsidian-reconciler/install-manifest.json").exists()
+    assert (state / "before.json").read_text(encoding="utf-8") == '{"before":true}\n'
+    assert not (state / "transient.json").exists()
+    assert (output / "before.md").read_text(encoding="utf-8") == "before\n"
+    assert not (output / "transient.md").exists()
+    assert ("reset-failed", "aegis-obsidian-reconcile.service") in systemctl_calls
 
 
 def test_install_refuses_missing_output_parent_before_writing(

@@ -117,7 +117,8 @@ symlinks, non-regular components, oversized input, or a continuously changing pa
 the last good vault remains intact.
 
 Adding HPFetcher, Blog, or a new project is a registry change plus a deterministic unit refresh—not
-a second service or a copied script. The refresh extends the unit's write allowlist only to the new
+a second service or a copied script. The host registry binds the project's exact absolute rig root;
+it is never inferred from the rig ID. The refresh extends the unit's write allowlist only to the new
 output's existing parent. The timer remains one host-side controller and each project retains a
 disjoint Aegis-owned output subtree.
 

@@ -60,7 +60,10 @@ def build_payload(
             if Path(context["workspace"]["canonical_root"]) != root:
                 raise BuildError(f"project {project['id']} did not resolve to its canonical root")
         project_id = project["id"]
-        rig_store = city / "rigs" / project["rig"]
+        raw_rig_root = project.get("rig_root")
+        if not isinstance(raw_rig_root, str) or not Path(raw_rig_root).is_absolute():
+            raise BuildError(f"project {project_id} must declare an absolute rig_root")
+        rig_store = Path(raw_rig_root).resolve()
         output = vault_root / project_id / "Aegis"
         rendered.append(
             {
@@ -87,7 +90,7 @@ def build_payload(
                     "obsidian_cli": obsidian_cli.resolve().as_posix(),
                     "vault": "main",
                     "probe_path": f"GasCity/{project_id}/Aegis/Home.md",
-                    "timeout_seconds": 15,
+                    "timeout_seconds": 30,
                 },
             }
         )
@@ -113,7 +116,7 @@ def build_payload(
                 "obsidian_cli": obsidian_cli.resolve().as_posix(),
                 "vault": "main",
                 "probe_path": "GasCity/Continuity/Status.md",
-                "timeout_seconds": 15,
+                "timeout_seconds": 30,
             },
         },
         "projects": rendered,

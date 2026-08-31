@@ -4,6 +4,7 @@
     {
       "id": "gas-city-operations",
       "root": "/home/loucmane/gas-city-ops",
+      "rig_root": "/home/loucmane/gascity/city/rigs/gascity",
       "worktree_root": "/home/loucmane/gas-city-ops-worktrees",
       "repository": "loucmane/gas-city-operations",
       "rig": "gascity",
@@ -13,6 +14,7 @@
     {
       "id": "gas-city",
       "root": "/home/loucmane/gascity/city/rigs/gascity",
+      "rig_root": "/home/loucmane/gascity/city/rigs/gascity",
       "repository": "loucmane/gascity",
       "rig": "gascity",
       "workflow_authority": "beads",
@@ -21,6 +23,7 @@
     {
       "id": "hpfetcher",
       "root": "/home/loucmane/dev/hpfetcher",
+      "rig_root": "/home/loucmane/dev/hpfetcher-gc-main",
       "repository": "loucmane/hp-coach",
       "rig": "hpfetcher",
       "base_ref": "refs/remotes/origin/main",
@@ -30,6 +33,7 @@
     {
       "id": "blog",
       "root": "/home/loucmane/dev/blog",
+      "rig_root": "/home/loucmane/dev/blog",
       "repository": "loucmane/blog",
       "rig": "blog",
       "workflow_authority": "beads",
