@@ -24,6 +24,12 @@ python3 -m aegis_foundation.cli gate readiness --target-dir .
 
 The PreToolUse dispatcher in `.claude/scripts/pretooluse-gate.sh` enforces this for hookable Claude file tools and tested Bash mutation patterns. After a successful mutation, `.claude/scripts/posttooluse-tracking.sh` records pending S:W:H:E tracking and `.claude/scripts/tracking-stop-gate.sh` blocks session stop until `aegis log` has updated the session, tracker, implementation log, changelog, handoff, and plan evidence.
 
+In Gas City managed projects, the same PreToolUse dispatcher blocks Claude `Agent` and `Task`
+delegation. Delegated work must have a Bead and a reviewed `gc sling` route. A routing refusal or
+failure is a stop condition, never permission to fall back to a provider-native worker. The only
+exception is an exact request record whose tracked bytes also exist on its declared remote review
+ref; caller, session, and agent identity never authorize it.
+
 ## Required Workflow State
 Claude mutations require all of these to align:
 - current branch contains the active bead ID or compatibility Taskmaster task ID;

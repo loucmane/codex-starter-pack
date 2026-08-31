@@ -48,6 +48,7 @@ from .runtime_state import (
     run_readiness,
     write_degraded_event,
 )
+from .delegation import DelegationPolicyError, evaluate_native_delegation
 from .hard_policy import hard_policy_violations, raw_hard_policy_families
 from .shell_policy import (
     aegis_cli_target_dir_violations,
@@ -142,6 +143,55 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
             return 0
         return block_unclassifiable_payload(loaded.reason, loaded.raw_preview)
     payload = loaded
+    try:
+        delegation = evaluate_native_delegation(root, payload)
+    except DelegationPolicyError as exc:
+        return gate_hard_block(
+            root,
+            payload,
+            "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
+            f"Tool: {payload.tool_name}\n"
+            "Reason: Gas City managed-project delegation policy could not establish an exact safe context.\n\n"
+            f"Details: {exc.detail}\n\n"
+            "Provider-native delegation fails closed when project identity or reviewed exception bytes are invalid.",
+            reason=exc.reason,
+        )
+    if delegation is not None:
+        if not delegation.managed:
+            return 0
+        if delegation.allowed:
+            try:
+                append_gate_decision(
+                    root,
+                    hook="pretooluse",
+                    payload=payload,
+                    verdict="allow",
+                    reason=delegation.reason,
+                )
+            except Exception as exc:  # noqa: BLE001 - an exception without audit evidence is not valid.
+                return gate_hard_block(
+                    root,
+                    payload,
+                    "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
+                    f"Tool: {payload.tool_name}\n"
+                    "Reason: the reviewed native-delegation exception could not be recorded.\n\n"
+                    f"Details: {type(exc).__name__}: {exc}",
+                    reason="native_delegation_exception_invalid",
+                )
+            return 0
+        project_id = delegation.project.project_id if delegation.project is not None else "unknown"
+        return gate_hard_block(
+            root,
+            payload,
+            "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
+            f"Tool: {payload.tool_name}\n"
+            f"Managed project: {project_id}\n"
+            f"Request SHA-256: {delegation.request_sha256}\n"
+            "Reason: provider-native delegation is not the work-routing authority in a Gas City managed project.\n\n"
+            "Create or select the project Bead and use a reviewed `gc sling` route. If Gas City routing fails, stop; do not silently fall back to a provider-native worker.\n"
+            "A reviewed exception must be tracked, clean, branch-bound, and exact-request-bound.",
+            reason=delegation.reason,
+        )
     if not is_hookable_tool(payload.tool_name):
         return 0
     required_field_issue = payload_required_field_issue(payload)

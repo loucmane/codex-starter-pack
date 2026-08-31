@@ -6,7 +6,7 @@ import json
 import sys
 from pathlib import Path
 
-from .contracts import Payload
+from .contracts import CLAUDE_PRETOOLUSE_MATCHER, Payload
 from .loaders import _load_brief_lib_module, _load_ledger_lib_module
 from .decisions import advisory_enabled, advisory_message, append_gate_decision, block, project_root
 from .payloads import safe_expanduser
@@ -140,7 +140,7 @@ def settings_has_required_hooks(settings_path: Path) -> tuple[bool, list[str]]:
     pretool = hooks.get("PreToolUse")
     if not isinstance(pretool, list) or not any(
         isinstance(group, dict)
-        and str(group.get("matcher") or "") == "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$"
+        and str(group.get("matcher") or "") == CLAUDE_PRETOOLUSE_MATCHER
         and any(
             isinstance(hook, dict)
             and hook.get("type") == "command"
@@ -155,7 +155,7 @@ def settings_has_required_hooks(settings_path: Path) -> tuple[bool, list[str]]:
     posttool = hooks.get("PostToolUse")
     if not isinstance(posttool, list) or not any(
         isinstance(group, dict)
-        and str(group.get("matcher") or "") == "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$"
+        and str(group.get("matcher") or "") == CLAUDE_PRETOOLUSE_MATCHER
         and any(
             isinstance(hook, dict)
             and hook.get("type") == "command"

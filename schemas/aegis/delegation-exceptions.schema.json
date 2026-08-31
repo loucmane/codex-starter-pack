@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gas-city.local/schemas/delegation-exceptions.v1.json",
+  "title": "Gas City Reviewed Native Delegation Exceptions",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "exceptions"],
+  "properties": {
+    "schema": {
+      "const": "gas-city.delegation-exceptions.v1"
+    },
+    "exceptions": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "project_id",
+          "adapter",
+          "tool_name",
+          "request_sha256",
+          "branch",
+          "bead_id",
+          "review_ref",
+          "review_evidence"
+        ],
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "adapter": {
+            "enum": ["claude", "codex"]
+          },
+          "tool_name": {
+            "enum": [
+              "agent",
+              "task",
+              "spawn_agent",
+              "assign_agent_task",
+              "followup_task",
+              "resume_agent"
+            ]
+          },
+          "request_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "branch": {
+            "type": "string",
+            "pattern": "^codex/[A-Za-z0-9._/-]+$"
+          },
+          "bead_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*(?:\\.[0-9]+)*$"
+          },
+          "review_ref": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|refs/remotes/origin/[A-Za-z0-9._/-]+)$"
+          },
+          "review_evidence": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^bead:[a-z][a-z0-9-]*(?:\\.[0-9]+)*#.+$"
+          }
+        }
+      }
+    }
+  }
+}

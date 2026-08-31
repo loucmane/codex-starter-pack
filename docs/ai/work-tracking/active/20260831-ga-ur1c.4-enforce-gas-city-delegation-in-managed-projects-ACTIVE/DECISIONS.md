@@ -1,0 +1,6 @@
+# Decisions
+
+- 2026-08-31 — **Use PreToolUse as the authorization boundary** — Claude and Codex expose native delegation at PreToolUse, whereas Codex SubagentStart is passive and cannot stop child creation. The shared gate therefore decides before creation/resumption and leaves SubagentStart/Stop as evidence only.
+- 2026-08-31 — **Keep local coordination available** — Only provider-native work creation/resumption is classified. Coordinator-local reading, editing, testing, waiting, observation, interruption, and containment remain unchanged.
+- 2026-08-31 — **Bind exceptions to merged base truth** — An exception must match the exact normalized request and branch and its complete tracked file must already exist byte-identically on the project's canonical reviewed base. Caller identity, session identity, advisory mode, or a failed Gas City route never authorizes delegation.
+- 2026-08-31 — **Resolve all registered projects from one canonical registry** — Descriptorless established projects use the validated workflow registry selected by the generated user Obsidian registry. A stale retired-source pointer is tolerated only when that canonical fallback exists; conflicting valid registries fail closed.

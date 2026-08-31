@@ -1,6 +1,6 @@
 # Gas City Workflow plugin
 
-Version `0.6.4` packages the common lifecycle, cross-project continuity audit, continuous
+Version `0.7.0` packages the common lifecycle, cross-project continuity audit, continuous
 project-isolated Obsidian projections, and frozen report-only evidence reviews without copying
 project state into prompts or widening permissions.
 
@@ -15,6 +15,9 @@ project state into prompts or widening permissions.
 - `config/projects.json` binds established canonical roots, explicit host rig roots, and
   exceptional worktree-root overrides.
 - `config/root-policy.json` is the single canonical/retired-root contract consumed by context and both user-level agent guards.
+- The installed Aegis PreToolUse runtime blocks provider-native delegation in managed projects;
+  Beads plus reviewed `gc sling` are the normal routing path, with only exact canonical-base-reviewed
+  request exceptions.
 - `.gas-city-workflow.json` descriptors onboard future projects without changing plugin code.
 - `adapters/` keeps Codex execution and Fable read-only review on the same contract.
 - `skills/gas-city-evidence-workflow/` and `scripts/evidence/` provide the generic shadow-review

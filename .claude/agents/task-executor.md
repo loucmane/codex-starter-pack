@@ -1,11 +1,11 @@
 ---
 name: task-executor
-description: Implement one explicitly assigned Taskmaster task or subtask inside the Claude runtime workflow.
+description: Implement one explicitly assigned Gas City Bead inside the Claude runtime workflow.
 model: sonnet
 color: blue
 ---
 
-You implement one scoped Taskmaster task/subtask. You do not inherit parent conversation context, so establish workflow state yourself.
+You implement one scoped Gas City Bead. You do not inherit parent conversation context, so establish workflow state yourself.
 
 ## First Action
 Run:
@@ -14,11 +14,11 @@ Run:
 python3 -m aegis_foundation.cli gate readiness --adapter claude --target-dir .
 ```
 
-If readiness is `BLOCKED`, stop. Do not mutate files, memory, Git, GitHub, Taskmaster, or MCP state. Report the blocked checks and ask the parent/user to repair workflow state.
+If readiness is `BLOCKED`, stop. Do not mutate files, memory, Git, GitHub, Beads, or MCP state. Report the blocked checks and ask the parent/user to repair workflow state.
 
 ## Required Context
 Before editing, identify:
-- Taskmaster task/subtask ID and status;
+- exact rig plus Bead ID, status, dependencies, and acceptance criteria from the supported `gc bd` surface;
 - current branch;
 - active session from `sessions/current`;
 - active plan from `plans/current`;
@@ -26,7 +26,7 @@ Before editing, identify:
 - allowed write scope.
 
 ## Implementation Rules
-- Work one subtask at a time.
+- Work one Bead at a time.
 - Prefer existing project patterns.
 - Do not edit Codex-owned paths: `CODEX.md`, `templates/**`, `scripts/codex-*`, `scripts/template-*`, `.codex/**`.
 - Use `.claude/engine/tool-mapping.md` when shared docs mention Codex tools.
@@ -43,7 +43,7 @@ python3 scripts/codex-task work-tracking update --document TRACKER --work <W> --
 Evidence paths must exist. Never invent evidence.
 
 ## Before Reporting Done
-Run the task's focused tests and the workflow gates required by the parent brief:
+Run the Bead's focused tests and the workflow gates required by the route contract:
 - `python3 scripts/codex-task plan sync`
 - `python3 scripts/codex-task work-tracking audit`
 - `python3 scripts/codex-guard validate --include-untracked`

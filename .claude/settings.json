@@ -66,7 +66,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$",
+        "matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|Agent|Task|mcp__.*)$",
         "hooks": [
           {
             "type": "command",
@@ -77,7 +77,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$",
+        "matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|Agent|Task|mcp__.*)$",
         "hooks": [
           {
             "type": "command",
@@ -86,7 +86,7 @@
         ]
       },
       {
-        "matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$",
+        "matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|Agent|Task|mcp__.*)$",
         "hooks": [
           {
             "type": "command",
@@ -109,7 +109,7 @@
     ],
     "PostToolUseFailure": [
       {
-        "matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$",
+        "matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|Agent|Task|mcp__.*)$",
         "hooks": [
           {
             "type": "command",

@@ -10,10 +10,37 @@ from typing import Any
 CODEX_APPLY_PATCH_TOOL = "apply_patch"
 
 
+CLAUDE_PRETOOLUSE_MATCHER = "^(Edit|Write|MultiEdit|NotebookEdit|Bash|Agent|Task|mcp__.*)$"
+
+
+CODEX_PRETOOLUSE_MATCHER = (
+    "^(Bash|apply_patch|(?:collaboration(?:\\.|__))?"
+    "(?:spawn_agent|assign_agent_task|followup_task|resume_agent)|mcp__.*)$"
+)
+
+
 FILE_MUTATION_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit", CODEX_APPLY_PATCH_TOOL}
 
 
-HOOKABLE_TOOLS = FILE_MUTATION_TOOLS | {"Bash"}
+PROVIDER_NATIVE_DELEGATION_TOOL_NAMES = {
+    "Agent",
+    "Task",
+    "spawn_agent",
+    "collaboration.spawn_agent",
+    "collaboration__spawn_agent",
+    "assign_agent_task",
+    "collaboration.assign_agent_task",
+    "collaboration__assign_agent_task",
+    "followup_task",
+    "collaboration.followup_task",
+    "collaboration__followup_task",
+    "resume_agent",
+    "collaboration.resume_agent",
+    "collaboration__resume_agent",
+}
+
+
+HOOKABLE_TOOLS = FILE_MUTATION_TOOLS | {"Bash"} | PROVIDER_NATIVE_DELEGATION_TOOL_NAMES
 
 
 REQUIRED_TOOL_INPUT_FIELDS = {
@@ -484,6 +511,30 @@ RECOVERY_CONTRACT: dict[str, dict[str, str]] = {
         "alt_repair": "For recovery, create a backup branch and use a reviewed revert or repair PR instead of destructive Git.",
         "audit": ".aegis/reports/gate-decisions.jsonl + ledger",
         "escalation": "Human-executed recovery outside the autonomous session. NOT override-eligible.",
+        "override_eligible": "false",
+    },
+    "native_delegation_requires_gas_city": {
+        "tier": "c",
+        "repair": "Create or select a Bead in the managed project's rig, then use a reviewed `gc sling` route.",
+        "alt_repair": "For an exceptional provider-native request, commit one exact request-bound .gas-city-delegation-exceptions.json record for review.",
+        "audit": ".aegis/reports/gate-decisions.jsonl + ledger + Bead evidence",
+        "escalation": "Stop if Gas City routing fails; provider-native delegation is never a fallback. NOT override-eligible.",
+        "override_eligible": "false",
+    },
+    "managed_project_context_invalid": {
+        "tier": "c",
+        "repair": "Repair the tracked .gas-city-workflow.json / source-root project registry parity, then rerun project-context --check.",
+        "alt_repair": "Do not remove the project descriptor or runtime pointer to bypass managed status.",
+        "audit": ".aegis/reports/gate-decisions.jsonl + ledger",
+        "escalation": "Resolve project identity before delegation. NOT override-eligible.",
+        "override_eligible": "false",
+    },
+    "native_delegation_exception_invalid": {
+        "tier": "c",
+        "repair": "Restore exact tracked HEAD bytes or replace the exception through a reviewed signed source change.",
+        "alt_repair": "Route through Gas City instead of using a provider-native exception.",
+        "audit": ".aegis/reports/gate-decisions.jsonl + ledger + Bead evidence",
+        "escalation": "Exception-file drift is fail-closed and NOT override-eligible.",
         "override_eligible": "false",
     },
 }
