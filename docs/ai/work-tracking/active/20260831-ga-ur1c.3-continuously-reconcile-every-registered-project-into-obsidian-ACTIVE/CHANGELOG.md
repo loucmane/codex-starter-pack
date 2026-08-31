@@ -9,5 +9,8 @@
 - 2026-08-31 — Raised the still-bounded agent projection ceiling to 5,000, batched live-index
   observation behind one reload per shared endpoint, and made rollback wait through persistent
   timer catch-up before its final exact restore.
+- 2026-08-31 — Ordered project live-index observation before continuity-dashboard capture so the
+  dashboard and its immediate check share one state; moved rollback `reset-failed` after the
+  restored timer/service reload and added exact final service-state verification.
 
 - 2026-08-31 15:17 CEST — Initialized active work-tracking folder.

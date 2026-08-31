@@ -481,9 +481,6 @@ def install(
                     _restore_tree(path, snapshot)
             except (OSError, RuntimeError) as rollback_exc:
                 rollback_errors.append(f"managed tree restore failed: {rollback_exc}")
-        reset = _run_systemctl("reset-failed", service)
-        if reset.returncode != 0:
-            rollback_errors.append(f"service reset-failed failed: {reset.stderr.strip()}")
         if before_timer["active"] and before_timer["substate"] == "waiting":
             primed = _run_systemctl("start", service)
             if primed.returncode != 0:
@@ -537,12 +534,22 @@ def install(
             started = _run_systemctl("start", service)
             if started.returncode != 0:
                 rollback_errors.append(f"service active restore failed: {started.stderr.strip()}")
+        reset = _run_systemctl("reset-failed", service)
+        if reset.returncode != 0:
+            rollback_errors.append(f"service reset-failed failed: {reset.stderr.strip()}")
         restored_timer = _unit_state(timer)
         for key in ("enabled", "active", "substate"):
             if before_timer[key] != restored_timer[key]:
                 rollback_errors.append(
                     f"timer {key} restore drift: expected={before_timer[key]!r} "
                     f"observed={restored_timer[key]!r}"
+                )
+        restored_service = _unit_state(service)
+        for key in ("enabled", "active", "substate", "result"):
+            if before_service[key] != restored_service[key]:
+                rollback_errors.append(
+                    f"service {key} restore drift: expected={before_service[key]!r} "
+                    f"observed={restored_service[key]!r}"
                 )
         if rollback_errors:
             raise RuntimeError(f"{exc}; rollback failed: {'; '.join(rollback_errors)}") from exc

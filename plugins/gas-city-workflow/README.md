@@ -1,6 +1,6 @@
 # Gas City Workflow plugin
 
-Version `0.6.3` packages the common lifecycle, cross-project continuity audit, continuous
+Version `0.6.4` packages the common lifecycle, cross-project continuity audit, continuous
 project-isolated Obsidian projections, and frozen report-only evidence reviews without copying
 project state into prompts or widening permissions.
 
@@ -74,9 +74,10 @@ python3 plugins/gas-city-workflow/scripts/build_obsidian_registry.py --write --v
 python3 plugins/gas-city-workflow/scripts/build_obsidian_registry.py --check --validate-roots
 ```
 
-The installed user timer reconciles every enabled project and the dashboard. All changed
+The installed user timer reconciles every enabled project and the dashboard. All changed project
 projections are replaced and gated before the runtime reloads each shared Obsidian endpoint once
-and reads every managed probe. A
+and reads every project probe. It then captures the dashboard from those observed project states,
+publishes it, and performs one bounded dashboard reload/read only when the dashboard changed. A
 byte-identical cycle performs only the managed-note read; it does not reload Obsidian. Missing
 direct project parents may be created only beneath the declared managed vault root. The installer
 quiesces the timer before capture and restores its files, private state, managed output trees,

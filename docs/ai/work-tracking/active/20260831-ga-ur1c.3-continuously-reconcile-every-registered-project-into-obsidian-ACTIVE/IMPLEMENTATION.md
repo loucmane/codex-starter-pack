@@ -23,6 +23,10 @@
   Obsidian executable/vault endpoint at most once per cycle. Rollback waits through any persistent
   timer catch-up execution, then restores captured state and output trees again before asserting
   the predecessor timer substate.
+- Plugin v0.6.4 observes the complete project publication batch before capturing the continuity
+  dashboard, then observes the dashboard as a second bounded phase. Rollback restores and reloads
+  the predecessor timer/service before clearing failed state and now compares the final service
+  enabled/active/substate/result tuple with the captured predecessor.
 
 ## Verification to Date
 - `ruff check`: PASS for every changed Python source and test.
@@ -39,3 +43,6 @@
 - Expanded v0.6.3 regression: 226 PASS / 1 explicit certification skip across all Obsidian,
   continuity, plugin, and Aegis-installer suites. Registry generation/root validation,
   work-tracking audit, S:W:H:E guard, and `git diff --check` also pass.
+- v0.6.4 regression: the same 226-test surface remains PASS with one explicit certification skip;
+  the dashboard test now proves confirmed project state is captured before dashboard publication,
+  and the rollback test proves predecessor timer reload precedes failed-state cleanup.

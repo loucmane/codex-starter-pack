@@ -128,7 +128,7 @@ def test_plugin_manifest_and_router_skill_validate() -> None:
     assert result.returncode == 0, result.stdout + result.stderr
     manifest = json.loads((PLUGIN / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
     assert manifest["name"] == "gas-city-workflow"
-    assert manifest["version"].startswith("0.6.3+codex.")
+    assert manifest["version"].startswith("0.6.4+codex.")
     assert manifest["interface"]["capabilities"] == ["Read"]
     assert not (PLUGIN / ".mcp.json").exists()
     assert not (PLUGIN / "hooks").exists()

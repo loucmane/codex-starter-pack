@@ -456,11 +456,33 @@ def reconcile_registry(
         if project.enabled
     ]
     projects = [result for _project, result in project_results]
+    project_live_configs: list[tuple[str, LiveIndexConfig]] = []
+    project_refresh_ids: set[str] = set()
+    project_result_bindings: dict[str, tuple[dict[str, Any], Path]] = {}
+    for project, result in project_results:
+        if not result.get("ok") or project.live_index is None or "live_index" not in result:
+            continue
+        identity = f"project:{project.id}"
+        project_live_configs.append((identity, project.live_index))
+        if result.get("changed"):
+            project_refresh_ids.add(identity)
+        project_result_bindings[identity] = (result, state / f"{project.id}.json")
+    project_observations = obsidian_live_index.observe_many(
+        project_live_configs,
+        refresh_ids=project_refresh_ids,
+        runner=live_index_runner,
+    )
+    for identity, observation in project_observations.items():
+        result, state_path = project_result_bindings[identity]
+        result["live_index"] = observation
+        _record_live_index(state_path, observation)
+
     dashboard: dict[str, Any] | None = None
-    if registry.continuity_dashboard is not None:
+    dashboard_config = registry.continuity_dashboard
+    if dashboard_config is not None:
         if all(item["ok"] for item in projects):
             dashboard = _reconcile_dashboard(
-                registry.continuity_dashboard,
+                dashboard_config,
                 registry,
                 state_dir=state,
                 live_index_runner=live_index_runner,
@@ -474,19 +496,6 @@ def reconcile_registry(
                 "status": "skipped-project-failure",
                 "changed": False,
             }
-
-    live_configs: list[tuple[str, LiveIndexConfig]] = []
-    refresh_ids: set[str] = set()
-    result_bindings: dict[str, tuple[dict[str, Any], Path]] = {}
-    for project, result in project_results:
-        if not result.get("ok") or project.live_index is None or "live_index" not in result:
-            continue
-        identity = f"project:{project.id}"
-        live_configs.append((identity, project.live_index))
-        if result.get("changed"):
-            refresh_ids.add(identity)
-        result_bindings[identity] = (result, state / f"{project.id}.json")
-    dashboard_config = registry.continuity_dashboard
     if (
         dashboard is not None
         and dashboard.get("ok")
@@ -495,19 +504,14 @@ def reconcile_registry(
         and "live_index" in dashboard
     ):
         identity = "continuity-dashboard"
-        live_configs.append((identity, dashboard_config.live_index))
-        if dashboard.get("changed"):
-            refresh_ids.add(identity)
-        result_bindings[identity] = (dashboard, state / "continuity-dashboard.json")
-    observations = obsidian_live_index.observe_many(
-        live_configs,
-        refresh_ids=refresh_ids,
-        runner=live_index_runner,
-    )
-    for identity, observation in observations.items():
-        result, state_path = result_bindings[identity]
-        result["live_index"] = observation
-        _record_live_index(state_path, observation)
+        dashboard_observations = obsidian_live_index.observe_many(
+            [(identity, dashboard_config.live_index)],
+            refresh_ids={identity} if dashboard.get("changed") else frozenset(),
+            runner=live_index_runner,
+        )
+        observation = dashboard_observations[identity]
+        dashboard["live_index"] = observation
+        _record_live_index(state / "continuity-dashboard.json", observation)
     return {
         "schema_version": SCHEMA_VERSION,
         "ok": bool(projects)
