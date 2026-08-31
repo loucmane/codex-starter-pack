@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import datetime, timezone
 import fcntl
 import hashlib
@@ -177,8 +177,9 @@ def _attempt_state(
     attempted_at: str,
     last_success: dict[str, Any] | None,
     last_error: dict[str, Any] | None,
+    pending_success: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    return {
+    payload = {
         "schema_version": SCHEMA_VERSION,
         "project_id": project.id,
         "registry_digest": registry.digest,
@@ -189,6 +190,9 @@ def _attempt_state(
         "last_error": last_error,
         "previous_attempt_at": previous.get("last_attempt_at"),
     }
+    if pending_success is not None:
+        payload["pending_success"] = pending_success
+    return payload
 
 
 def _reconcile_project(
@@ -278,6 +282,7 @@ def _reconcile_project(
             "gate_phases": [gate["phase"] for gate in gates],
             "live_index": live_index,
         }
+        pending_live_index = defer_live_index and project.live_index is not None
         _atomic_json(
             state_path,
             _attempt_state(
@@ -285,8 +290,9 @@ def _reconcile_project(
                 project=project,
                 registry=registry,
                 attempted_at=attempted_at,
-                last_success=success,
+                last_success=(previous.get("last_success") if pending_live_index else success),
                 last_error=None,
+                pending_success=success if pending_live_index else None,
             ),
         )
         return {
@@ -371,18 +377,19 @@ def _reconcile_dashboard(
             "report_ok": bool(report["ok"]),
             "live_index": live_index,
         }
-        _atomic_json(
-            state_path,
-            {
-                "schema_version": SCHEMA_VERSION,
-                "registry_digest": registry.digest,
-                "output_dir": config.output_dir.as_posix(),
-                "last_attempt_at": attempted_at,
-                "last_success": success,
-                "last_error": None,
-                "previous_attempt_at": previous.get("last_attempt_at"),
-            },
-        )
+        pending_live_index = defer_live_index and config.live_index is not None
+        payload = {
+            "schema_version": SCHEMA_VERSION,
+            "registry_digest": registry.digest,
+            "output_dir": config.output_dir.as_posix(),
+            "last_attempt_at": attempted_at,
+            "last_success": (previous.get("last_success") if pending_live_index else success),
+            "last_error": None,
+            "previous_attempt_at": previous.get("last_attempt_at"),
+        }
+        if pending_live_index:
+            payload["pending_success"] = success
+        _atomic_json(state_path, payload)
         return {
             "ok": True,
             "status": built["status"],
@@ -416,14 +423,15 @@ def _reconcile_dashboard(
 
 def _record_live_index(state_path: Path, observation: Mapping[str, Any]) -> None:
     payload = _read_state(state_path)
-    last_success = payload.get("last_success")
-    if not isinstance(last_success, dict):
+    candidate = payload.get("pending_success", payload.get("last_success"))
+    if not isinstance(candidate, dict):
         return
-    payload["last_success"] = {**last_success, "live_index": dict(observation)}
+    payload["last_success"] = {**candidate, "live_index": dict(observation)}
+    payload.pop("pending_success", None)
     _atomic_json(state_path, payload)
 
 
-def reconcile_registry(
+def _reconcile_registry_unlocked(
     registry: Registry,
     *,
     state_dir: str | Path,
@@ -473,6 +481,7 @@ def reconcile_registry(
         runner=live_index_runner,
     )
     for identity, observation in project_observations.items():
+        observation = {**observation, "observed_at": _iso(clock())}
         result, state_path = project_result_bindings[identity]
         result["live_index"] = observation
         _record_live_index(state_path, observation)
@@ -510,6 +519,7 @@ def reconcile_registry(
             runner=live_index_runner,
         )
         observation = dashboard_observations[identity]
+        observation = {**observation, "observed_at": _iso(clock())}
         dashboard["live_index"] = observation
         _record_live_index(state / "continuity-dashboard.json", observation)
     return {
@@ -522,6 +532,50 @@ def reconcile_registry(
         "projects": projects,
         "continuity_dashboard": dashboard,
     }
+
+
+def reconcile_registry(
+    registry: Registry,
+    *,
+    state_dir: str | Path,
+    bead_exporter: BeadExporter = export_beads,
+    event_reader: EventReader = read_events,
+    live_index_runner: LiveIndexRunner = obsidian_live_index.run_command,
+    dashboard_runner: DashboardRunner = obsidian_continuity.run_command,
+    clock: Clock = _now,
+    force: bool = False,
+) -> dict[str, Any]:
+    """Run one atomic registry cycle while preserving the last complete success."""
+
+    state = Path(state_dir).expanduser().resolve()
+    state.mkdir(parents=True, exist_ok=True, mode=0o700)
+    os.chmod(state, 0o700)
+    lock_handle, acquired = _lock(state, "registry-cycle")
+    if not acquired:
+        lock_handle.close()
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "ok": True,
+            "status": "already-running",
+            "registry": registry.path.as_posix(),
+            "registry_digest": registry.digest,
+            "projects": [],
+            "continuity_dashboard": None,
+        }
+    try:
+        return _reconcile_registry_unlocked(
+            registry,
+            state_dir=state,
+            bead_exporter=bead_exporter,
+            event_reader=event_reader,
+            live_index_runner=live_index_runner,
+            dashboard_runner=dashboard_runner,
+            clock=clock,
+            force=force,
+        )
+    finally:
+        fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
+        lock_handle.close()
 
 
 def check_registry(

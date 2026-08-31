@@ -177,6 +177,13 @@ def _identity(item: Mapping[str, Any], surface: str) -> str:
     return surface
 
 
+def _obsidian_status(obsidian: Mapping[str, Any], surface: str, legacy_field: str) -> object:
+    nested = obsidian.get(surface)
+    if isinstance(nested, Mapping):
+        return nested.get("status")
+    return obsidian.get(legacy_field)
+
+
 def _validate_snapshot(
     snapshot: Mapping[str, Any],
 ) -> tuple[list[Mapping[str, Any]], dict[str, list[Any]]]:
@@ -388,6 +395,7 @@ def _classify_project(
             )
 
     obsidian = _mapping(project.get("obsidian"), f"project {project_id} obsidian")
+    cycle_status = _obsidian_status(obsidian, "cycle", "cycle_status")
     if obsidian.get("registered") is not True:
         findings.append(
             _finding(
@@ -398,7 +406,10 @@ def _classify_project(
                 bead_id=None,
             )
         )
-    elif obsidian.get("vault_status") != "current":
+    elif (
+        _obsidian_status(obsidian, "filesystem", "vault_status") != "current"
+        and cycle_status != "running"
+    ):
         findings.append(
             _finding(
                 code="obsidian-filesystem-stale",
@@ -408,7 +419,11 @@ def _classify_project(
                 bead_id=None,
             )
         )
-    if obsidian.get("registered") is True and obsidian.get("live_index_status") != "confirmed":
+    if (
+        obsidian.get("registered") is True
+        and _obsidian_status(obsidian, "live_index", "live_index_status") != "confirmed"
+        and cycle_status != "running"
+    ):
         findings.append(
             _finding(
                 code="obsidian-live-index-unconfirmed",
@@ -512,6 +527,7 @@ def _ledger_project(
 def _obsidian_findings(project: Mapping[str, Any]) -> list[dict[str, Any]]:
     project_id = str(project["id"])
     obsidian = _mapping(project.get("obsidian"), f"project {project_id} obsidian")
+    cycle_status = _obsidian_status(obsidian, "cycle", "cycle_status")
     findings = []
     if obsidian.get("registered") is not True:
         findings.append(
@@ -533,7 +549,10 @@ def _obsidian_findings(project: Mapping[str, Any]) -> list[dict[str, Any]]:
                 bead_id=None,
             )
         )
-    elif obsidian.get("vault_status") != "current":
+    elif (
+        _obsidian_status(obsidian, "filesystem", "vault_status") != "current"
+        and cycle_status != "running"
+    ):
         findings.append(
             _finding(
                 code="obsidian-filesystem-stale",
@@ -543,7 +562,53 @@ def _obsidian_findings(project: Mapping[str, Any]) -> list[dict[str, Any]]:
                 bead_id=None,
             )
         )
-    if obsidian.get("registered") is True and obsidian.get("live_index_status") != "confirmed":
+    if cycle_status == "running":
+        findings.append(
+            _finding(
+                code="obsidian-reconciliation-in-progress",
+                project_id=project_id,
+                surface="obsidian",
+                identity=project_id,
+                bead_id=None,
+                severity="warning",
+            )
+        )
+    elif cycle_status == "unknown":
+        findings.append(
+            _finding(
+                code="obsidian-cycle-observation-unknown",
+                project_id=project_id,
+                surface="obsidian",
+                identity=project_id,
+                bead_id=None,
+                severity="warning",
+            )
+        )
+    elif cycle_status == "interrupted":
+        findings.append(
+            _finding(
+                code="obsidian-reconciliation-interrupted",
+                project_id=project_id,
+                surface="obsidian",
+                identity=project_id,
+                bead_id=None,
+            )
+        )
+    elif cycle_status not in {None, "idle"}:
+        findings.append(
+            _finding(
+                code="obsidian-cycle-observation-invalid",
+                project_id=project_id,
+                surface="obsidian",
+                identity=project_id,
+                bead_id=None,
+            )
+        )
+    if (
+        obsidian.get("registered") is True
+        and _obsidian_status(obsidian, "live_index", "live_index_status") != "confirmed"
+        and cycle_status != "running"
+    ):
         findings.append(
             _finding(
                 code="obsidian-live-index-unconfirmed",
@@ -553,6 +618,62 @@ def _obsidian_findings(project: Mapping[str, Any]) -> list[dict[str, Any]]:
                 bead_id=None,
             )
         )
+    live_index = obsidian.get("live_index")
+    if isinstance(live_index, Mapping) and live_index.get("status") == "confirmed":
+        if live_index.get("authority") != "host-obsidian-ipc":
+            findings.append(
+                _finding(
+                    code="obsidian-live-index-authority-invalid",
+                    project_id=project_id,
+                    surface="obsidian",
+                    identity=project_id,
+                    bead_id=None,
+                )
+            )
+        if not isinstance(live_index.get("observed_at"), str):
+            findings.append(
+                _finding(
+                    code="obsidian-live-index-observation-time-missing",
+                    project_id=project_id,
+                    surface="obsidian",
+                    identity=project_id,
+                    bead_id=None,
+                )
+            )
+    process = obsidian.get("process")
+    if isinstance(process, Mapping):
+        process_status = process.get("status")
+        if process_status == "unknown":
+            findings.append(
+                _finding(
+                    code="obsidian-process-observation-unknown",
+                    project_id=project_id,
+                    surface="obsidian-process",
+                    identity=project_id,
+                    bead_id=None,
+                    severity="warning",
+                )
+            )
+        elif process_status in {"absent", "inactive"}:
+            findings.append(
+                _finding(
+                    code="obsidian-process-not-active",
+                    project_id=project_id,
+                    surface="obsidian-process",
+                    identity=project_id,
+                    bead_id=None,
+                )
+            )
+        elif process_status != "active":
+            findings.append(
+                _finding(
+                    code="obsidian-process-observation-invalid",
+                    project_id=project_id,
+                    surface="obsidian-process",
+                    identity=project_id,
+                    bead_id=None,
+                )
+            )
     return findings
 
 

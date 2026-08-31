@@ -15,6 +15,21 @@ managed-signing v2 receipts, structured follow-ups, and the installed Obsidian r
 contains no current-time field. Each rig appears once under `ledgers`; projects reference it by rig.
 Equal observed state therefore produces byte-identical JSON.
 
+Obsidian continuity is not one Boolean. The snapshot preserves four independent facts:
+
+- filesystem projection status and the completed reconciliation time;
+- the registry-cycle state, derived from the reconciler's read-only flock observation;
+- live-index status, host IPC authority, and observation time; and
+- WSL Obsidian process state from the user systemd manager, including the matching scope identity.
+
+The reconciler holds one registry-wide lock and stages a candidate as `pending_success`, retaining
+the prior fully observed `last_success` until batched IPC completes. A snapshot taken mid-cycle is
+therefore deterministic and explicitly `running`, not falsely stale. A pending candidate without
+the lock is `interrupted` and blocks acceptance. If the user systemd manager is not observable from
+the caller's namespace, process state is `unknown` and produces a warning; it is never rewritten as
+`absent`. Actual absent or inactive scope evidence remains an error. The observer never starts,
+stops, restarts, or signals Obsidian.
+
 The JSON audit and human status view are both derived by `continuity_model.py`. `next_actions` is
 the sole source for the human `next` lines. If any Bead store contains an `initiative:active` epic,
 only that epic and its transitive `parent-child` descendants populate Current/Next/Blocked; other
