@@ -44,10 +44,12 @@ def test_settings_registers_pretooluse_and_stop_hooks() -> None:
     hooks = settings["hooks"]
 
     pretool = hooks["PreToolUse"][0]
-    assert pretool["matcher"] == "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$"
+    assert "Agent" in pretool["matcher"]
+    assert "Task" in pretool["matcher"]
     assert pretool["hooks"][0]["command"] == "bash $CLAUDE_PROJECT_DIR/.claude/scripts/pretooluse-gate.sh"
     posttool = hooks["PostToolUse"][0]
-    assert posttool["matcher"] == "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$"
+    assert "Agent" in posttool["matcher"]
+    assert "Task" in posttool["matcher"]
     assert posttool["hooks"][0]["command"] == "bash $CLAUDE_PROJECT_DIR/.claude/scripts/posttooluse-tracking.sh"
     stop_commands = [hook["command"] for hook in hooks["Stop"][0]["hooks"]]
     assert "bash $CLAUDE_PROJECT_DIR/.claude/scripts/tracking-stop-gate.sh" in stop_commands

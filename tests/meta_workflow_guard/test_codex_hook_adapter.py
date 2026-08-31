@@ -86,6 +86,9 @@ def test_rendered_codex_hooks_use_canonical_apply_patch_and_git_root_dispatch() 
     assert hooks["PreToolUse"][0]["matcher"] == installer.CODEX_HOOK_MATCHER
     assert hooks["PostToolUse"][0]["matcher"] == installer.CODEX_HOOK_MATCHER
     assert "apply_patch" in installer.CODEX_HOOK_MATCHER
+    assert "spawn_agent" in installer.CODEX_HOOK_MATCHER
+    assert "followup_task" in installer.CODEX_HOOK_MATCHER
+    assert "resume_agent" in installer.CODEX_HOOK_MATCHER
 
     post_commands = [hook["command"] for hook in hooks["PostToolUse"][0]["hooks"]]
     assert post_commands == [

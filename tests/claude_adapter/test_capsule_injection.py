@@ -183,6 +183,13 @@ def test_settings_renderer_registers_sync_sessionstart_hook() -> None:
     assert "async" not in hook, "SessionStart injection must be synchronous"
 
 
+def test_settings_renderer_intercepts_provider_native_delegation() -> None:
+    settings = json.loads(_aegis_installer._render_claude_settings().decode("utf-8"))
+    matcher = settings["hooks"]["PreToolUse"][0]["matcher"]
+    assert "Agent" in matcher
+    assert "Task" in matcher
+
+
 def test_live_settings_register_sessionstart() -> None:
     settings = json.loads((REPO_ROOT / ".claude" / "settings.json").read_text(encoding="utf-8"))
     assert "SessionStart" in settings["hooks"]
