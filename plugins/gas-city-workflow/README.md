@@ -11,14 +11,26 @@ copying project state into prompts or widening permissions.
 - `scripts/continuity.py` captures one immutable cross-project observation and renders identical
   machine and human Current/Next/Blocked/orphan views.
 - `config/projects.json` binds established canonical roots and exceptional worktree-root overrides.
+- `config/root-policy.json` is the single canonical/retired-root contract consumed by context and both user-level agent guards.
 - `.gas-city-workflow.json` descriptors onboard future projects without changing plugin code.
 - `adapters/` keeps Codex execution and Fable read-only review on the same contract.
 - `skills/gas-city-evidence-workflow/` and `scripts/evidence/` provide the generic shadow-review
   contract while projects retain their own builders, prompts, rubrics, and report schemas.
 - `scripts/codex_hook_trust.py` owns the bounded Codex JSON-RPC hook-trust transaction separately
   from the provider/agent installer.
+- `scripts/install_root_policy.py` transactionally installs the shared evaluator into the user
+  runtime, merges one exact PreToolUse registration into Codex and Claude, marks only the legacy
+  Codex project entry untrusted, and repoints only Claude's Aegis source to the canonical checkout.
 
 The context capsule derives the canonical checkout from Git common-directory truth. Linked worktrees must be direct children of the reported `workspace.worktree_root`; source work from arbitrary or preserved legacy roots fails closed.
+
+The retired-root guard is user-level rather than project-local, so it still loads when the retired
+project is deliberately untrusted. It blocks mutation-capable tools whenever the current Git
+common directory is `/home/loucmane/codex`, including linked worktrees, while leaving read-only
+inspection available. The installer preserves exact backups and modes, validates both adapters
+against the same policy, trusts only the exact Codex user hook through the supported app-server
+transaction, compares the historical checkout and worktree inventory before/after, and rolls back
+every managed user file on failure. It never edits or deletes the historical checkout.
 
 Start a bead from the canonical checkout with one command:
 

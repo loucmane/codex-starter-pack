@@ -86,7 +86,7 @@ def test_naming_contract_keeps_the_four_identities_distinct() -> None:
     assert payload["compatibility"]["branch_namespace"] == "codex/*"
     assert payload["compatibility"]["python_distribution"] == "aegis-foundation"
     assert payload["workspace"]["strategy"] == "fresh-clone"
-    assert payload["workspace"]["legacy_retirement"] == "separate-gate"
+    assert payload["workspace"]["legacy_retirement"] == "user-hooks-and-shared-root-policy"
     assert "tests/fixtures" in payload["historical_roots"]
     assert "docs/aegis/AEGIS_VNEXT_PROGRAM.md" in payload["historical_roots"]
 
