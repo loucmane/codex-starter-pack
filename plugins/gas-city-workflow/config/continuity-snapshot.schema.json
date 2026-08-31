@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gas-city.local/schemas/continuity-snapshot.v1.json",
+  "title": "Gas City continuity snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "registry_sha256", "ledgers", "projects"],
+  "properties": {
+    "schema": {"const": "gas-city-workflow.continuity-snapshot.v1"},
+    "registry_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "ledgers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rig", "beads"],
+        "properties": {
+          "rig": {"type": "string"},
+          "beads": {"type": "array"}
+        }
+      }
+    },
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "root",
+          "repository",
+          "rig",
+          "workflow_profile",
+          "aegis",
+          "git",
+          "runtime",
+          "obsidian",
+          "followups"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,350 @@
+{
+  "findings": [
+    {
+      "bead_id": null,
+      "code": "legacy-active-tracker",
+      "identity": "/home/loucmane/dev/hpfetcher/docs/ai/work-tracking/active/20260612-task80-boksidan-conventions-ACTIVE",
+      "project_id": "hpfetcher",
+      "severity": "warning",
+      "surface": "active-tracker"
+    },
+    {
+      "bead_id": null,
+      "code": "obsidian-live-index-unconfirmed",
+      "identity": "gas-city-operations",
+      "project_id": "gas-city-operations",
+      "severity": "error",
+      "surface": "obsidian"
+    },
+    {
+      "bead_id": null,
+      "code": "obsidian-project-id-mismatch",
+      "identity": "gas-city",
+      "project_id": "gas-city-operations",
+      "severity": "error",
+      "surface": "obsidian"
+    },
+    {
+      "bead_id": null,
+      "code": "obsidian-project-unregistered",
+      "identity": "blog",
+      "project_id": "blog",
+      "severity": "error",
+      "surface": "obsidian"
+    },
+    {
+      "bead_id": null,
+      "code": "obsidian-project-unregistered",
+      "identity": "gas-city",
+      "project_id": "gas-city",
+      "severity": "error",
+      "surface": "obsidian"
+    },
+    {
+      "bead_id": null,
+      "code": "obsidian-project-unregistered",
+      "identity": "hpfetcher",
+      "project_id": "hpfetcher",
+      "severity": "error",
+      "surface": "obsidian"
+    },
+    {
+      "bead_id": "ci-n6ks",
+      "code": "unbound-branch",
+      "identity": "codex/ci-n6ks-provider-version-stdout",
+      "project_id": "gas-city",
+      "severity": "error",
+      "surface": "branch"
+    },
+    {
+      "bead_id": "signing-canary",
+      "code": "unbound-branch",
+      "identity": "codex/signing-canary",
+      "project_id": "gas-city",
+      "severity": "error",
+      "surface": "branch"
+    },
+    {
+      "bead_id": "signing-sandbox",
+      "code": "unbound-branch",
+      "identity": "codex/signing-sandbox-preflight-20260825",
+      "project_id": "gas-city",
+      "severity": "error",
+      "surface": "branch"
+    },
+    {
+      "bead_id": "ci-0x17",
+      "code": "unbound-branch",
+      "identity": "codex/ci-0x17-evidence-prompt-port",
+      "project_id": "gas-city-operations",
+      "severity": "error",
+      "surface": "branch"
+    },
+    {
+      "bead_id": "ci-n6ks",
+      "code": "unbound-worktree",
+      "identity": "/home/loucmane/codex/worktrees/gc-managed-worker-release-4ca0347d",
+      "project_id": "gas-city",
+      "severity": "error",
+      "surface": "worktree"
+    },
+    {
+      "bead_id": "signing-canary",
+      "code": "unbound-worktree",
+      "identity": "/home/loucmane/gascity-core-worktrees/signing-canary",
+      "project_id": "gas-city",
+      "severity": "error",
+      "surface": "worktree"
+    },
+    {
+      "bead_id": "signing-sandbox",
+      "code": "unbound-worktree",
+      "identity": "/home/loucmane/gascity-core-worktrees/signing-sandbox-preflight-20260825",
+      "project_id": "gas-city",
+      "severity": "error",
+      "surface": "worktree"
+    },
+    {
+      "bead_id": "ci-0x17",
+      "code": "unbound-worktree",
+      "identity": "/home/loucmane/gas-city-ops-worktrees/ci-0x17-evidence-prompt-port",
+      "project_id": "gas-city-operations",
+      "severity": "error",
+      "surface": "worktree"
+    }
+  ],
+  "next_actions": [
+    {
+      "bead_id": "ga-ur1c.2",
+      "id": "rig:gascity:ga-ur1c.2",
+      "project_id": "rig:gascity",
+      "title": "Enforce canonical Gas City Operations root and lifecycle parity"
+    },
+    {
+      "bead_id": "ga-ur1c.4",
+      "id": "rig:gascity:ga-ur1c.4",
+      "project_id": "rig:gascity",
+      "title": "Enforce Gas City delegation in managed projects"
+    }
+  ],
+  "ok": false,
+  "projects": [
+    {
+      "id": "blog",
+      "repository": "loucmane/blog",
+      "rig": "blog",
+      "root": "/home/loucmane/dev/blog",
+      "workflow_profile": "beads-with-frozen-legacy-evidence"
+    },
+    {
+      "id": "gas-city",
+      "repository": "loucmane/gascity",
+      "rig": "gascity",
+      "root": "/home/loucmane/gascity/city/rigs/gascity",
+      "workflow_profile": "beads-with-aegis-evidence"
+    },
+    {
+      "id": "gas-city-operations",
+      "repository": "loucmane/gas-city-operations",
+      "rig": "gascity",
+      "root": "/home/loucmane/gas-city-ops",
+      "workflow_profile": "beads-with-aegis-evidence"
+    },
+    {
+      "id": "hpfetcher",
+      "repository": "loucmane/hp-coach",
+      "rig": "hpfetcher",
+      "root": "/home/loucmane/dev/hpfetcher",
+      "workflow_profile": "beads-with-frozen-legacy-evidence"
+    }
+  ],
+  "registry_sha256": "f2b03709dea49e8bc6781bd59f7a95362b76456d092bb94a0478ac7447b33731",
+  "schema": "gas-city-workflow.continuity-report.v1",
+  "snapshot_sha256": "1402e7020393261042c907ec3f6ee63030e9647d88c79430b32f391d96cc4721",
+  "summary": {
+    "counts": {
+      "blocked": 3,
+      "current": 2,
+      "deferred": 0,
+      "generated": 0,
+      "legacy": 1,
+      "next": 2,
+      "orphaned": 8
+    },
+    "error_count": 13,
+    "finding_count": 14,
+    "next_action_ids": [
+      "rig:gascity:ga-ur1c.2",
+      "rig:gascity:ga-ur1c.4"
+    ],
+    "project_count": 4
+  },
+  "work": {
+    "blocked": [
+      {
+        "bead_id": "ga-ur1c.3",
+        "blockers": [
+          "ga-ur1c.1"
+        ],
+        "id": "rig:gascity:ga-ur1c.3",
+        "project_id": "rig:gascity",
+        "reason": "unresolved-blocker",
+        "status": "open",
+        "title": "Continuously reconcile every registered project into Obsidian"
+      },
+      {
+        "bead_id": "ga-ur1c.5",
+        "blockers": [
+          "ga-ur1c.1"
+        ],
+        "id": "rig:gascity:ga-ur1c.5",
+        "project_id": "rig:gascity",
+        "reason": "unresolved-blocker",
+        "status": "open",
+        "title": "Implement Luna to Terra to Fable attention funnel"
+      },
+      {
+        "bead_id": "ga-ur1c.6",
+        "blockers": [
+          "ga-ur1c.1",
+          "ga-ur1c.2",
+          "ga-ur1c.3",
+          "ga-ur1c.4",
+          "ga-ur1c.5"
+        ],
+        "id": "rig:gascity:ga-ur1c.6",
+        "project_id": "rig:gascity",
+        "reason": "unresolved-blocker",
+        "status": "open",
+        "title": "Reconcile continuity residue and certify recovery"
+      }
+    ],
+    "current": [
+      {
+        "bead_id": "ga-ur1c",
+        "blockers": [],
+        "id": "rig:gascity:ga-ur1c",
+        "project_id": "rig:gascity",
+        "reason": "active-initiative",
+        "status": "open",
+        "title": "Make cross-project workflow continuity machine-complete"
+      },
+      {
+        "bead_id": "ga-ur1c.1",
+        "blockers": [],
+        "id": "rig:gascity:ga-ur1c.1",
+        "project_id": "rig:gascity",
+        "reason": "in-progress",
+        "status": "in_progress",
+        "title": "Build initiative status, next-action, and orphan auditor"
+      }
+    ],
+    "deferred": [],
+    "generated": [],
+    "legacy": [
+      {
+        "bead_id": null,
+        "blockers": [],
+        "id": "hpfetcher:legacy:task80",
+        "project_id": "hpfetcher",
+        "reason": "legacy-active-tracker",
+        "status": "legacy",
+        "title": "task80"
+      }
+    ],
+    "next": [
+      {
+        "bead_id": "ga-ur1c.2",
+        "blockers": [],
+        "id": "rig:gascity:ga-ur1c.2",
+        "project_id": "rig:gascity",
+        "reason": "ready-open-work",
+        "status": "open",
+        "title": "Enforce canonical Gas City Operations root and lifecycle parity"
+      },
+      {
+        "bead_id": "ga-ur1c.4",
+        "blockers": [],
+        "id": "rig:gascity:ga-ur1c.4",
+        "project_id": "rig:gascity",
+        "reason": "ready-open-work",
+        "status": "open",
+        "title": "Enforce Gas City delegation in managed projects"
+      }
+    ],
+    "orphaned": [
+      {
+        "bead_id": "ci-0x17",
+        "blockers": [],
+        "id": "rig:gascity:branch:codex/ci-0x17-evidence-prompt-port",
+        "project_id": "gas-city-operations",
+        "reason": "unbound-branch",
+        "status": "orphaned",
+        "title": "unbound-branch"
+      },
+      {
+        "bead_id": "ci-n6ks",
+        "blockers": [],
+        "id": "rig:gascity:branch:codex/ci-n6ks-provider-version-stdout",
+        "project_id": "gas-city",
+        "reason": "unbound-branch",
+        "status": "orphaned",
+        "title": "unbound-branch"
+      },
+      {
+        "bead_id": "signing-canary",
+        "blockers": [],
+        "id": "rig:gascity:branch:codex/signing-canary",
+        "project_id": "gas-city",
+        "reason": "unbound-branch",
+        "status": "orphaned",
+        "title": "unbound-branch"
+      },
+      {
+        "bead_id": "signing-sandbox",
+        "blockers": [],
+        "id": "rig:gascity:branch:codex/signing-sandbox-preflight-20260825",
+        "project_id": "gas-city",
+        "reason": "unbound-branch",
+        "status": "orphaned",
+        "title": "unbound-branch"
+      },
+      {
+        "bead_id": "ci-n6ks",
+        "blockers": [],
+        "id": "rig:gascity:worktree:/home/loucmane/codex/worktrees/gc-managed-worker-release-4ca0347d",
+        "project_id": "gas-city",
+        "reason": "unbound-worktree",
+        "status": "orphaned",
+        "title": "unbound-worktree"
+      },
+      {
+        "bead_id": "ci-0x17",
+        "blockers": [],
+        "id": "rig:gascity:worktree:/home/loucmane/gas-city-ops-worktrees/ci-0x17-evidence-prompt-port",
+        "project_id": "gas-city-operations",
+        "reason": "unbound-worktree",
+        "status": "orphaned",
+        "title": "unbound-worktree"
+      },
+      {
+        "bead_id": "signing-canary",
+        "blockers": [],
+        "id": "rig:gascity:worktree:/home/loucmane/gascity-core-worktrees/signing-canary",
+        "project_id": "gas-city",
+        "reason": "unbound-worktree",
+        "status": "orphaned",
+        "title": "unbound-worktree"
+      },
+      {
+        "bead_id": "signing-sandbox",
+        "blockers": [],
+        "id": "rig:gascity:worktree:/home/loucmane/gascity-core-worktrees/signing-sandbox-preflight-20260825",
+        "project_id": "gas-city",
+        "reason": "unbound-worktree",
+        "status": "orphaned",
+        "title": "unbound-worktree"
+      }
+    ]
+  }
+}

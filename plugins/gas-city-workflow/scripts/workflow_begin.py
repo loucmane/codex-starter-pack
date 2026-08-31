@@ -438,6 +438,21 @@ def resume(
     registry: Path = DEFAULT_REGISTRY,
     runner: CommandRunner | None = None,
 ) -> dict[str, Any]:
+    runner = runner or CommandRunner()
+    if slug is None:
+        provisional, _, _ = derive_begin_spec(
+            runner,
+            root,
+            bead_id,
+            slug=None,
+            registry=registry,
+        )
+        existing = load_journal(journal_path(runner, provisional))
+        if existing is not None:
+            stored_slug = existing.get("spec", {}).get("slug")
+            if not isinstance(stored_slug, str) or not stored_slug:
+                raise WorkflowError("transition journal slug is invalid")
+            slug = stored_slug
     return begin(
         root,
         bead_id,

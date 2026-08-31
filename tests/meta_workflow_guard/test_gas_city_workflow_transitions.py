@@ -19,7 +19,7 @@ from scripts import _aegis_installer as aegis_installer  # noqa: E402
 from aegis_foundation.gate.render import next_command  # noqa: E402
 from workflow import _verify, parse_args  # noqa: E402
 from workflow_attach import attach  # noqa: E402
-from workflow_begin import _kickoff_command, begin  # noqa: E402
+from workflow_begin import _kickoff_command, begin, resume  # noqa: E402
 from workflow_common import (  # noqa: E402
     BeginSpec,
     CommandRunner,
@@ -283,6 +283,32 @@ def test_begin_creates_descriptor_project_worktree_and_replays_exactly(tmp_path:
         "claimed",
         "ready",
     ]
+
+
+def test_resume_recovers_an_explicit_slug_from_the_existing_journal(tmp_path: Path) -> None:
+    root, registry = _fixture_project(tmp_path)
+    runner = FixtureRunner(_bead())
+    first = begin(
+        root,
+        "ga-test",
+        slug="recorded-explicit-slug",
+        goals=[],
+        registry=registry,
+        runner=runner,
+    )
+
+    resumed = resume(
+        Path(first["spec"]["worktree"]),
+        "ga-test",
+        slug=None,
+        goals=[],
+        registry=registry,
+        runner=runner,
+    )
+
+    assert resumed["status"] == "ready"
+    assert resumed["spec"] == first["spec"]
+    assert resumed["spec"]["slug"] == "recorded-explicit-slug"
 
 
 def test_begin_adopts_exact_precreated_worktree_as_partial_outer_transition(

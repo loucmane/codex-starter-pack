@@ -1,0 +1,19 @@
+continuity: BLOCKED
+current=2 next=2 blocked=3 deferred=0 legacy=1 generated=0 orphaned=8
+next rig:gascity:ga-ur1c.2 — Enforce canonical Gas City Operations root and lifecycle parity
+next rig:gascity:ga-ur1c.4 — Enforce Gas City delegation in managed projects
+warning legacy-active-tracker project=hpfetcher identity=/home/loucmane/dev/hpfetcher/docs/ai/work-tracking/active/20260612-task80-boksidan-conventions-ACTIVE
+error obsidian-live-index-unconfirmed project=gas-city-operations identity=gas-city-operations
+error obsidian-project-id-mismatch project=gas-city-operations identity=gas-city
+error obsidian-project-unregistered project=blog identity=blog
+error obsidian-project-unregistered project=gas-city identity=gas-city
+error obsidian-project-unregistered project=hpfetcher identity=hpfetcher
+error unbound-branch project=gas-city identity=codex/ci-n6ks-provider-version-stdout
+error unbound-branch project=gas-city identity=codex/signing-canary
+error unbound-branch project=gas-city identity=codex/signing-sandbox-preflight-20260825
+error unbound-branch project=gas-city-operations identity=codex/ci-0x17-evidence-prompt-port
+error unbound-worktree project=gas-city identity=/home/loucmane/codex/worktrees/gc-managed-worker-release-4ca0347d
+error unbound-worktree project=gas-city identity=/home/loucmane/gascity-core-worktrees/signing-canary
+error unbound-worktree project=gas-city identity=/home/loucmane/gascity-core-worktrees/signing-sandbox-preflight-20260825
+error unbound-worktree project=gas-city-operations identity=/home/loucmane/gas-city-ops-worktrees/ci-0x17-evidence-prompt-port
+report_sha256=87146c42e527e5b441e9356c41e6de28096ad4eca30c86f4a7b8512e041e1d6a
