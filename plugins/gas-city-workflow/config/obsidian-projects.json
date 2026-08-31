@@ -6,7 +6,7 @@
     "live_index": {
       "obsidian_cli": "/home/loucmane/.local/bin/obsidian",
       "probe_path": "GasCity/Continuity/Status.md",
-      "timeout_seconds": 15,
+      "timeout_seconds": 30,
       "vault": "main"
     },
     "output_dir": "/home/loucmane/vaults/main/GasCity/Continuity",
@@ -36,7 +36,7 @@
       "live_index": {
         "obsidian_cli": "/home/loucmane/.local/bin/obsidian",
         "probe_path": "GasCity/gas-city-operations/Aegis/Home.md",
-        "timeout_seconds": 15,
+        "timeout_seconds": 30,
         "vault": "main"
       },
       "min_interval_seconds": 10,
@@ -63,7 +63,7 @@
       "live_index": {
         "obsidian_cli": "/home/loucmane/.local/bin/obsidian",
         "probe_path": "GasCity/gas-city/Aegis/Home.md",
-        "timeout_seconds": 15,
+        "timeout_seconds": 30,
         "vault": "main"
       },
       "min_interval_seconds": 10,
@@ -74,7 +74,7 @@
       "bead_export_argv": [
         "/home/loucmane/gascity/bin/bd",
         "-C",
-        "/home/loucmane/gascity/city/rigs/hpfetcher",
+        "/home/loucmane/dev/hpfetcher-gc-main",
         "--readonly",
         "list",
         "--all",
@@ -90,7 +90,7 @@
       "live_index": {
         "obsidian_cli": "/home/loucmane/.local/bin/obsidian",
         "probe_path": "GasCity/hpfetcher/Aegis/Home.md",
-        "timeout_seconds": 15,
+        "timeout_seconds": 30,
         "vault": "main"
       },
       "min_interval_seconds": 10,
@@ -101,7 +101,7 @@
       "bead_export_argv": [
         "/home/loucmane/gascity/bin/bd",
         "-C",
-        "/home/loucmane/gascity/city/rigs/blog",
+        "/home/loucmane/dev/blog",
         "--readonly",
         "list",
         "--all",
@@ -117,7 +117,7 @@
       "live_index": {
         "obsidian_cli": "/home/loucmane/.local/bin/obsidian",
         "probe_path": "GasCity/blog/Aegis/Home.md",
-        "timeout_seconds": 15,
+        "timeout_seconds": 30,
         "vault": "main"
       },
       "min_interval_seconds": 10,

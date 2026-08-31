@@ -14,6 +14,10 @@
 - Reconciler cycles publish the dashboard only after every project succeeds. Changed bytes trigger one live-app reload and managed-note read; byte-identical cycles perform the read without reloading.
 - The installer includes the dashboard runtime, expands only the exact systemd write allowlist, creates only missing direct managed project parents, and rolls back new parents on failed installation.
 - Plugin v0.6.0 and both recovery/reboot runbooks document generation, onboarding, freshness, live-index, and dashboard authority.
+- Repair bead `ga-ve57` replaces inferred Bead-store paths with explicit host `rig_root`
+  bindings, raises the bounded live-index timeout to 30 seconds, and upgrades installation
+  rollback to snapshot and restore private state, managed output trees, service result, and timer
+  state after quiescing the reconciler.
 
 ## Verification to Date
 - `ruff check`: PASS for every changed Python source and test.
@@ -22,3 +26,5 @@
 - Adjacent offline integration modules: `93 passed, 1 skipped`.
 - Plugin validation and generated registry `--check --validate-roots`: PASS.
 - Two temporary editable-install tests require a network build-dependency fetch and are intentionally deferred to hosted CI; no package installation or safety bypass was used locally.
+- `ga-ve57` repair regression: 48 focused Obsidian/plugin tests plus the 158-test Aegis
+  installer suite PASS (one certification smoke skipped by its explicit opt-in guard).

@@ -12,7 +12,7 @@ import shutil
 import stat
 import subprocess
 import tempfile
-from typing import Sequence
+from typing import NamedTuple, Sequence
 import zipfile
 
 from aegis_foundation.obsidian_registry import Registry, load_registry
@@ -28,6 +28,15 @@ RUNTIME_MODULES = (
     "work_authority.py",
 )
 FIXED_ZIP_TIME = (2026, 1, 1, 0, 0, 0)
+
+
+class TreeEntry(NamedTuple):
+    kind: str
+    mode: int
+    content: bytes | None = None
+
+
+TreeSnapshot = dict[str, TreeEntry] | None
 
 
 def _zip_info(name: str, mode: int = 0o644) -> zipfile.ZipInfo:
@@ -145,6 +154,79 @@ def _atomic_write(path: Path, content: bytes, mode: int) -> None:
         temporary.unlink(missing_ok=True)
 
 
+def _snapshot_tree(root: Path) -> TreeSnapshot:
+    if not root.exists() and not root.is_symlink():
+        return None
+    if root.is_symlink() or not root.is_dir():
+        raise RuntimeError(f"managed tree is missing or unsafe: {root}")
+    snapshot = {".": TreeEntry("dir", stat.S_IMODE(root.stat().st_mode))}
+    for path in sorted(root.rglob("*"), key=lambda item: item.as_posix()):
+        relative = path.relative_to(root).as_posix()
+        if path.is_symlink():
+            raise RuntimeError(f"managed tree contains a symlink: {path}")
+        if path.is_dir():
+            snapshot[relative] = TreeEntry("dir", stat.S_IMODE(path.stat().st_mode))
+        elif path.is_file():
+            snapshot[relative] = TreeEntry(
+                "file", stat.S_IMODE(path.stat().st_mode), path.read_bytes()
+            )
+        else:
+            raise RuntimeError(f"managed tree contains a special file: {path}")
+    return snapshot
+
+
+def _remove_managed_tree(root: Path) -> None:
+    if not root.exists() and not root.is_symlink():
+        return
+    _snapshot_tree(root)
+    shutil.rmtree(root)
+
+
+def _restore_tree(root: Path, snapshot: TreeSnapshot) -> None:
+    _remove_managed_tree(root)
+    if snapshot is None:
+        return
+    root_entry = snapshot.get(".")
+    if root_entry is None or root_entry.kind != "dir":
+        raise RuntimeError(f"managed tree snapshot is invalid: {root}")
+    root.mkdir(parents=True, mode=root_entry.mode)
+    directories = sorted(
+        (
+            (Path(relative), entry)
+            for relative, entry in snapshot.items()
+            if relative != "." and entry.kind == "dir"
+        ),
+        key=lambda item: (len(item[0].parts), item[0].as_posix()),
+    )
+    for relative, entry in directories:
+        path = root / relative
+        path.mkdir(mode=entry.mode)
+        os.chmod(path, entry.mode)
+    for relative, entry in sorted(snapshot.items()):
+        if relative == "." or entry.kind == "dir":
+            continue
+        if entry.kind != "file" or entry.content is None:
+            raise RuntimeError(f"managed tree snapshot entry is invalid: {root / relative}")
+        _atomic_write(root / relative, entry.content, entry.mode)
+    for relative, entry in reversed(directories):
+        os.chmod(root / relative, entry.mode)
+    os.chmod(root, root_entry.mode)
+
+
+def _missing_directories(paths: set[Path]) -> list[Path]:
+    missing: set[Path] = set()
+    for path in paths:
+        cursor = path
+        while not cursor.exists() and not cursor.is_symlink():
+            missing.add(cursor)
+            if cursor == cursor.parent:
+                raise RuntimeError(f"managed directory has no existing ancestor: {path}")
+            cursor = cursor.parent
+        if cursor.is_symlink() or not cursor.is_dir():
+            raise RuntimeError(f"managed directory ancestor is unsafe: {cursor}")
+    return sorted(missing, key=lambda item: (len(item.parts), item.as_posix()), reverse=True)
+
+
 def _run_systemctl(*arguments: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["systemctl", "--user", *arguments],
@@ -238,13 +320,16 @@ def install(
     manifest_path = _manifest_path(home)
     previous_manifest = _read_manifest(manifest_path)
     _verify_previous(files, previous_manifest)
+    output_dirs = sorted({project.output_dir for project in registry.projects if project.enabled})
+    if registry.continuity_dashboard is not None:
+        output_dirs.append(registry.continuity_dashboard.output_dir)
+        output_dirs = sorted(set(output_dirs))
     output_parents = sorted(
         {project.output_dir.parent for project in registry.projects if project.enabled}
     )
     if registry.continuity_dashboard is not None:
         output_parents.append(registry.continuity_dashboard.output_dir.parent)
         output_parents = sorted(set(output_parents))
-    created_output_parents: list[Path] = []
     managed_root = registry.managed_output_root
     if managed_root is not None and (managed_root.is_symlink() or not managed_root.is_dir()):
         raise RuntimeError(f"managed Obsidian output root is missing or unsafe: {managed_root}")
@@ -255,8 +340,6 @@ def install(
             raise RuntimeError(f"registered Obsidian output parent is unsafe: {parent}")
         if managed_root is None or parent.parent != managed_root:
             raise RuntimeError(f"registered Obsidian output parent is missing or unsafe: {parent}")
-        parent.mkdir(mode=0o755)
-        created_output_parents.append(parent)
     previous_files = {
         path: (
             path.read_bytes() if path.is_file() and not path.is_symlink() else None,
@@ -265,13 +348,36 @@ def install(
         for path in files
     }
     timer = "aegis-obsidian-reconcile.timer"
+    service = "aegis-obsidian-reconcile.service"
     before_timer = _unit_state(timer)
-    wrote_manifest = False
+    before_service = _unit_state(service)
+    state_dir = manifest_path.parent
+    initially_missing_directories = _missing_directories(
+        {state_dir, *output_parents, *(path.parent for path in files)}
+    )
+    state_snapshot: TreeSnapshot = None
+    output_snapshots: dict[Path, TreeSnapshot] = {}
+    snapshots_captured = False
     try:
-        manifest_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        if manifest_path.parent.is_symlink() or not manifest_path.parent.is_dir():
-            raise RuntimeError(f"reconciler state directory is unsafe: {manifest_path.parent}")
-        os.chmod(manifest_path.parent, 0o700)
+        if before_timer["active"]:
+            stopped = _run_systemctl("stop", timer)
+            if stopped.returncode != 0:
+                raise RuntimeError(f"timer stop failed: {stopped.stderr.strip()}")
+        if before_service["active"]:
+            stopped = _run_systemctl("stop", service)
+            if stopped.returncode != 0:
+                raise RuntimeError(f"service stop failed: {stopped.stderr.strip()}")
+        state_snapshot = _snapshot_tree(state_dir)
+        output_snapshots = {path: _snapshot_tree(path) for path in output_dirs}
+        snapshots_captured = True
+        for parent in output_parents:
+            if parent.is_dir() and not parent.is_symlink():
+                continue
+            parent.mkdir(mode=0o755)
+        state_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if state_dir.is_symlink() or not state_dir.is_dir():
+            raise RuntimeError(f"reconciler state directory is unsafe: {state_dir}")
+        os.chmod(state_dir, 0o700)
         for path, (content, mode) in files.items():
             _atomic_write(path, content, mode)
         reload_result = _run_systemctl("daemon-reload")
@@ -315,34 +421,65 @@ def install(
             (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode(),
             0o600,
         )
-        wrote_manifest = True
         return {"ok": True, "status": "installed", **manifest}
-    except Exception:
-        _run_systemctl("disable", "--now", timer)
+    except Exception as exc:
+        rollback_errors: list[str] = []
+        disabled = _run_systemctl("disable", "--now", timer)
+        if disabled.returncode != 0:
+            rollback_errors.append(f"timer disable failed: {disabled.stderr.strip()}")
+        stopped = _run_systemctl("stop", service)
+        if stopped.returncode != 0:
+            rollback_errors.append(f"service stop failed: {stopped.stderr.strip()}")
         for path, (content, mode) in previous_files.items():
-            if content is None:
-                path.unlink(missing_ok=True)
-            else:
-                _atomic_write(path, content, int(mode or 0o600))
-        _run_systemctl("daemon-reload")
+            try:
+                if content is None:
+                    path.unlink(missing_ok=True)
+                else:
+                    _atomic_write(path, content, int(mode or 0o600))
+            except OSError as rollback_exc:
+                rollback_errors.append(f"file restore failed for {path}: {rollback_exc}")
+        reload_result = _run_systemctl("daemon-reload")
+        if reload_result.returncode != 0:
+            rollback_errors.append(f"systemd daemon-reload failed: {reload_result.stderr.strip()}")
+        if snapshots_captured:
+            try:
+                _restore_tree(state_dir, state_snapshot)
+                for path, snapshot in output_snapshots.items():
+                    _restore_tree(path, snapshot)
+            except (OSError, RuntimeError) as rollback_exc:
+                rollback_errors.append(f"managed tree restore failed: {rollback_exc}")
+        for directory in initially_missing_directories:
+            try:
+                if not directory.exists() and not directory.is_symlink():
+                    continue
+                if directory.is_symlink() or not directory.is_dir():
+                    raise RuntimeError(f"new managed directory became unsafe: {directory}")
+                if any(directory.iterdir()):
+                    raise RuntimeError(f"new managed directory is not empty: {directory}")
+                directory.rmdir()
+            except OSError as rollback_exc:
+                rollback_errors.append(
+                    f"managed directory restore failed for {directory}: {rollback_exc}"
+                )
+            except RuntimeError as rollback_exc:
+                rollback_errors.append(str(rollback_exc))
+        reset = _run_systemctl("reset-failed", service)
+        if reset.returncode != 0:
+            rollback_errors.append(f"service reset-failed failed: {reset.stderr.strip()}")
         if before_timer["enabled"]:
-            _run_systemctl("enable", timer)
+            enabled = _run_systemctl("enable", timer)
+            if enabled.returncode != 0:
+                rollback_errors.append(f"timer enable restore failed: {enabled.stderr.strip()}")
         if before_timer["active"]:
-            _run_systemctl("start", timer)
-        if wrote_manifest:
-            manifest_path.unlink(missing_ok=True)
-        for parent in reversed(created_output_parents):
-            if not parent.exists():
-                continue
-            entries = list(parent.iterdir())
-            if not entries:
-                parent.rmdir()
-                continue
-            managed = parent / "Aegis"
-            manifest = managed / ".aegis-vault.json"
-            if entries == [managed] and managed.is_dir() and manifest.is_file():
-                shutil.rmtree(managed)
-                parent.rmdir()
+            started = _run_systemctl("start", timer)
+            if started.returncode != 0:
+                rollback_errors.append(f"timer active restore failed: {started.stderr.strip()}")
+        if before_service["active"]:
+            started = _run_systemctl("start", service)
+            if started.returncode != 0:
+                rollback_errors.append(f"service active restore failed: {started.stderr.strip()}")
+        if rollback_errors:
+            raise RuntimeError(f"{exc}; rollback failed: {'; '.join(rollback_errors)}") from exc
         raise
 
 

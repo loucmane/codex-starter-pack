@@ -128,7 +128,7 @@ def test_plugin_manifest_and_router_skill_validate() -> None:
     assert result.returncode == 0, result.stdout + result.stderr
     manifest = json.loads((PLUGIN / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
     assert manifest["name"] == "gas-city-workflow"
-    assert manifest["version"].startswith("0.6.0+codex.")
+    assert manifest["version"].startswith("0.6.1+codex.")
     assert manifest["interface"]["capabilities"] == ["Read"]
     assert not (PLUGIN / ".mcp.json").exists()
     assert not (PLUGIN / "hooks").exists()
@@ -352,9 +352,12 @@ def test_gas_city_operations_identity_and_workspace_policy_are_registered() -> N
         "workflow_profile": "beads-with-aegis-evidence",
     }
     assert registered["root"] == "/home/loucmane/gas-city-ops"
+    assert registered["rig_root"] == "/home/loucmane/gascity/city/rigs/gascity"
     assert registered["worktree_root"] == "/home/loucmane/gas-city-ops-worktrees"
     assert {
-        key: value for key, value in registered.items() if key not in {"root", "worktree_root"}
+        key: value
+        for key, value in registered.items()
+        if key not in {"rig_root", "root", "worktree_root"}
     } == {key: value for key, value in descriptor.items() if key != "schema"}
 
 

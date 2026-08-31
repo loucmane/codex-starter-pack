@@ -91,7 +91,14 @@ Prefer a project-local `.gas-city-workflow.json` so onboarding travels with the 
 }
 ```
 
-Validate it against `config/project-descriptor.schema.json`, commit it through the repository’s normal review path, register/provision the rig separately, and run the context command with `--check`. A descriptor-only project derives its worktree root from the canonical checkout. Add a matching registry entry only when the host needs an explicit canonical-root binding or worktree-root override. A descriptor does not create a rig, grant permissions, or install infrastructure.
+Validate it against `config/project-descriptor.schema.json`, commit it through the repository’s
+normal review path, register/provision the rig separately, and run the context command with
+`--check`. A descriptor-only project derives its worktree root from the canonical checkout. The
+host registry entry must declare the absolute `rig_root` used for Beads export; `rig_root` is
+deliberately excluded from descriptor parity because repository descriptors must remain portable.
+The host registry may also bind an explicit canonical root or exceptional worktree root. A
+descriptor does not discover a rig, guess a store path, grant permissions, or install
+infrastructure.
 
 ## Shared agent roles
 

@@ -4,5 +4,11 @@
 - 2026-08-31 — The current reconciler already supports multiple explicit projects and the installer derives a narrow `ReadWritePaths` allowlist from their output parents. The missing layer is deterministic generation/validation of those entries, not a second daemon per project.
 - 2026-08-31 — Unchanged reconciliations deliberately record `not-run-no-change`, which makes periodic filesystem freshness pass while the live-index surface becomes stale/unknown. A read-only probe on no-change cycles closes this gap without causing reload churn.
 - 2026-08-31 — The continuity auditor is already the only classifier for Current/Next/Blocked/orphans. The Obsidian dashboard must consume its report rather than reimplement classification logic.
+- 2026-08-31 — The first live installation refused safely because the generated registry inferred
+  every Bead store as `city/rigs/<rig>` even though HPFetcher and Blog use external registered rig
+  roots; the first successful project publication then exhausted an overly narrow 15-second live
+  read. File rollback was exact, but transient private state and a failed oneshot result required
+  explicit reconciliation. Repair bead `ga-ve57` therefore makes rig roots declarative and the
+  entire user-level transaction rollback-exact.
 - 2026-08-31 — The vault is missing the direct `GasCity/gas-city` parent while the managed root itself is safe. The installer now permits only one direct `<project-id>` parent beneath the declared managed root and removes a newly created empty or solely managed parent on rollback; it cannot create arbitrary ancestors.
 - 2026-08-31 — Local full-suite execution reached the editable-package invocation tests, which require fetching a build dependency. Network-enabled package installation was correctly refused by the runtime safety boundary. All in-scope tests and adjacent offline integration modules pass; hosted CI remains the authority for those two network-dependent tests.

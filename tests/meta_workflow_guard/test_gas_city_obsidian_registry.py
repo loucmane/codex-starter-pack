@@ -46,7 +46,7 @@ def test_tracked_registry_is_exact_generated_projection_of_project_registry() ->
         assert project.output_dir == Path(
             f"/home/loucmane/vaults/main/GasCity/{source['id']}/Aegis"
         )
-        assert project.bead_export_argv[2] == (f"/home/loucmane/gascity/city/rigs/{source['rig']}")
+        assert project.bead_export_argv[2] == source["rig_root"]
         assert project.live_index is not None
         assert project.live_index.probe_path == f"GasCity/{source['id']}/Aegis/Home.md"
     assert obsidian.continuity_dashboard is not None
@@ -62,6 +62,7 @@ def test_descriptor_onboarding_changes_one_generated_project_entry(tmp_path: Pat
         {
             "id": "future-project",
             "root": "/srv/future-project",
+            "rig_root": "/srv/gascity/rigs/future-project",
             "repository": "example/future-project",
             "rig": "future-project",
             "workflow_authority": "beads",
@@ -85,5 +86,5 @@ def test_descriptor_onboarding_changes_one_generated_project_entry(tmp_path: Pat
     assert project["id"] == "future-project"
     assert project["target_dir"] == "/srv/future-project"
     assert project["output_dir"] == "/srv/vault/GasCity/future-project/Aegis"
-    assert project["bead_export_argv"][2] == "/srv/gascity/city/rigs/future-project"
+    assert project["bead_export_argv"][2] == "/srv/gascity/rigs/future-project"
     assert project["live_index"]["probe_path"] == "GasCity/future-project/Aegis/Home.md"

@@ -1,6 +1,6 @@
 # Gas City Workflow plugin
 
-Version `0.6.0` packages the common lifecycle, cross-project continuity audit, continuous
+Version `0.6.1` packages the common lifecycle, cross-project continuity audit, continuous
 project-isolated Obsidian projections, and frozen report-only evidence reviews without copying
 project state into prompts or widening permissions.
 
@@ -12,7 +12,8 @@ project state into prompts or widening permissions.
   machine and human Current/Next/Blocked/orphan views.
 - `scripts/build_obsidian_registry.py` deterministically projects that same validated project
   registry into the continuous Obsidian reconciler configuration.
-- `config/projects.json` binds established canonical roots and exceptional worktree-root overrides.
+- `config/projects.json` binds established canonical roots, explicit host rig roots, and
+  exceptional worktree-root overrides.
 - `config/root-policy.json` is the single canonical/retired-root contract consumed by context and both user-level agent guards.
 - `.gas-city-workflow.json` descriptors onboard future projects without changing plugin code.
 - `adapters/` keeps Codex execution and Fable read-only review on the same contract.
@@ -76,10 +77,12 @@ python3 plugins/gas-city-workflow/scripts/build_obsidian_registry.py --check --v
 The installed user timer reconciles every enabled project and the dashboard. A changed projection
 is atomically replaced, gated, reloaded once in the live Obsidian app, and read back. A
 byte-identical cycle performs only the managed-note read; it does not reload Obsidian. Missing
-direct project parents may be created only beneath the declared managed vault root and are removed
-on a failed fresh installation. Adding a valid project descriptor and project-registry entry is
-therefore sufficient to generate the same lifecycle for a future project without adding another
-daemon or relying on an agent's memory.
+direct project parents may be created only beneath the declared managed vault root. The installer
+quiesces the timer before capture and restores its files, private state, managed output trees,
+service result, and timer state exactly on failure. A registry entry binds the host's absolute
+`rig_root`; the repository-local descriptor remains portable and never guesses that host path.
+Adding a valid descriptor plus its reviewed host registry entry is therefore sufficient to
+generate the same lifecycle for a future project without another daemon or agent memory.
 
 For blind report lanes, `config/evidence-reviewer/` defines one generic rig-scoped Sol reviewer
 whose work directory is `/home/loucmane/gascity/evidence-runs`, whose additional writable-root
