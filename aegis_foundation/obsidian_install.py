@@ -119,7 +119,8 @@ Description=Keep deterministic Aegis Obsidian projections fresh
 
 [Timer]
 OnBootSec=45s
-OnUnitActiveSec=60s
+OnActiveSec=60s
+OnUnitInactiveSec=60s
 RandomizedDelaySec=5s
 AccuracySec=1s
 Persistent=true
@@ -228,11 +229,12 @@ def _missing_directories(paths: set[Path]) -> list[Path]:
 
 
 def _run_systemctl(*arguments: str) -> subprocess.CompletedProcess[str]:
+    timeout = 360 if arguments[:2] == ("start", "aegis-obsidian-reconcile.service") else 30
     return subprocess.run(
         ["systemctl", "--user", *arguments],
         capture_output=True,
         text=True,
-        timeout=30,
+        timeout=timeout,
         check=False,
     )
 
@@ -240,11 +242,15 @@ def _run_systemctl(*arguments: str) -> subprocess.CompletedProcess[str]:
 def _unit_state(unit: str) -> dict[str, object]:
     enabled = _run_systemctl("is-enabled", unit)
     active = _run_systemctl("is-active", unit)
+    substate = _run_systemctl("show", unit, "-p", "SubState", "--value")
+    result = _run_systemctl("show", unit, "-p", "Result", "--value")
     return {
         "enabled": enabled.returncode == 0 and enabled.stdout.strip() == "enabled",
         "active": active.returncode == 0 and active.stdout.strip() == "active",
         "enabled_value": enabled.stdout.strip(),
         "active_value": active.stdout.strip(),
+        "substate": substate.stdout.strip() if substate.returncode == 0 else "",
+        "result": result.stdout.strip() if result.returncode == 0 else "",
     }
 
 
@@ -448,6 +454,24 @@ def install(
                     _restore_tree(path, snapshot)
             except (OSError, RuntimeError) as rollback_exc:
                 rollback_errors.append(f"managed tree restore failed: {rollback_exc}")
+        reset = _run_systemctl("reset-failed", service)
+        if reset.returncode != 0:
+            rollback_errors.append(f"service reset-failed failed: {reset.stderr.strip()}")
+        if before_timer["active"] and before_timer["substate"] == "waiting":
+            primed = _run_systemctl("start", service)
+            if primed.returncode != 0:
+                rollback_errors.append(
+                    f"timer reference service restore failed: {primed.stderr.strip()}"
+                )
+            elif snapshots_captured:
+                try:
+                    _restore_tree(state_dir, state_snapshot)
+                    for path, snapshot in output_snapshots.items():
+                        _restore_tree(path, snapshot)
+                except (OSError, RuntimeError) as rollback_exc:
+                    rollback_errors.append(
+                        f"post-prime managed tree restore failed: {rollback_exc}"
+                    )
         for directory in initially_missing_directories:
             try:
                 if not directory.exists() and not directory.is_symlink():
@@ -463,9 +487,6 @@ def install(
                 )
             except RuntimeError as rollback_exc:
                 rollback_errors.append(str(rollback_exc))
-        reset = _run_systemctl("reset-failed", service)
-        if reset.returncode != 0:
-            rollback_errors.append(f"service reset-failed failed: {reset.stderr.strip()}")
         if before_timer["enabled"]:
             enabled = _run_systemctl("enable", timer)
             if enabled.returncode != 0:
@@ -478,6 +499,13 @@ def install(
             started = _run_systemctl("start", service)
             if started.returncode != 0:
                 rollback_errors.append(f"service active restore failed: {started.stderr.strip()}")
+        restored_timer = _unit_state(timer)
+        for key in ("enabled", "active", "substate"):
+            if before_timer[key] != restored_timer[key]:
+                rollback_errors.append(
+                    f"timer {key} restore drift: expected={before_timer[key]!r} "
+                    f"observed={restored_timer[key]!r}"
+                )
         if rollback_errors:
             raise RuntimeError(f"{exc}; rollback failed: {'; '.join(rollback_errors)}") from exc
         raise

@@ -1,6 +1,6 @@
 # Gas City Workflow plugin
 
-Version `0.6.1` packages the common lifecycle, cross-project continuity audit, continuous
+Version `0.6.2` packages the common lifecycle, cross-project continuity audit, continuous
 project-isolated Obsidian projections, and frozen report-only evidence reviews without copying
 project state into prompts or widening permissions.
 
@@ -83,6 +83,9 @@ service result, and timer state exactly on failure. A registry entry binds the h
 `rig_root`; the repository-local descriptor remains portable and never guesses that host path.
 Adding a valid descriptor plus its reviewed host registry entry is therefore sufficient to
 generate the same lifecycle for a future project without another daemon or agent memory.
+The timer always schedules a bounded first cycle after activation and later cycles after the
+oneshot becomes inactive. Installer control calls allow the complete multi-project cycle to finish;
+they do not reuse the 30-second per-probe timeout as a whole-transaction deadline.
 
 For blind report lanes, `config/evidence-reviewer/` defines one generic rig-scoped Sol reviewer
 whose work directory is `/home/loucmane/gascity/evidence-runs`, whose additional writable-root

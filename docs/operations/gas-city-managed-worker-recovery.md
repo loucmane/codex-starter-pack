@@ -71,6 +71,9 @@ project failed. Byte-identical cycles probe the live managed note without reload
 The installer stops the timer before capturing rollback state. A failed refresh restores the
 installed files, private reconciler state, every managed output tree, the service result, and the
 timer's enabled/active state before another attempt is eligible.
+The user timer uses activation plus target-inactivity scheduling so a reviewed restart always has a
+future trigger. The installer's systemctl client deadline covers the complete project set; each
+export and live-index probe retains its own narrower registry bound.
 
 ## Recovery classification
 
