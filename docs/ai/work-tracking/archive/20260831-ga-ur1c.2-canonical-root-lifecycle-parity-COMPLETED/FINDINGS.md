@@ -5,3 +5,5 @@
 - 2026-08-31 — Official Codex hook behavior confirms user-level hooks remain active independently of project trust. `PreToolUse` can cover Bash, file editors, `apply_patch`, and MCP tools and fail closed with exit 2.
 - 2026-08-31 — Git common-directory identity is the necessary boundary: every linked worktree owned by the historical checkout resolves to `/home/loucmane/codex/.git`, so a literal cwd comparison alone would be bypassable.
 - 2026-08-31 — The repository migration manifest already holds the canonical and historical paths but described retirement as a future separate gate. A distinct v1 root-policy asset avoids breaking the stable project-registry schema while making the transition executable and testable.
+- 2026-08-31 — PR #335 merged with a byte-identical tree after Python 3.11 exposed and the append-forward fix removed a host-only test-fixture dependency. The merge-bound install and a second idempotent apply both passed; historical HEAD, branch, status, staged/unstaged diffs, and worktree inventory hashes remained exact.
+- 2026-08-31 — Archive preconditions were satisfied and the completed bundle was preserved.

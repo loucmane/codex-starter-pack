@@ -1414,5 +1414,23 @@
     "plan_hash": "6868f6f5316b641e8726fe537bbbfe1019db3b23302b7a1df7047fa94e920029",
     "tracker_hash": "556952b9c53d511eb3e3e8dfbb69201d2d41e29a667dbe68dfdbd7c3b7885799",
     "synced_at": "2026-08-31T14:58:59.541739+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-ur1c.2-canonical-root-lifecycle-parity.md",
+    "plan_hash": "d2485a18bc459d482c98b0d5b86c0d9cc18e1229e264e63f6e6c32a1e6a3fb0c",
+    "tracker_hash": "1eb3e69b26ff691d9eeb6353c74fca757f382f2eebf30656f3b1ac40f1382897",
+    "synced_at": "2026-08-31T15:08:26.397277+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-ur1c.2-canonical-root-lifecycle-parity.md",
+    "plan_hash": "d2485a18bc459d482c98b0d5b86c0d9cc18e1229e264e63f6e6c32a1e6a3fb0c",
+    "tracker_hash": "1eb3e69b26ff691d9eeb6353c74fca757f382f2eebf30656f3b1ac40f1382897",
+    "synced_at": "2026-08-31T15:08:36.808185+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-ur1c.2-canonical-root-lifecycle-parity.md",
+    "plan_hash": "e051bc6a9f8c98bd3496874c33245324382b364d787bab4b526157de4d55aeb7",
+    "tracker_hash": "836742a85e7e03142352d6bdb00fb82616e8888b2056ee693c513a006d5d3ff5",
+    "synced_at": "2026-08-31T15:08:47.155275+02:00"
   }
 ]

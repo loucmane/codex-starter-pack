@@ -12,4 +12,6 @@
 
 - RED captured: 7 missing-surface failures before implementation.
 - GREEN focused: evaluator, installer, project-context, and migration tests passing.
-- Historical checkout has not been mutated; live user configuration has not yet been changed.
+- Full regression: 2,395 passed and 21 documented skips; hosted Python 3.11–3.14 and every policy/evidence check passed.
+- PR #335 merged exact signed head `5df17ed4…` as merge `0e9c4397…`; merge tree `8fb4b603…` is byte-identical.
+- Merge-bound install and idempotent reapply passed with evidence under `~/.local/state/gas-city-workflow/root-policy-installs/`; historical checkout and worktree inventory hashes are unchanged.
