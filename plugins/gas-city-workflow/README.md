@@ -91,6 +91,13 @@ generate the same lifecycle for a future project without another daemon or agent
 The timer always schedules a bounded first cycle after activation and later cycles after the
 oneshot becomes inactive. Installer control calls allow the complete multi-project cycle to finish;
 they do not reuse the 30-second per-probe timeout as a whole-transaction deadline.
+One registry-wide lock now spans projection, batched IPC observation, and dashboard publication.
+While it is held, each candidate lives under `pending_success`; `last_success` remains the last
+fully observed state until the corresponding IPC result is committed atomically. The continuity
+snapshot reports filesystem state, cycle state, live-index authority/time, and the WSL Obsidian
+systemd scope as four separate facts. An inaccessible user bus is `unknown`, never evidence that
+Obsidian is absent; an active cycle is advisory/indeterminate, while a stranded pending candidate
+without the cycle lock is a real interrupted-cycle error.
 The bounded identity graph accepts up to 5,000 stable agent identities, matching its existing
 5,000-edge ceiling; larger histories still fail closed before rendering unbounded notes.
 

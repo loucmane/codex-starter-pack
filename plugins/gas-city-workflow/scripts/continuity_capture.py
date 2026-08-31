@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
 import os
@@ -275,7 +276,108 @@ def _followups(root: Path) -> list[dict[str, Any]]:
     return followups
 
 
-def _obsidian_index(registry_path: Path, state_root: Path) -> dict[str, dict[str, Any]]:
+def _systemd_properties(text: str) -> dict[str, str]:
+    return {
+        key: value
+        for line in text.splitlines()
+        if "=" in line
+        for key, value in [line.split("=", 1)]
+    }
+
+
+def _obsidian_process(runner: ReadOnlyRunner) -> dict[str, Any]:
+    """Observe the WSL Obsidian scope without treating visibility failure as absence."""
+
+    authority = "systemd-user-manager"
+    try:
+        listing = runner.run(
+            [
+                "systemctl",
+                "--user",
+                "list-units",
+                "--type=scope",
+                "--all",
+                "--no-legend",
+                "--plain",
+                "--no-pager",
+            ]
+        ).stdout
+        unit_names = sorted(
+            {
+                line.split()[0]
+                for line in listing.splitlines()
+                if line.split()
+                and line.split()[0].endswith(".scope")
+                and "obsidian" in line.split()[0].casefold()
+            }
+        )
+        units = []
+        for unit_name in unit_names:
+            properties = _systemd_properties(
+                runner.run(
+                    [
+                        "systemctl",
+                        "--user",
+                        "show",
+                        unit_name,
+                        "--property=Id",
+                        "--property=ActiveState",
+                        "--property=SubState",
+                        "--property=ControlGroup",
+                        "--property=InvocationID",
+                        "--no-pager",
+                    ]
+                ).stdout
+            )
+            units.append(
+                {
+                    "id": properties.get("Id", unit_name),
+                    "active_state": properties.get("ActiveState", "unknown"),
+                    "sub_state": properties.get("SubState", "unknown"),
+                    "control_group": properties.get("ControlGroup", ""),
+                    "invocation_id": properties.get("InvocationID", ""),
+                }
+            )
+    except ContinuityError:
+        return {"status": "unknown", "authority": authority, "units": []}
+    if not units:
+        status = "absent"
+    elif any(unit["active_state"] == "active" for unit in units):
+        status = "active"
+    else:
+        status = "inactive"
+    return {"status": status, "authority": authority, "units": units}
+
+
+def _obsidian_cycle_status(state_root: Path) -> str:
+    """Probe the registry-wide flock without creating or mutating its lock file."""
+
+    lock_path = state_root / "registry-cycle.lock"
+    if not lock_path.is_file() or lock_path.is_symlink():
+        return "idle"
+    try:
+        with lock_path.open("rb") as handle:
+            try:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_SH | fcntl.LOCK_NB)
+            except BlockingIOError:
+                return "running"
+            finally:
+                try:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+                except OSError:
+                    pass
+    except OSError:
+        return "unknown"
+    return "idle"
+
+
+def _obsidian_index(
+    registry_path: Path,
+    state_root: Path,
+    *,
+    process: Mapping[str, Any],
+    registry_cycle_status: str,
+) -> dict[str, dict[str, Any]]:
     if not registry_path.exists():
         return {}
     registry = _read_object(registry_path, "Obsidian registry")
@@ -293,11 +395,35 @@ def _obsidian_index(registry_path: Path, state_root: Path) -> dict[str, dict[str
         state = _read_object(state_path, "Obsidian state") if state_path.is_file() else {}
         success = state.get("last_success") if isinstance(state.get("last_success"), Mapping) else {}
         live = success.get("live_index") if isinstance(success.get("live_index"), Mapping) else {}
+        pending = isinstance(state.get("pending_success"), Mapping)
+        if pending and registry_cycle_status == "idle":
+            project_cycle_status = "interrupted"
+        elif pending and registry_cycle_status == "unknown":
+            project_cycle_status = "unknown"
+        else:
+            project_cycle_status = registry_cycle_status
+        completed_at = success.get("completed_at")
+        observed_at = live.get("observed_at") or completed_at
         result[Path(target).resolve().as_posix()] = {
             "registered": True,
             "registry_project_id": project_id,
             "vault_status": success.get("vault_status"),
             "live_index_status": live.get("status"),
+            "filesystem": {
+                "status": success.get("vault_status"),
+                "completed_at": completed_at,
+            },
+            "live_index": {
+                "status": live.get("status"),
+                "authority": live.get("authority"),
+                "observed_at": observed_at,
+            },
+            "cycle": {
+                "status": project_cycle_status,
+                "attempted_at": state.get("last_attempt_at"),
+                "pending_candidate": pending,
+            },
+            "process": dict(process),
             "state_path": state_path.as_posix(),
         }
     return result
@@ -382,7 +508,14 @@ def capture_snapshot(
         )
         registered_roots.add(canonical_root)
         registered_ids.add(project_id)
-    obsidian = _obsidian_index(obsidian_registry, obsidian_state)
+    obsidian_process = _obsidian_process(runner)
+    obsidian_cycle_status = _obsidian_cycle_status(obsidian_state)
+    obsidian = _obsidian_index(
+        obsidian_registry,
+        obsidian_state,
+        process=obsidian_process,
+        registry_cycle_status=obsidian_cycle_status,
+    )
     receipts = _receipt_index(signing_policies)
     captured = []
     beads_by_rig: dict[str, list[dict[str, Any]]] = {}
@@ -494,6 +627,18 @@ def capture_snapshot(
                         "registered": False,
                         "vault_status": None,
                         "live_index_status": None,
+                        "filesystem": {"status": None, "completed_at": None},
+                        "live_index": {
+                            "status": None,
+                            "authority": None,
+                            "observed_at": None,
+                        },
+                        "cycle": {
+                            "status": obsidian_cycle_status,
+                            "attempted_at": None,
+                            "pending_candidate": False,
+                        },
+                        "process": dict(obsidian_process),
                     },
                 ),
                 "followups": _followups(root),

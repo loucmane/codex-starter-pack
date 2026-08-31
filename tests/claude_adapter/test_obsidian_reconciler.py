@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import fcntl
 import json
 from pathlib import Path
 import sqlite3
@@ -503,6 +504,101 @@ def test_changed_publication_refreshes_and_probes_live_index_once(tmp_path: Path
             15,
         )
     ]
+
+
+def test_registry_cycle_preserves_last_complete_success_until_live_observation(
+    tmp_path: Path,
+) -> None:
+    root = _repo(tmp_path)
+    output = tmp_path / "vault"
+    registry = load_registry(
+        _registry(
+            tmp_path,
+            root,
+            output,
+            live_index={
+                "obsidian_cli": "/usr/bin/obsidian",
+                "vault": "main",
+                "probe_path": "GasCity/gas-city/Aegis/Home.md",
+            },
+        )
+    )
+    state_dir = tmp_path / "state"
+    inspect_pending = False
+
+    def run(argv: tuple[str, ...], _timeout: int) -> subprocess.CompletedProcess[bytes]:
+        if inspect_pending:
+            state = json.loads((state_dir / "gas-city.json").read_text(encoding="utf-8"))
+            assert state["last_success"]["live_index"]["status"] == "confirmed"
+            assert state["pending_success"]["live_index"]["status"] == ("pending-cycle-observation")
+        return subprocess.CompletedProcess(argv, 0, b"ok\n", b"")
+
+    def clock() -> datetime:
+        return datetime(2026, 8, 31, 18, 30, tzinfo=timezone.utc)
+
+    first = obsidian_reconciler.reconcile_registry(
+        registry,
+        state_dir=state_dir,
+        bead_exporter=lambda _argv, _timeout: _beads(),
+        event_reader=lambda _target: [],
+        live_index_runner=run,
+        clock=clock,
+        force=True,
+    )
+    assert first["ok"] is True
+
+    inspect_pending = True
+    second = obsidian_reconciler.reconcile_registry(
+        registry,
+        state_dir=state_dir,
+        bead_exporter=lambda _argv, _timeout: _beads(),
+        event_reader=lambda _target: [],
+        live_index_runner=run,
+        clock=clock,
+        force=True,
+    )
+
+    assert second["ok"] is True
+    state = json.loads((state_dir / "gas-city.json").read_text(encoding="utf-8"))
+    assert "pending_success" not in state
+    assert state["last_success"]["live_index"] == {
+        "authority": "host-obsidian-ipc",
+        "configured": True,
+        "observed_at": "2026-08-31T18:30:00Z",
+        "ok": True,
+        "probe": {
+            "detail": "",
+            "ok": True,
+            "returncode": 0,
+            "status": "passed",
+        },
+        "probe_path": "GasCity/gas-city/Aegis/Home.md",
+        "refresh": None,
+        "refresh_attempted": False,
+        "status": "confirmed",
+        "vault": "main",
+    }
+
+
+def test_registry_cycle_lock_makes_concurrent_invocation_a_noop(tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    registry = load_registry(_registry(tmp_path, root, tmp_path / "vault"))
+    state_dir = tmp_path / "state"
+    state_dir.mkdir()
+    lock_path = state_dir / "registry-cycle.lock"
+    with lock_path.open("a+", encoding="utf-8") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        result = obsidian_reconciler.reconcile_registry(
+            registry,
+            state_dir=state_dir,
+            bead_exporter=lambda _argv, _timeout: pytest.fail("export must not run"),
+            event_reader=lambda _target: pytest.fail("ledger read must not run"),
+        )
+
+    assert result["ok"] is True
+    assert result["status"] == "already-running"
+    assert result["projects"] == []
+    assert not (state_dir / "gas-city.json").exists()
 
 
 def test_changed_multi_project_cycle_reloads_shared_obsidian_endpoint_once(

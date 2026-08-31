@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import fcntl
 import importlib.util
 import json
 import subprocess
@@ -290,6 +291,97 @@ def test_obsidian_registration_must_match_the_project_identity() -> None:
     assert report["ok"] is False
 
 
+def test_running_obsidian_cycle_is_indeterminate_not_falsely_stale() -> None:
+    model = _load("continuity_model")
+    project = _project("gas-city-operations", [])
+    project["obsidian"].update(
+        {
+            "filesystem": {"status": None, "completed_at": None},
+            "live_index": {
+                "status": "pending-cycle-observation",
+                "authority": "host-obsidian-ipc",
+                "observed_at": "2026-08-31T18:30:00Z",
+            },
+            "cycle": {
+                "status": "running",
+                "attempted_at": "2026-08-31T18:31:00Z",
+                "pending_candidate": True,
+            },
+            "process": {
+                "status": "active",
+                "authority": "systemd-user-manager",
+                "units": [],
+            },
+        }
+    )
+
+    report = model.build_report(_snapshot([project]))
+
+    assert report["ok"] is True
+    assert [finding["code"] for finding in report["findings"]] == [
+        "obsidian-reconciliation-in-progress"
+    ]
+    assert report["findings"][0]["severity"] == "warning"
+
+
+def test_obsidian_process_visibility_failure_is_unknown_not_absent() -> None:
+    model = _load("continuity_model")
+    project = _project("gas-city-operations", [])
+    project["obsidian"]["process"] = {
+        "status": "unknown",
+        "authority": "systemd-user-manager",
+        "units": [],
+    }
+
+    report = model.build_report(_snapshot([project]))
+
+    assert report["ok"] is True
+    assert [finding["code"] for finding in report["findings"]] == [
+        "obsidian-process-observation-unknown"
+    ]
+    assert report["findings"][0]["severity"] == "warning"
+
+
+def test_interrupted_obsidian_cycle_is_a_real_error() -> None:
+    model = _load("continuity_model")
+    project = _project("gas-city-operations", [])
+    project["obsidian"]["cycle"] = {
+        "status": "interrupted",
+        "attempted_at": "2026-08-31T18:31:00Z",
+        "pending_candidate": True,
+    }
+    project["obsidian"]["process"] = {
+        "status": "active",
+        "authority": "systemd-user-manager",
+        "units": [],
+    }
+
+    report = model.build_report(_snapshot([project]))
+
+    assert report["ok"] is False
+    assert [finding["code"] for finding in report["findings"]] == [
+        "obsidian-reconciliation-interrupted"
+    ]
+
+
+def test_confirmed_obsidian_index_requires_host_authority_and_observation_time() -> None:
+    model = _load("continuity_model")
+    project = _project("gas-city-operations", [])
+    project["obsidian"]["live_index"] = {
+        "status": "confirmed",
+        "authority": "caller-asserted",
+        "observed_at": None,
+    }
+
+    report = model.build_report(_snapshot([project]))
+
+    assert report["ok"] is False
+    assert [finding["code"] for finding in report["findings"]] == [
+        "obsidian-live-index-authority-invalid",
+        "obsidian-live-index-observation-time-missing",
+    ]
+
+
 def test_human_status_is_derived_from_the_json_report() -> None:
     model = _load("continuity_model")
     project = _project("gas-city", [_bead("ga-next", "open", title="Do the next thing")])
@@ -453,6 +545,130 @@ def test_read_only_runner_pins_the_managed_operator_path(monkeypatch) -> None:
     capture.ReadOnlyRunner().run(["fixture"])
 
     assert observed["env"]["PATH"] == capture.OPERATOR_PATH
+
+
+def test_obsidian_process_observation_uses_systemd_scope_provenance() -> None:
+    capture = _load("continuity_capture")
+
+    class Runner(capture.ReadOnlyRunner):
+        def run(self, argv, *, cwd=None):
+            if "list-units" in argv:
+                return subprocess.CompletedProcess(
+                    argv,
+                    0,
+                    "app-md.Obsidian-3168034.scope loaded active running Obsidian\n",
+                    "",
+                )
+            return subprocess.CompletedProcess(
+                argv,
+                0,
+                "\n".join(
+                    (
+                        "Id=app-md.Obsidian-3168034.scope",
+                        "ActiveState=active",
+                        "SubState=running",
+                        "ControlGroup=/user.slice/app-md.Obsidian-3168034.scope",
+                        "InvocationID=05802b4d92d2459caef16a14ef0e9d50",
+                    )
+                ),
+                "",
+            )
+
+    observed = capture._obsidian_process(Runner())
+
+    assert observed == {
+        "status": "active",
+        "authority": "systemd-user-manager",
+        "units": [
+            {
+                "id": "app-md.Obsidian-3168034.scope",
+                "active_state": "active",
+                "sub_state": "running",
+                "control_group": "/user.slice/app-md.Obsidian-3168034.scope",
+                "invocation_id": "05802b4d92d2459caef16a14ef0e9d50",
+            }
+        ],
+    }
+
+
+def test_obsidian_process_observation_visibility_failure_is_unknown() -> None:
+    capture = _load("continuity_capture")
+
+    class Runner(capture.ReadOnlyRunner):
+        def run(self, argv, *, cwd=None):
+            raise capture.ContinuityError("user bus unavailable")
+
+    assert capture._obsidian_process(Runner()) == {
+        "status": "unknown",
+        "authority": "systemd-user-manager",
+        "units": [],
+    }
+
+
+def test_obsidian_index_keeps_confirmed_success_during_cycle_and_detects_interruption(
+    tmp_path: Path,
+) -> None:
+    capture = _load("continuity_capture")
+    root = tmp_path / "project"
+    root.mkdir()
+    registry = tmp_path / "registry.json"
+    registry.write_text(
+        json.dumps({"projects": [{"id": "project", "target_dir": str(root)}]}),
+        encoding="utf-8",
+    )
+    state_root = tmp_path / "state"
+    state_root.mkdir()
+    (state_root / "project.json").write_text(
+        json.dumps(
+            {
+                "last_attempt_at": "2026-08-31T18:31:00Z",
+                "last_success": {
+                    "completed_at": "2026-08-31T18:30:00Z",
+                    "vault_status": "current",
+                    "live_index": {
+                        "status": "confirmed",
+                        "authority": "host-obsidian-ipc",
+                        "observed_at": "2026-08-31T18:30:01Z",
+                    },
+                },
+                "pending_success": {
+                    "completed_at": "2026-08-31T18:31:00Z",
+                    "vault_status": "built",
+                    "live_index": {"status": "pending-cycle-observation"},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    process = {
+        "status": "active",
+        "authority": "systemd-user-manager",
+        "units": [],
+    }
+    lock_path = state_root / "registry-cycle.lock"
+    with lock_path.open("a+", encoding="utf-8") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        running = capture._obsidian_index(
+            registry,
+            state_root,
+            process=process,
+            registry_cycle_status=capture._obsidian_cycle_status(state_root),
+        )[root.resolve().as_posix()]
+
+    interrupted = capture._obsidian_index(
+        registry,
+        state_root,
+        process=process,
+        registry_cycle_status=capture._obsidian_cycle_status(state_root),
+    )[root.resolve().as_posix()]
+
+    assert running["live_index"] == {
+        "status": "confirmed",
+        "authority": "host-obsidian-ipc",
+        "observed_at": "2026-08-31T18:30:01Z",
+    }
+    assert running["cycle"]["status"] == "running"
+    assert interrupted["cycle"]["status"] == "interrupted"
 
 
 def test_unknown_managed_branch_still_exposes_its_native_bead_candidate() -> None:
