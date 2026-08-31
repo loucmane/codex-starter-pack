@@ -1,7 +1,7 @@
 # Bead ga-c8al Support hierarchical Bead IDs in transactional workflow lifecycle Tracker
 
 **Started**: 2026-08-31
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-08-31
 
 ## Goals
@@ -9,13 +9,15 @@
 
 ## Progress Log
 - **2026-08-31 11:29** — [S:20260831|W:ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed current timestamp as `2026-08-31 11:29 CEST`
-- **2026-08-31 11:29** — [S:20260831|W:ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260831-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl-ACTIVE/TRACKER.md] Scaffolded the `ga-c8al` ACTIVE work-tracking folder through the bead-native kickoff flow
+- **2026-08-31 11:29** — [S:20260831|W:ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl|H:scripts/codex-task|E:docs/ai/work-tracking/archive/20260831-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl-COMPLETED/TRACKER.md] Scaffolded the `ga-c8al` ACTIVE work-tracking folder through the bead-native kickoff flow
 - **2026-08-31 11:29** — [S:20260831|W:ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl|H:bd:show|E:bead:ga-c8al] Bound this source-workflow record to primary bead `ga-c8al` without Taskmaster mutation
 - **2026-08-31 11:29** — [S:20260831|W:ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl|H:sessions/current|E:sessions/current] Repointed current session, plan, and session state to `ga-c8al`
 - **2026-08-31 11:38** — [S:20260831|W:ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl|H:pytest:red|E:tests/meta_workflow_guard/test_gas_city_workflow_transitions.py] Reproduced five failures: dotted child IDs were rejected, informational relationships blocked begin, and `attach` accepted a non-blocking relation
 - **2026-08-31 11:38** — [S:20260831|W:ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl|H:workflow:dependency-semantics|E:plugins/gas-city-workflow/scripts/workflow_common.py] Added fail-closed relationship classification: only known `parent-child`, `relates-to`, and `tracks` relationships are non-blocking; explicit and unknown dependency types remain blocking
 - **2026-08-31 11:38** — [S:20260831|W:ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl|H:bead-id:validator-parity|E:scripts/codex-task] Aligned transactional, Codex Task, Aegis source, and packaged validators to the native numeric hierarchy grammar
 - **2026-08-31 11:38** — [S:20260831|W:ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl|H:pytest:green|E:cmd`pytest affected suites`] Passed 445 affected tests with one opt-in certification smoke skipped
+- **2026-08-31 11:48** — [S:20260831|W:ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl|H:github:pr-329|E:commit:9e1c423a7f2f6406afa3ac3d978d06e34a2d0a42] Merged exact signed head `8f0c6b59` after all required checks passed; merge tree `93d11a91` is byte-identical to the reviewed head tree
+- **2026-08-31 11:50** — [S:20260831|W:ga-c8al|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260831-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl-COMPLETED/TRACKER.md] Archived the completed work-tracking bundle through the supported helper (transaction 099b1de11eab12e1356907c5d660e12051da30324edb81aa308d07d585f3200b)
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope

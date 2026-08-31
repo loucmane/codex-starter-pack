@@ -1288,5 +1288,17 @@
     "plan_hash": "c20b06505dcd5ff31369f28982ae36ad18d9229b645d2b27fd05fc40695d1496",
     "tracker_hash": "55766748b8fc40aaf673ec0d2578a04ca819054c9f9acddde93ec5cb5f7307f5",
     "synced_at": "2026-08-31T11:42:14.704052+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl.md",
+    "plan_hash": "c20b06505dcd5ff31369f28982ae36ad18d9229b645d2b27fd05fc40695d1496",
+    "tracker_hash": "d979ba6e91c01804c87d9bbecd05bd8841e2fa9b141bb41dd473047133e830be",
+    "synced_at": "2026-08-31T11:50:38.902124+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-c8al-support-hierarchical-bead-ids-in-transactional-workflow-lifecycl.md",
+    "plan_hash": "7ff55d2ba3a58f753569ada4a417a54ca6d8450a8b9b1a0d5a0674fd9c2410ce",
+    "tracker_hash": "afa7357a8caee82114aa616c17351b8c3b89f35a84bbb62e899c9284ccff87ac",
+    "synced_at": "2026-08-31T11:50:58.201728+02:00"
   }
 ]

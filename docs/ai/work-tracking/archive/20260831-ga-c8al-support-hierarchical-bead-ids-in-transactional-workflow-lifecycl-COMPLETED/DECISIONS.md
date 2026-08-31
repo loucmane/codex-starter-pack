@@ -9,3 +9,4 @@
   types remain blocking so schema drift fails closed.
 - 2026-08-31 — Keep source and packaged Aegis script copies byte-identical and cover both
   public validator entrypoints with focused regression tests.
+- 2026-08-31 — Archived through the supported archive helper; no evidence was deleted.

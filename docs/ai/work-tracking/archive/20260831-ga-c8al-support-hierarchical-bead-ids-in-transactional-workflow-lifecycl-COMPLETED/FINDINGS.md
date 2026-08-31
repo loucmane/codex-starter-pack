@@ -11,3 +11,4 @@
 - 2026-08-31 — The attach surface had the inverse defect: it accepted any relationship as
   a declared blocker, allowing an informational `relates-to` edge to be claimed and added
   to source-work tracking.
+- 2026-08-31 — Archive preconditions were satisfied and the completed bundle was preserved.
