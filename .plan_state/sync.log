@@ -1318,5 +1318,17 @@
     "plan_hash": "c739603d2a0f96e563c6e2890e7d348390eb7c619cc67587fd6856f577f159d0",
     "tracker_hash": "4d47a98e8c48bf3fc5780d5720f243302dfb4eae301a063537f7a5c60198e991",
     "synced_at": "2026-08-31T12:18:24.768973+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-357r-unify-hierarchical-bead-ids.md",
+    "plan_hash": "c739603d2a0f96e563c6e2890e7d348390eb7c619cc67587fd6856f577f159d0",
+    "tracker_hash": "997454468e78ef22f5e76cca83cd987c4dd9b3b81208d12392ffdc77416399bc",
+    "synced_at": "2026-08-31T12:27:01.351031+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-357r-unify-hierarchical-bead-ids.md",
+    "plan_hash": "51ccb64db17b95398c240b0d1a3c8b7735cf9caa8bdf65096e31b5a629ad6983",
+    "tracker_hash": "4b817243cf766f3eacd56567bb8f1031a06b3bfdbecf9eff441891de57e316fb",
+    "synced_at": "2026-08-31T12:27:01.931148+02:00"
   }
 ]

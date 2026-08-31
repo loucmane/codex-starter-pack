@@ -28,10 +28,11 @@ Bead `ga-357r` was kicked off via `python3 scripts/codex-task wizard kickoff --b
 
 ### 📝 Progress Log
 - **[12:01]** — [S:20260831|W:ga-357r-unify-hierarchical-bead-ids|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M:%S %Z %z"`] Confirmed current timestamp as `2026-08-31 12:01:20 CEST +0200`
-- **[12:01]** — [S:20260831|W:ga-357r-unify-hierarchical-bead-ids|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260831-ga-357r-unify-hierarchical-bead-ids-ACTIVE/TRACKER.md] Scaffolded the `ga-357r` ACTIVE work-tracking folder through the bead-native kickoff flow
+- **[12:01]** — [S:20260831|W:ga-357r-unify-hierarchical-bead-ids|H:scripts/codex-task|E:docs/ai/work-tracking/archive/20260831-ga-357r-unify-hierarchical-bead-ids-COMPLETED/TRACKER.md] Scaffolded the `ga-357r` ACTIVE work-tracking folder through the bead-native kickoff flow
 - **[12:01]** — [S:20260831|W:ga-357r-unify-hierarchical-bead-ids|H:bd:show|E:bead:ga-357r] Bound the source-workflow record to primary bead `ga-357r`
 - **[12:01]** — [S:20260831|W:ga-357r-unify-hierarchical-bead-ids|H:sessions/current|E:sessions/current] Repointed current session, plan, and session state to `ga-357r`
 - **[12:04]** — [S:20260831|W:ga-357r-unify-hierarchical-bead-ids|H:pytest:red|E:tests/claude_adapter/test_readiness_gate.py] Reproduced the real hierarchical-Bead readiness failure and three parallel identity-consumer failures.
 - **[12:08]** — [S:20260831|W:ga-357r-unify-hierarchical-bead-ids|H:pytest:green|E:tests/meta_workflow_guard/test_hierarchical_bead_identity_contract.py] Passed seven focused tests after unifying native hierarchy behavior across readiness and evidence surfaces.
 - **[12:14]** — [S:20260831|W:ga-357r-unify-hierarchical-bead-ids|H:pytest:affected|E:tests/] Passed 394 affected regressions and real readiness.
 - **[12:19]** — [S:20260831|W:ga-357r-unify-hierarchical-bead-ids|H:pytest:full|E:tests/] Passed 2372 repository-wide tests with 21 documented skips.
+- **[12:26]** — [S:20260831|W:ga-357r-unify-hierarchical-bead-ids|H:github:pr-331|E:commit:9e73529a5690ad7e45f0cb5596dfc5c1b3d8c153] Merged the exact signed implementation through all standing publication gates with a byte-identical merge tree.

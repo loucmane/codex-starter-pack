@@ -5,7 +5,7 @@ handler_target: .
 bead_ids: [ga-357r]
 branch_policy: codex/ga-357r-unify-hierarchical-bead-ids
 evidence_summary:
-  - docs/ai/work-tracking/active/20260831-ga-357r-unify-hierarchical-bead-ids-ACTIVE
+  - docs/ai/work-tracking/archive/20260831-ga-357r-unify-hierarchical-bead-ids-COMPLETED
   - .
   - bead:ga-357r
   - scripts/codex-task
@@ -21,20 +21,20 @@ emergency_bypass: false
 - **Handler Target (H)**: .
 - **Bead IDs**: ga-357r
 - **Branch Policy**: codex/ga-357r-unify-hierarchical-bead-ids
-- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260831-ga-357r-unify-hierarchical-bead-ids-ACTIVE, ., bead:ga-357r, scripts/codex-task
+- **Evidence Summary (E)**: docs/ai/work-tracking/archive/20260831-ga-357r-unify-hierarchical-bead-ids-COMPLETED, ., bead:ga-357r, scripts/codex-task
 - **Plan Version**: v1
 - **Emergency Bypass**: false
 
 ## Plan Table
 | Step ID | Description | Evidence | Status |
 |---|---|---|---|
-| plan-step-scope | Confirm scope and authority for Unify hierarchical Bead IDs across readiness and evidence surfaces | docs/ai/work-tracking/active/20260831-ga-357r-unify-hierarchical-bead-ids-ACTIVE/FINDINGS.md | completed |
-| plan-step-implement | Implement Unify hierarchical Bead IDs across readiness and evidence surfaces through the reviewed helper surface | .; docs/ai/work-tracking/active/20260831-ga-357r-unify-hierarchical-bead-ids-ACTIVE/IMPLEMENTATION.md | completed |
-| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/active/20260831-ga-357r-unify-hierarchical-bead-ids-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260831-ga-357r-unify-hierarchical-bead-ids-ACTIVE/TRACKER.md | completed |
+| plan-step-scope | Confirm scope and authority for Unify hierarchical Bead IDs across readiness and evidence surfaces | docs/ai/work-tracking/archive/20260831-ga-357r-unify-hierarchical-bead-ids-COMPLETED/FINDINGS.md | completed |
+| plan-step-implement | Implement Unify hierarchical Bead IDs across readiness and evidence surfaces through the reviewed helper surface | .; docs/ai/work-tracking/archive/20260831-ga-357r-unify-hierarchical-bead-ids-COMPLETED/IMPLEMENTATION.md | completed |
+| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/archive/20260831-ga-357r-unify-hierarchical-bead-ids-COMPLETED/HANDOFF.md; docs/ai/work-tracking/archive/20260831-ga-357r-unify-hierarchical-bead-ids-COMPLETED/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
-- `docs/ai/work-tracking/active/20260831-ga-357r-unify-hierarchical-bead-ids-ACTIVE`
+- `docs/ai/work-tracking/archive/20260831-ga-357r-unify-hierarchical-bead-ids-COMPLETED`
 - `.`
 - `scripts/codex-task`
 - `scripts/codex-guard`
@@ -52,7 +52,7 @@ emergency_bypass: false
 - Context reload steps:
   1. Read `sessions/current` and this plan.
   2. Read primary bead `ga-357r` through the rig-scoped bead surface.
-  3. Review `docs/ai/work-tracking/active/20260831-ga-357r-unify-hierarchical-bead-ids-ACTIVE/TRACKER.md` before changing implementation.
+  3. Review `docs/ai/work-tracking/archive/20260831-ga-357r-unify-hierarchical-bead-ids-COMPLETED/TRACKER.md` before changing implementation.
   4. Run `python3 scripts/codex-task plan sync` after tracker updates.
 - Outstanding risks/todos: preserve bead authority and avoid allocating shadow Taskmaster work.
 
