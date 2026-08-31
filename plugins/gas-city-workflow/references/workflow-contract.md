@@ -100,6 +100,19 @@ The host registry may also bind an explicit canonical root or exceptional worktr
 descriptor does not discover a rig, guess a store path, grant permissions, or install
 infrastructure.
 
+For Codex, onboarding is not complete until the exact generated project hooks are loaded and
+trusted in the client-local trust store. Run `managed_delegation_canary.py check` and one fresh
+`apply --run-id ...` from the clean canonical Gas City Operations source after any managed-hook
+release. The canary uses a synthetic descriptor-managed repository, never invokes a native
+delegation tool, and must prove all of the following in one transaction: exact Aegis hook
+enumeration, exact-hash trust through the supported app-server API, a tier-C
+`native_delegation_requires_gas_city` denial, unrelated local-read non-interference, and
+byte/mode/owner-exact restoration of the user config. A remembered `/hooks` click or a source-only
+unit test is not live enforcement evidence. Then run `trust-project --project-root <canonical>
+--run-id ...` for each installed project. That transaction retains only the exact managed-hook
+hashes after a denial/allow proof and a byte-identical second application; it restores the entire
+starting config on any failure.
+
 ## Shared agent roles
 
 - Codex: executing/orchestrating lane, subject to repository and operator gates.

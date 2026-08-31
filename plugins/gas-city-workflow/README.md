@@ -24,6 +24,10 @@ project state into prompts or widening permissions.
   contract while projects retain their own builders, prompts, rubrics, and report schemas.
 - `scripts/codex_hook_trust.py` owns the bounded Codex JSON-RPC hook-trust transaction separately
   from the provider/agent installer.
+- `scripts/managed_delegation_canary.py` turns project-hook trust into a repeatable onboarding
+  proof: it installs the merge-bound adapter in a synthetic descriptor-managed repository,
+  trusts only its exact Aegis hook hashes through Codex's app-server API, proves a synthetic
+  native-delegation request is denied before launch, and restores the user config byte-exact.
 - `scripts/install_root_policy.py` transactionally installs the shared evaluator into the user
   runtime, merges one exact PreToolUse registration into Codex and Claude, marks only the legacy
   Codex project entry untrusted, and repoints only Claude's Aegis source to the canonical checkout.
@@ -100,6 +104,30 @@ Obsidian is absent; an active cycle is advisory/indeterminate, while a stranded 
 without the cycle lock is a real interrupted-cycle error.
 The bounded identity graph accepts up to 5,000 stable agent identities, matching its existing
 5,000-edge ceiling; larger histories still fail closed before rendering unbounded notes.
+
+Codex hook trust is client-local state, so source installation alone is never accepted as proof
+that managed delegation is enforced. After a workflow release changes managed hook definitions,
+run the transactional canary from the clean canonical source tree with a fresh run ID:
+
+```bash
+python3 plugins/gas-city-workflow/scripts/managed_delegation_canary.py check
+python3 plugins/gas-city-workflow/scripts/managed_delegation_canary.py apply \
+  --run-id ga-xxxx-YYYYMMDD-NNN
+python3 plugins/gas-city-workflow/scripts/managed_delegation_canary.py trust-project \
+  --project-root /absolute/canonical/project \
+  --run-id ga-xxxx-project-YYYYMMDD-NNN
+```
+
+The apply path never invokes `spawn_agent`; it submits a synthetic PreToolUse envelope directly
+to the installed target-local gate. Its evidence records `child_launch_attempted=false`, the
+exact source/tree and hook-manifest identities, the Codex trust transaction, the tier-C denial,
+an unrelated local-read allow, and byte/mode/owner-exact config restoration. A used run ID is
+immutable and fails closed, making append-forward retries explicit. This is the reusable live
+acceptance step for current and future descriptor-onboarded projects. `trust-project` retains the
+same exact-hook trust only after the real installed project gate denies the synthetic request,
+allows the unrelated local read, and a second application is a byte-identical no-op; failure
+restores the starting config. Neither mode grants routing, resumes a rig, or mutates tracked
+project source.
 
 For blind report lanes, `config/evidence-reviewer/` defines one generic rig-scoped Sol reviewer
 whose work directory is `/home/loucmane/gascity/evidence-runs`, whose additional writable-root
