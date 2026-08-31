@@ -247,6 +247,10 @@ def _classify_project(
             work["legacy"].append(
                 _work_item(project_id, bead, reason="legacy-authority", blockers=blockers)
             )
+        elif status == "closed":
+            # A terminal Bead remains available to the surface-residue checks below,
+            # but it can never be actionable work merely because it has started_at.
+            continue
         elif status == "deferred":
             work["deferred"].append(
                 _work_item(project_id, bead, reason="explicitly-deferred", blockers=blockers)

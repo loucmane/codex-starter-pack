@@ -257,6 +257,41 @@ def test_shared_rig_is_reported_once_and_active_initiative_scopes_next_work() ->
     assert "un-one" not in json.dumps(report["work"])
 
 
+def test_closed_started_initiative_descendant_is_never_actionable_work() -> None:
+    model = _load("continuity_model")
+    project = _project(
+        "gas-city",
+        [
+            _bead(
+                "ga-root",
+                "open",
+                issue_type="epic",
+                labels=["initiative:active"],
+            ),
+            _bead(
+                "ga-done",
+                "closed",
+                dependencies=[
+                    {"depends_on_id": "ga-root", "type": "parent-child"},
+                    {"depends_on_id": "ga-missing", "type": "blocks"},
+                ],
+            ),
+        ],
+    )
+    project["beads"][0]["started_at"] = "2030-01-01T00:00:00Z"
+    project["beads"][1]["started_at"] = "2030-01-02T00:00:00Z"
+
+    report = model.build_report(_snapshot([project]))
+
+    assert [item["bead_id"] for item in report["work"]["current"]] == ["ga-root"]
+    assert not any(
+        item["bead_id"] == "ga-done"
+        for category in ("current", "next", "blocked", "deferred")
+        for item in report["work"][category]
+    )
+    assert report["next_actions"] == []
+
+
 def test_closed_initiative_label_does_not_scope_the_live_backlog() -> None:
     model = _load("continuity_model")
     project = _project(
@@ -271,9 +306,11 @@ def test_closed_initiative_label_does_not_scope_the_live_backlog() -> None:
             _bead("ga-next", "open"),
         ],
     )
+    project["beads"][0]["started_at"] = "2030-01-01T00:00:00Z"
 
     report = model.build_report(_snapshot([project]))
 
+    assert report["work"]["current"] == []
     assert [item["bead_id"] for item in report["work"]["next"]] == ["ga-next"]
 
 
