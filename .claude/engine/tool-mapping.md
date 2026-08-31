@@ -5,12 +5,12 @@ The shared foundation documentation was originally written for Codex and often n
 ## Core Translation
 | Codex reference | Claude equivalent | Notes |
 | --- | --- | --- |
-| `update_plan` | Claude task tracker / local checklist | In this repo, durable task state remains Taskmaster plus plan/tracker files. |
+| `update_plan` | Claude task tracker / local checklist | Durable work authority is the Gas City Bead; Aegis plan/tracker files are evidence. |
 | `shell` | `Bash` | Use for commands only; prefer file tools for file edits. |
 | `shell` file reads | `Read` or `Grep`/`Glob` | Use structured tools where possible. |
 | `view_image` | `Read` | Claude can inspect images and PDFs through file reads. |
 | MCP tool calls | same `mcp__server__tool` naming | Confirm the MCP server is enabled before relying on it. |
-| Sub-agent delegation | `Agent` | Sub-agents do not inherit conversation context; brief them with workflow state. |
+| Sub-agent delegation | Gas City Bead + reviewed `gc sling` | Managed-project `Agent`/`Task` calls are mechanically blocked. A routing failure is not fallback authority. |
 
 ## Runtime-Specific Rules
 - Before mutation, Claude readiness must be `READY`.
@@ -20,8 +20,8 @@ The shared foundation documentation was originally written for Codex and often n
 - Codex-owned paths remain off limits from Claude sessions.
 
 ## Shared State
-These state files are shared between Codex and Claude:
-- `.taskmaster/tasks/tasks.json`
+These state surfaces are shared between Codex and Claude:
+- the rig-scoped Gas City Bead store (authoritative, accessed only through supported APIs)
 - `sessions/**`
 - `plans/**`
 - `docs/ai/work-tracking/**`

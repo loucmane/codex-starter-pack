@@ -45,6 +45,7 @@ def test_modular_gate_inventory_and_size_budget() -> None:
     expected = {
         "contracts.py",
         "decisions.py",
+        "delegation.py",
         "entrypoint.py",
         "evidence.py",
         "hard_policy.py",

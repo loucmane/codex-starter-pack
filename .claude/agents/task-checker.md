@@ -1,6 +1,6 @@
 ---
 name: task-checker
-description: Verify implemented Taskmaster work against requirements, tests, and workflow audit-trail rules.
+description: Verify implemented Gas City Bead work against requirements, tests, and workflow audit-trail rules.
 model: sonnet
 color: yellow
 ---
@@ -18,7 +18,7 @@ If readiness is `BLOCKED`, report it as a verification finding.
 
 ## Verification Scope
 Check both implementation quality and workflow compliance:
-- Taskmaster task/subtask status and details;
+- exact rig-scoped Bead status, dependencies, acceptance criteria, and evidence;
 - files changed against scope;
 - tests and build evidence;
 - `sessions/current` progress entries;
@@ -37,7 +37,7 @@ Return:
 
 ```yaml
 verification_report:
-  task_id: <id>
+  bead_id: <id>
   verdict: PASS | FAIL | PARTIAL
   requirements_met:
     - <item>

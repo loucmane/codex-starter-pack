@@ -107,3 +107,17 @@ infrastructure.
 - Managed workers: bounded by their explicit contract and the project’s runtime policy.
 
 Caller identity is never authorization. Frozen request content, exact paths/digests, repository state, and the operator’s scoped authority remain the decision inputs.
+
+## Delegation authority
+
+Managed-project delegated work is created from a Bead through a reviewed `gc sling` route. The
+shared project PreToolUse gate mechanically denies Claude `Agent`/`Task` and Codex native
+create/resume tools before provider work starts. `SubagentStart` is retained only for lifecycle
+evidence because it cannot block creation. A route refusal or unavailable Gas City lifecycle is a
+stop condition, never permission to fall back.
+
+An exceptional native request requires `.gas-city-delegation-exceptions.json` conforming to the
+installed Aegis schema. Authorization binds the exact request digest, project, adapter, normalized
+tool, `codex/*` branch, Bead, and review evidence. The complete file must be tracked and clean at
+HEAD and byte-identical on the project's canonical reviewed base. Session, caller,
+agent identity, advisory mode, and ordinary break-glass tokens cannot satisfy or relax it.

@@ -31,6 +31,10 @@ if _REPO_ROOT.as_posix() not in sys.path:
     sys.path.insert(0, _REPO_ROOT.as_posix())
 
 from aegis_foundation import managed_update as _managed_update  # noqa: E402
+from aegis_foundation.gate.hooks.contracts import (  # noqa: E402
+    CLAUDE_PRETOOLUSE_MATCHER,
+    CODEX_PRETOOLUSE_MATCHER,
+)
 from aegis_foundation.version import (  # noqa: E402
     FOUNDATION_NAME,
     FOUNDATION_VERSION,
@@ -148,7 +152,6 @@ AEGIS_AGENTS_BLOCK_BEGIN = "<!-- AEGIS:BEGIN agents-runtime -->"
 AEGIS_AGENTS_BLOCK_END = "<!-- AEGIS:END agents-runtime -->"
 AEGIS_MANAGED_ENTRYPOINT_MAX_NONBLANK_LINES = 25
 
-CLAUDE_PRETOOLUSE_MATCHER = "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$"
 CLAUDE_PRETOOLUSE_COMMAND = "bash $CLAUDE_PROJECT_DIR/.claude/scripts/pretooluse-gate.sh"
 CLAUDE_POSTTOOLUSE_COMMAND = "bash $CLAUDE_PROJECT_DIR/.claude/scripts/posttooluse-tracking.sh"
 CLAUDE_STOP_TRACKING_COMMAND = "bash $CLAUDE_PROJECT_DIR/.claude/scripts/tracking-stop-gate.sh"
@@ -193,7 +196,7 @@ CODEX_HOOK_TRUST_UNSUPPORTED_REASON = (
     "review the generated definitions with /hooks after reconnecting."
 )
 CODEX_SESSION_START_MATCHER = "startup|resume|clear|compact"
-CODEX_HOOK_MATCHER = "^(Bash|apply_patch|mcp__.*)$"
+CODEX_HOOK_MATCHER = CODEX_PRETOOLUSE_MATCHER
 CODEX_POSTTOOLUSE_MATCHER = CODEX_HOOK_MATCHER
 CODEX_SUBAGENT_MATCHER = ".*"
 CODEX_HOOK_ROOT = "$(git rev-parse --show-toplevel)"
@@ -293,6 +296,7 @@ CLAUDE_RUNTIME_HOOK_PHASES = {
 }
 SHARED_SCHEMA_FILES = (
     AEGIS_DELIVERY_POLICY_SCHEMA_REL,
+    "schemas/aegis/delegation-exceptions.schema.json",
     "schemas/aegis/foundation-manifest.schema.json",
     "schemas/aegis/profile.schema.json",
     "schemas/aegis/install-plan.schema.json",
@@ -580,6 +584,7 @@ def _render_mode_aware_entrypoint(
             "## Always",
             "- Use native agent tools for source edits, tests, and Git inspection; use Aegis CLI/MCP only for workflow state.",
             "- Follow the project-declared external work authority. Beads-first projects use the Gas City bead surface and `aegis kickoff --bead`; Taskmaster is historical compatibility unless the project explicitly declares numeric-task authority.",
+            "- In a Gas City managed project, delegated work goes through a Bead and reviewed `gc sling`; provider-native Agent/Task/subagent tools are blocked unless an exact canonical-base-reviewed request exception exists.",
             "- Never write `.aegis/` directly.",
             "- If install/update reports a required client reload, restart that client before mutations.",
             "- Missing hooks or unsupported clients are degraded coverage, not successful capture.",
@@ -630,6 +635,7 @@ def _render_contract(primary_agent: str, enabled_agents: Sequence[str]) -> bytes
             "- Use native agent tools for normal project implementation: reading files, editing source files, running project tests, and inspecting git status or diffs.",
             "- The installed Aegis runtime, not the MCP session, is responsible for enforcement.",
             "- Installed hooks govern persistent mutations regardless of whether the attempted mutation comes from MCP, Bash, Edit, Write, or another supported tool surface.",
+            "- In Gas City managed projects, PreToolUse also blocks provider-native delegation before worker creation or resumption; SubagentStart remains passive lifecycle evidence, not the authorization boundary.",
             "- MCP is the bootstrap and control-plane interface. It is not a replacement for the agent's editor, shell, test runner, or normal implementation workflow.",
             "- Claude Code loads `.claude/settings.json` hooks at session start. If Aegis just created or changed Claude settings/hooks, restart Claude before source edits so enforcement is active.",
             "",

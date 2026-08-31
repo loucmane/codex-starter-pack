@@ -131,6 +131,10 @@ Ledger operations are not dispatch authority.
 - Executor briefs name the bead ID, rig, objective, acceptance criteria, branch/worktree,
   allowed write scope, tests, and stop conditions.
 - Checker reports use the bead ID—not a Taskmaster ID—as the work identity.
+- In a managed project, delegated work routes through the authoritative Bead and reviewed
+  `gc sling`. Provider-native Agent/Task/subagent creation or resumption is not a fallback when
+  routing fails; the shared PreToolUse gate blocks it unless an exact canonical-base-reviewed,
+  branch/request-bound exception exists.
 
 ## Evidence and Repository Workflow
 

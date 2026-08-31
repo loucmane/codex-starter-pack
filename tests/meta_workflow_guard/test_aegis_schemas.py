@@ -129,7 +129,7 @@ def valid_manifest() -> dict:
                 "path": ".claude/scripts/pretooluse-gate.sh",
                 "settings_path": ".claude/settings.json",
                 "hook_event": "PreToolUse",
-                "hook_matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$",
+                "hook_matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|Agent|Task|mcp__.*)$",
                 "verification": {
                     "method": "settings_hook",
                     "failure_mode": "fail",
@@ -145,7 +145,7 @@ def valid_manifest() -> dict:
                 "path": ".claude/scripts/posttooluse-tracking.sh",
                 "settings_path": ".claude/settings.json",
                 "hook_event": "PostToolUse",
-                "hook_matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$",
+                "hook_matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|Agent|Task|mcp__.*)$",
                 "verification": {
                     "method": "settings_hook",
                     "failure_mode": "fail",
@@ -272,13 +272,13 @@ def valid_profile() -> dict:
                     {
                         "settings_path": ".claude/settings.json",
                         "event": "PreToolUse",
-                        "matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$",
+                        "matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|Agent|Task|mcp__.*)$",
                         "command": "bash $CLAUDE_PROJECT_DIR/.claude/scripts/pretooluse-gate.sh",
                     },
                     {
                         "settings_path": ".claude/settings.json",
                         "event": "PostToolUse",
-                        "matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$",
+                        "matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|Agent|Task|mcp__.*)$",
                         "command": "bash $CLAUDE_PROJECT_DIR/.claude/scripts/posttooluse-tracking.sh",
                     },
                     {

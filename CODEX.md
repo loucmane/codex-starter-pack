@@ -25,6 +25,7 @@ At orientation, inspect enforcement mode once:
 ## Always
 - Use native agent tools for source edits, tests, and Git inspection; use Aegis CLI/MCP only for workflow state.
 - Follow the project-declared external work authority. Beads-first projects use the Gas City bead surface and `aegis kickoff --bead`; Taskmaster is historical compatibility unless the project explicitly declares numeric-task authority.
+- In a Gas City managed project, delegated work goes through a Bead and reviewed `gc sling`; provider-native Agent/Task/subagent tools are blocked unless an exact canonical-base-reviewed request exception exists.
 - Never write `.aegis/` directly.
 - If install/update reports a required client reload, restart that client before mutations.
 - Missing hooks or unsupported clients are degraded coverage, not successful capture.
