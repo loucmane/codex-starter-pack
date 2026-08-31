@@ -1063,6 +1063,20 @@ def test_handle_wizard_kickoff_rejects_invalid_bead_id(monkeypatch, tmp_path) ->
         )
 
 
+def test_codex_task_accepts_hierarchical_bead_id() -> None:
+    module = load_task_module()
+
+    module._validate_bead_id("ga-parent.1.2")
+
+
+@pytest.mark.parametrize("bead_id", ["ga-parent.0", "ga-parent.child", "ga-parent..1"])
+def test_codex_task_rejects_invalid_hierarchical_bead_id(bead_id: str) -> None:
+    module = load_task_module()
+
+    with pytest.raises(module.TaskError, match="Invalid bead ID"):
+        module._validate_bead_id(bead_id)
+
+
 def test_handle_work_tracking_archive_preserves_completed_bundle(monkeypatch, tmp_path) -> None:
     module = load_task_module()
     repo = tmp_path

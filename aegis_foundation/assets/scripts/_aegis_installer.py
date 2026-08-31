@@ -97,7 +97,9 @@ AEGIS_WORKFLOW_TEMPLATE_NAMES = (
     "implementation.md",
     "changelog.md",
 )
-BEAD_ID_PATTERN = re.compile(r"^[a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*$")
+BEAD_ID_PATTERN = re.compile(
+    r"^[a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*(?:\.[1-9][0-9]*)*$"
+)
 AEGIS_LOG_SURFACES = {
     "implementation": "IMPLEMENTATION.md",
     "changelog": "CHANGELOG.md",
