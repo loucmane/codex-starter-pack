@@ -128,7 +128,10 @@ These are deliberately separate contracts:
 - `obsidian vaults verbose` plus a managed-note read is an optional host-application smoke. It
   proves only that the running Obsidian process can see the projected bytes.
 - `aegis-obsidian-reconcile check` is the host-side automatic-freshness proof. It re-exports the
-  registered bead sources and recomputes the vault digest without mutating the vault.
+  registered bead sources and recomputes the vault digest without mutating the vault. If the
+  minute timer currently owns the registry-cycle writer lock, the check waits boundedly (60
+  seconds by default) and evaluates the completed snapshot; it never reports a transient
+  `already-running` state as stale readiness evidence.
 
 The Aegis publisher atomically replaces its managed subtree. Windows-side Obsidian file watching
 over WSL can keep the previous index after that directory swap even though the new filesystem
@@ -138,6 +141,8 @@ and immediately reads one configured managed note. It records this observer resu
 a closed or unreachable app never invalidates correct filesystem bytes. A byte-identical timer
 run does not reload the app. The host-only `aegis-obsidian-reconcile check
 --require-live-index` gate repeats the managed-note read when live application proof is required.
+Its writer-lock wait is finite and fail-closed: `--lock-timeout-seconds <seconds>` may tighten the
+bound, and an expired wait returns `lock-timeout` without inspecting a partial cycle.
 
 The default doctor smoke targets vault `main` and
 `GasCity/gas-city-operations/Aegis/Beads/ga-zbmk.md`. Other projects use the same doctor with
