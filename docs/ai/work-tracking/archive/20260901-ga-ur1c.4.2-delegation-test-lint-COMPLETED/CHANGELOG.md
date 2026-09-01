@@ -2,3 +2,5 @@
 
 - 2026-09-01 22:35 CEST — Initialized active work-tracking folder.
 - 2026-09-01 22:36 CEST — Removed the exact unused delegation-test import after reproducing the focused Ruff failure on current main.
+- 2026-09-01 22:43 CEST — Verified PR #362 merged exact signed source with green hosted CI and a byte-identical tree.
+- 2026-09-01 22:44 CEST — Archived active work-tracking folder.
