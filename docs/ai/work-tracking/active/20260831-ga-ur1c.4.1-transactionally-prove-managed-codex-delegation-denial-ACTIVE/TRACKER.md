@@ -2,7 +2,7 @@
 
 **Started**: 2026-08-31
 **Status**: ACTIVE
-**Last Updated**: 2026-08-31
+**Last Updated**: 2026-09-01
 
 ## Goals
 - [ ] Transactionally install, trust, and live-prove managed Codex delegation denial without touching project content or rig lifecycle
@@ -16,6 +16,11 @@
 - **2026-08-31 19:56** — [S:20260831|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:pytest|E:tests/meta_workflow_guard/test_managed_delegation_canary.py] Proved the new transaction plus the existing managed-delegation policy with 25 focused tests; plugin validation and Ruff also pass
 - **2026-08-31 20:31 CEST** - [S:20260831|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:pytest|E:cmd`TMPDIR=/tmp PYTHONDONTWRITEBYTECODE=1 pytest -q -s -p no:cacheprovider -k 'not editable_package_aegis_cli_invocation and not editable_package_mcp_describe_config and not local_checkout_stdio_mcp_lists_aegis_surfaces'`] Validated the candidate with 2431 passing tests and 21 expected skips; excluded exactly two scope-prohibited network package-install tests and one independently reproduced 30-second MCP stdio hang.
 - **2026-08-31 20:31 CEST** - [S:20260831|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:pytest|E:tests/meta_workflow_guard/test_managed_delegation_canary.py] Added and passed five focused transactional tests, including exact Codex config restoration after a post-write denial-verification failure.
+- **2026-09-01 11:16** — [S:20260901|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed current timestamp as `2026-09-01 11:16 CEST`
+- **2026-09-01 11:16** — [S:20260901|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:scripts/codex-task:sessions-continue|E:sessions/2026/09/2026-09-01-002-ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial-publication.md] Created a fresh daily bead `ga-ur1c.4.1` continuation session while reusing the existing ACTIVE work-tracking folder
+- **2026-09-01 11:16** — [S:20260901|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:plans/current|E:plans/2026-08-31-ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial.md] Reused the existing bead `ga-ur1c.4.1` plan for continuation
+- **2026-09-01 11:16** — [S:20260901|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:sessions/state.json|E:sessions/state.json] Repointed session state to the bead `ga-ur1c.4.1` continuation session
+- **2026-09-01 11:16** — [S:20260901|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:scripts/codex-task:sessions-continue|E:sessions/2026/09/2026-09-01-002-ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial-publication.md] Continued the active source lane after exact-main reconciliation; current plan/session/state now point to ga-ur1c.4.1 and plan sync passes.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
