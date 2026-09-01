@@ -2044,5 +2044,11 @@
     "plan_hash": "518dfbe600646df00fca5b7a35b1a618b6257ef6185346f191964d56908f5a54",
     "tracker_hash": "08fccef07901d3bd7c97fd37641bff6c95114390b4857c52b63f800583c5ed20",
     "synced_at": "2026-09-01T16:10:42.828320+02:00"
+  },
+  {
+    "plan": "plans/2026-09-01-ga-ur1c.6.4-obsidian-cycle-stability.md",
+    "plan_hash": "4af9dd5cde15e1ed4fe4021730a5afe73bab5796aaf95fcceb3ca3a3a89bcd11",
+    "tracker_hash": "69b5eefe337534f104a27503ed6880448558704dc266532db744ff651c8f53f9",
+    "synced_at": "2026-09-01T16:19:55.993120+02:00"
   }
 ]

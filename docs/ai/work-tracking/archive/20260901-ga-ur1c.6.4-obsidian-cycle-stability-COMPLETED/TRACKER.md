@@ -1,7 +1,7 @@
 # Bead ga-ur1c.6.4 Make continuity dashboard cycle snapshots post-run stable Tracker
 
 **Started**: 2026-09-01
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-09-01
 
 ## Goals
@@ -11,7 +11,7 @@
 
 ## Progress Log
 - **2026-09-01 13:33** — [S:20260901|W:ga-ur1c.6.4-obsidian-cycle-stability|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed current timestamp as `2026-09-01 13:33 CEST`
-- **2026-09-01 13:33** — [S:20260901|W:ga-ur1c.6.4-obsidian-cycle-stability|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260901-ga-ur1c.6.4-obsidian-cycle-stability-ACTIVE/TRACKER.md] Scaffolded the `ga-ur1c.6.4` ACTIVE work-tracking folder through the bead-native kickoff flow
+- **2026-09-01 13:33** — [S:20260901|W:ga-ur1c.6.4-obsidian-cycle-stability|H:scripts/codex-task|E:docs/ai/work-tracking/archive/20260901-ga-ur1c.6.4-obsidian-cycle-stability-COMPLETED/TRACKER.md] Scaffolded the `ga-ur1c.6.4` ACTIVE work-tracking folder through the bead-native kickoff flow
 - **2026-09-01 13:33** — [S:20260901|W:ga-ur1c.6.4-obsidian-cycle-stability|H:bd:show|E:bead:ga-ur1c.6.4] Bound this source-workflow record to primary bead `ga-ur1c.6.4` without Taskmaster mutation
 - **2026-09-01 13:33** — [S:20260901|W:ga-ur1c.6.4-obsidian-cycle-stability|H:sessions/current|E:sessions/current] Repointed current session, plan, and session state to `ga-ur1c.6.4`
 - **2026-09-01 13:37** — [S:20260901|W:ga-ur1c.6.4-obsidian-cycle-stability|H:tests/continuity|E:pytest:3-failed] Captured the RED lock-held/dashboard projection regression before runtime changes
@@ -25,6 +25,7 @@
 - **2026-09-01 15:24** — [S:20260901|W:ga-ur1c.6.4-obsidian-cycle-stability|H:pytest|E:pytest:2260-passed+21-skipped] Completed the broad affected meta-workflow and Claude-adapter suites under frozen dependencies and WSL `/tmp`; the package-install invocation module remained excluded under the standing package boundary and packaging was already green in hosted CI
 - **2026-09-01 16:09** — [S:20260901|W:ga-ur1c.6.4-obsidian-cycle-stability|H:installed-reconciler|E:reports/live-acceptance-2026-09-01.md] Bound the already-completed merge-bound transactional reinstall, observed consecutive scheduled cycles at `14:06:28Z` and `14:07:37Z`, and proved all five generated trees byte-identical with zero live-index reloads
 - **2026-09-01 16:09** — [S:20260901|W:ga-ur1c.6.4-obsidian-cycle-stability|H:strict-live-index|E:reports/live-acceptance-2026-09-01.md] Strict live-index checks passed for all four projects and the continuity dashboard; timer/service, WSL Obsidian epoch, installed digests, zero-agent state, and four suspended rigs remained exact
+- **2026-09-01 16:19** — [S:20260901|W:ga-ur1c.6.4|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260901-ga-ur1c.6.4-obsidian-cycle-stability-COMPLETED/TRACKER.md] Archived the completed work-tracking bundle through the supported helper (transaction 63062580de6f86ea018821e138406d0e996998b67ff51bb5a8c79b84b702bcb7)
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
