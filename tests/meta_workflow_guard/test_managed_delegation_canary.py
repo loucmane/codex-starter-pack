@@ -89,6 +89,30 @@ def test_hooks_list_validation_rejects_metadata_drift(tmp_path: Path) -> None:
         module._listing_records(listing, tmp_path, expected)
 
 
+def test_exact_project_trust_is_append_only_idempotent_and_alias_safe(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    original = b'model = "gpt-5.6-sol"\n# preserve exactly\n'
+
+    rendered, added = module._render_project_trust(original, project, require_fresh=True)
+    assert added is True
+    assert rendered.startswith(original)
+    assert module._parse_config(rendered)["projects"][project.as_posix()] == {
+        "trust_level": "trusted"
+    }
+    assert module._render_project_trust(rendered, project) == (rendered, False)
+    with pytest.raises(module.CanaryError, match="already had"):
+        module._render_project_trust(rendered, project, require_fresh=True)
+
+    alias = tmp_path / "alias"
+    alias.symlink_to(project, target_is_directory=True)
+    aliased = (
+        f'[projects.{json.dumps(alias.as_posix())}]\ntrust_level = "trusted"\n'.encode()
+    )
+    with pytest.raises(module.CanaryError, match="alias"):
+        module._render_project_trust(aliased, project)
+
+
 def test_installed_fixture_denies_without_launch_and_allows_local_read(tmp_path: Path) -> None:
     installer = _installer()
     project, report = module._create_fixture(tmp_path / "run", REPO_ROOT, installer)
@@ -165,6 +189,10 @@ def test_trust_transaction_writes_only_exact_keys_and_rolls_back(
                     ]
                 }
             if method == "hooks/list":
+                trust = module._parse_config(self.config.read_bytes())["projects"][
+                    self.root.as_posix()
+                ]
+                assert trust == {"trust_level": "trusted"}
                 return _listed_hooks(
                     self.root,
                     expected,
@@ -196,7 +224,11 @@ def test_trust_transaction_writes_only_exact_keys_and_rolls_back(
     )
     assert len(result["keys"]) == len(expected)
     assert result["mutated"] is True
+    assert result["project_trust_added"] is True
     assert codex_config.read_bytes() != original
+    assert module._parse_config(codex_config.read_bytes())["projects"][project.as_posix()] == {
+        "trust_level": "trusted"
+    }
 
     trusted = codex_config.read_bytes()
     second = module.trust_managed_hooks(
@@ -207,6 +239,7 @@ def test_trust_transaction_writes_only_exact_keys_and_rolls_back(
         server_factory=FakeServer,
     )
     assert second["mutated"] is False
+    assert second["project_trust_added"] is False
     assert codex_config.read_bytes() == trusted
 
     module._restore_snapshot(codex_config, snapshot)

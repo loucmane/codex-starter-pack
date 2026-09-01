@@ -5,11 +5,15 @@
   descriptor-managed fixture installation, exact managed-hook enumeration, supported Codex
   app-server trust, hard-denial and local-read probes, immutable run roots, and exact rollback.
 - Added persistent `trust-project` mode for current and future registered projects. It retains
-  exact trust only after the live installed gate and a no-op second application pass.
+  exact project and hook-hash trust only after the live installed gate and a no-op second
+  application pass.
 - Added focused regressions for generated-hook coverage, metadata drift, real installed-hook
   behavior, exact key scoping, unrelated-config preservation, rollback, and idempotence.
 - Updated the plugin README and workflow contract so cold starts and future onboarding do not
   depend on agent memory or a manual `/hooks` click.
+- Added exact canonical-project trust bootstrapping before `hooks/list`, with alias/conflict
+  refusal, unrelated-byte preservation, failure rollback, and temporary trust during the
+  post-rollback untrusted-hook proof.
 
 ## Progress Log
 - **2026-08-31 20:31 CEST** - [S:20260831|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:pytest|E:tests/meta_workflow_guard/test_managed_delegation_canary.py] Added and passed five focused transactional tests, including exact Codex config restoration after a post-write denial-verification failure.

@@ -1786,5 +1786,23 @@
     "plan_hash": "724ae71d6ca999356748655479e29b78188eaa153c99bb3b3c9970eb04fa8540",
     "tracker_hash": "828a388d68a5866266bef8f8c894a6b4a6371773eb2972687ea52b2a4ccdddcb",
     "synced_at": "2026-09-01T11:18:15.587327+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial.md",
+    "plan_hash": "724ae71d6ca999356748655479e29b78188eaa153c99bb3b3c9970eb04fa8540",
+    "tracker_hash": "44cc3bff2adb221b5ac734bcbce144943e8b0f73d4be369a5333e8c5411c1279",
+    "synced_at": "2026-09-01T11:35:26.285254+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial.md",
+    "plan_hash": "67645586b5ba44ca2fa5d786e9942e487df8d2d2bdd51fd91febdaea0cf7fd52",
+    "tracker_hash": "44cc3bff2adb221b5ac734bcbce144943e8b0f73d4be369a5333e8c5411c1279",
+    "synced_at": "2026-09-01T11:36:17.550817+02:00"
+  },
+  {
+    "plan": "plans/2026-08-31-ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial.md",
+    "plan_hash": "67645586b5ba44ca2fa5d786e9942e487df8d2d2bdd51fd91febdaea0cf7fd52",
+    "tracker_hash": "18d21650ae6832d109ae614a675bc22c94f3ea5838257ef99136de417e80b0c2",
+    "synced_at": "2026-09-01T11:43:06.443514+02:00"
   }
 ]

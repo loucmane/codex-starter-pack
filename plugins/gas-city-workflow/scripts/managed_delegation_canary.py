@@ -20,6 +20,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import tomllib
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
@@ -129,6 +130,86 @@ def _restore_snapshot(path: Path, snapshot: ConfigSnapshot) -> None:
     after = _snapshot(path)
     if after != snapshot:
         raise CanaryError("Codex user config rollback was not byte/mode/owner exact")
+
+
+def _parse_config(data: bytes) -> dict[str, Any]:
+    try:
+        payload = tomllib.loads(data.decode("utf-8"))
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
+        raise CanaryError("Codex user config is invalid TOML") from exc
+    if not isinstance(payload, dict):
+        raise CanaryError("Codex user config root is not a table")
+    return payload
+
+
+def _project_identity(value: str) -> Path | None:
+    path = Path(value).expanduser()
+    if not path.is_absolute():
+        return None
+    try:
+        return path.resolve(strict=False)
+    except OSError:
+        return None
+
+
+def _render_project_trust(
+    before: bytes, project_root: Path, *, require_fresh: bool = False
+) -> tuple[bytes, bool]:
+    """Add only exact Codex project trust while preserving unrelated bytes."""
+
+    payload = _parse_config(before)
+    projects = payload.get("projects", {})
+    if not isinstance(projects, dict):
+        raise CanaryError("Codex user config [projects] is not a table")
+    exact_path = project_root.as_posix()
+    exact = projects.get(exact_path)
+    if exact is not None:
+        if require_fresh:
+            raise CanaryError("fresh canary project already had a Codex trust entry")
+        if not isinstance(exact, dict) or exact.get("trust_level") != "trusted":
+            raise CanaryError("Codex user config has conflicting exact project trust")
+        return before, False
+
+    canonical = project_root.resolve(strict=True)
+    for configured in projects:
+        if not isinstance(configured, str):
+            raise CanaryError("Codex user config project keys are not strings")
+        if _project_identity(configured) == canonical:
+            raise CanaryError("Codex user config has an alias for the exact project root")
+
+    rendered = before
+    if rendered and not rendered.endswith(b"\n"):
+        rendered += b"\n"
+    rendered += (
+        f"\n[projects.{json.dumps(exact_path)}]\n"
+        'trust_level = "trusted"\n'
+    ).encode("utf-8")
+    trusted = _parse_config(rendered).get("projects", {}).get(exact_path)
+    if not isinstance(trusted, dict) or trusted.get("trust_level") != "trusted":
+        raise CanaryError("rendered Codex config omitted exact project trust")
+    return rendered, True
+
+
+def _strip_exact_table(data: bytes, header: str) -> tuple[bytes, bool]:
+    lines = data.decode("utf-8").splitlines(keepends=True)
+    kept: list[str] = []
+    found = False
+    skipping = False
+    for line in lines:
+        stripped = line.rstrip("\r\n")
+        if stripped.startswith("["):
+            if stripped == header:
+                if found:
+                    raise CanaryError(f"duplicate managed Codex config table: {header}")
+                found = True
+                if kept and not kept[-1].strip():
+                    kept.pop()
+                skipping = True
+                continue
+            skipping = False
+        if not skipping:
+            kept.append(line)
+    return "".join(kept).encode("utf-8"), found
 
 
 def _load_installer(source_root: Path) -> Any:
@@ -286,100 +367,115 @@ def trust_managed_hooks(
         or codex.resolve(strict=True) != DEFAULT_CODEX.resolve(strict=True)
     ):
         raise CanaryError(f"unsupported Codex binary: {codex}")
+    rendered, project_trust_added = _render_project_trust(
+        before.data, project_root, require_fresh=require_fresh
+    )
+    if project_trust_added:
+        _atomic_write(codex_config, rendered, before.mode)
     server_pid: int | None = None
-    with server_factory(codex, codex_config, project_root) as server:
-        process = getattr(server, "_process", None)
-        candidate_pid = getattr(process, "pid", None)
-        if isinstance(candidate_pid, int) and candidate_pid > 0:
-            server_pid = candidate_pid
-        config = server.request(
-            "config/read", {"cwd": project_root.as_posix(), "includeLayers": True}
-        )
-        version = trust_support._user_config_version(config, codex_config)  # noqa: SLF001
-        pre = _listing_records(
-            server.request("hooks/list", {"cwds": [project_root.as_posix()]}),
-            project_root,
-            expected,
-        )
-        if require_fresh and any(item["trust_status"] != "untrusted" for item in pre):
-            raise CanaryError("fresh canary hook identity was already trusted or modified")
-        mutated = any(item["trust_status"] != "trusted" for item in pre)
-        write_version: str | None = None
-        if mutated:
-            write = server.request(
-                "config/batchWrite",
-                {
-                    "edits": [
-                        {
-                            "keyPath": f"hooks.state.{json.dumps(item['key'])}.trusted_hash",
-                            "value": item["current_hash"],
-                            "mergeStrategy": "upsert",
-                        }
-                        for item in pre
-                    ],
-                    "expectedVersion": version,
-                    "filePath": codex_config.as_posix(),
-                    "reloadUserConfig": True,
-                },
+    try:
+        with server_factory(codex, codex_config, project_root) as server:
+            process = getattr(server, "_process", None)
+            candidate_pid = getattr(process, "pid", None)
+            if isinstance(candidate_pid, int) and candidate_pid > 0:
+                server_pid = candidate_pid
+            config = server.request(
+                "config/read", {"cwd": project_root.as_posix(), "includeLayers": True}
             )
-            candidate_version = write.get("version")
-            if (
-                write.get("status") != "ok"
-                or write.get("filePath") != codex_config.as_posix()
-                or not isinstance(candidate_version, str)
-                or not HOOK_HASH_PATTERN.fullmatch(candidate_version)
-            ):
-                raise CanaryError("Codex config/batchWrite did not make an exact trust write")
-            write_version = candidate_version
-        post = _listing_records(
-            server.request("hooks/list", {"cwds": [project_root.as_posix()]}),
-            project_root,
-            expected,
+            version = trust_support._user_config_version(config, codex_config)  # noqa: SLF001
+            pre = _listing_records(
+                server.request("hooks/list", {"cwds": [project_root.as_posix()]}),
+                project_root,
+                expected,
+            )
+            if require_fresh and any(item["trust_status"] != "untrusted" for item in pre):
+                raise CanaryError("fresh canary hook identity was already trusted or modified")
+            hook_trust_added = any(item["trust_status"] != "trusted" for item in pre)
+            write_version: str | None = None
+            if hook_trust_added:
+                write = server.request(
+                    "config/batchWrite",
+                    {
+                        "edits": [
+                            {
+                                "keyPath": f"hooks.state.{json.dumps(item['key'])}.trusted_hash",
+                                "value": item["current_hash"],
+                                "mergeStrategy": "upsert",
+                            }
+                            for item in pre
+                        ],
+                        "expectedVersion": version,
+                        "filePath": codex_config.as_posix(),
+                        "reloadUserConfig": True,
+                    },
+                )
+                candidate_version = write.get("version")
+                if (
+                    write.get("status") != "ok"
+                    or write.get("filePath") != codex_config.as_posix()
+                    or not isinstance(candidate_version, str)
+                    or not HOOK_HASH_PATTERN.fullmatch(candidate_version)
+                ):
+                    raise CanaryError("Codex config/batchWrite did not make an exact trust write")
+                write_version = candidate_version
+            post = _listing_records(
+                server.request("hooks/list", {"cwds": [project_root.as_posix()]}),
+                project_root,
+                expected,
+            )
+            if any(item["trust_status"] != "trusted" for item in post):
+                raise CanaryError("Codex did not trust every exact managed Aegis hook")
+
+        if server_pid is not None and Path(f"/proc/{server_pid}").exists():
+            raise CanaryError("Codex app-server process remained after trust transaction")
+        if [(x["key"], x["current_hash"]) for x in pre] != [
+            (x["key"], x["current_hash"]) for x in post
+        ]:
+            raise CanaryError("Codex hook identity changed during trust transaction")
+        after = _snapshot(codex_config)
+        keys = [item["key"] for item in post]
+        before_unmanaged, before_keys = trust_support._strip_hook_trust_tables(  # noqa: SLF001
+            before.data, keys
         )
-        if any(item["trust_status"] != "trusted" for item in post):
-            raise CanaryError("Codex did not trust every exact managed Aegis hook")
-
-    if server_pid is not None and Path(f"/proc/{server_pid}").exists():
-        raise CanaryError("Codex app-server process remained after trust transaction")
-
-    if [(x["key"], x["current_hash"]) for x in pre] != [
-        (x["key"], x["current_hash"]) for x in post
-    ]:
-        raise CanaryError("Codex hook identity changed during trust transaction")
-    after = _snapshot(codex_config)
-    keys = [item["key"] for item in post]
-    before_unmanaged, before_keys = trust_support._strip_hook_trust_tables(  # noqa: SLF001
-        before.data, keys
-    )
-    after_unmanaged, after_keys = trust_support._strip_hook_trust_tables(  # noqa: SLF001
-        after.data, keys
-    )
-    if require_fresh and before_keys:
-        raise CanaryError("fresh canary hook trust keys already existed in Codex config")
-    if before_keys not in (set(), set(keys)):
-        raise CanaryError("Codex config contained a partial managed-hook trust set")
-    if before_unmanaged != after_unmanaged:
-        if not trust_support._only_blank_line_changes(before_unmanaged, after_unmanaged):  # noqa: SLF001
-            raise CanaryError("hook trust write changed unrelated Codex config bytes")
-        if trust_support._parse_toml(  # noqa: SLF001
-            before_unmanaged, label="Codex config before managed-hook trust"
-        ) != trust_support._parse_toml(  # noqa: SLF001
-            after_unmanaged, label="Codex config after managed-hook trust"
-        ):
-            raise CanaryError("hook trust write changed unrelated Codex config semantics")
-    if after_keys != set(keys):
-        raise CanaryError("hook trust write omitted an exact managed hook table")
-    if (after.mode, after.uid, after.gid) != (before.mode, before.uid, before.gid):
-        raise CanaryError("hook trust write changed Codex config mode or ownership")
-    return {
-        "before_config_sha256": before.digest,
-        "trusted_config_sha256": after.digest,
-        "keys": post,
-        "mutated": mutated,
-        "app_server_pid": server_pid,
-        "app_server_stopped": True,
-        "write_version": write_version,
-    }
+        after_unmanaged, after_keys = trust_support._strip_hook_trust_tables(  # noqa: SLF001
+            after.data, keys
+        )
+        if project_trust_added:
+            header = f"[projects.{json.dumps(project_root.as_posix())}]"
+            after_unmanaged, found = _strip_exact_table(after_unmanaged, header)
+            if not found:
+                raise CanaryError("Codex config omitted the exact managed project trust table")
+        if require_fresh and before_keys:
+            raise CanaryError("fresh canary hook trust keys already existed in Codex config")
+        if before_keys not in (set(), set(keys)):
+            raise CanaryError("Codex config contained a partial managed-hook trust set")
+        if before_unmanaged != after_unmanaged:
+            if not trust_support._only_blank_line_changes(  # noqa: SLF001
+                before_unmanaged, after_unmanaged
+            ):
+                raise CanaryError("managed trust write changed unrelated Codex config bytes")
+            if _parse_config(before_unmanaged) != _parse_config(after_unmanaged):
+                raise CanaryError("managed trust write changed unrelated Codex config semantics")
+        if after_keys != set(keys):
+            raise CanaryError("hook trust write omitted an exact managed hook table")
+        exact = _parse_config(after.data).get("projects", {}).get(project_root.as_posix())
+        if not isinstance(exact, dict) or exact.get("trust_level") != "trusted":
+            raise CanaryError("Codex config did not retain exact project trust")
+        if (after.mode, after.uid, after.gid) != (before.mode, before.uid, before.gid):
+            raise CanaryError("managed trust write changed Codex config mode or ownership")
+        return {
+            "before_config_sha256": before.digest,
+            "trusted_config_sha256": after.digest,
+            "keys": post,
+            "mutated": project_trust_added or hook_trust_added,
+            "project_trust_added": project_trust_added,
+            "app_server_pid": server_pid,
+            "app_server_stopped": True,
+            "write_version": write_version,
+        }
+    except BaseException:  # noqa: BLE001 - this primitive is transactional on every failure.
+        _restore_snapshot(codex_config, before)
+        raise
 
 
 def verify_hooks_untrusted(
@@ -390,21 +486,29 @@ def verify_hooks_untrusted(
     expected: Sequence[HookDefinition],
     server_factory: Callable[[Path, Path, Path], Any] = trust_support.CodexAppServer,
 ) -> None:
+    before = _snapshot(codex_config)
+    rendered, project_trust_added = _render_project_trust(before.data, project_root)
+    if project_trust_added:
+        _atomic_write(codex_config, rendered, before.mode)
     server_pid: int | None = None
-    with server_factory(codex, codex_config, project_root) as server:
-        process = getattr(server, "_process", None)
-        candidate_pid = getattr(process, "pid", None)
-        if isinstance(candidate_pid, int) and candidate_pid > 0:
-            server_pid = candidate_pid
-        records = _listing_records(
-            server.request("hooks/list", {"cwds": [project_root.as_posix()]}),
-            project_root,
-            expected,
-        )
-    if server_pid is not None and Path(f"/proc/{server_pid}").exists():
-        raise CanaryError("Codex app-server process remained after rollback verification")
-    if any(item["trust_status"] != "untrusted" for item in records):
-        raise CanaryError("managed canary hooks remained trusted after config rollback")
+    try:
+        with server_factory(codex, codex_config, project_root) as server:
+            process = getattr(server, "_process", None)
+            candidate_pid = getattr(process, "pid", None)
+            if isinstance(candidate_pid, int) and candidate_pid > 0:
+                server_pid = candidate_pid
+            records = _listing_records(
+                server.request("hooks/list", {"cwds": [project_root.as_posix()]}),
+                project_root,
+                expected,
+            )
+        if server_pid is not None and Path(f"/proc/{server_pid}").exists():
+            raise CanaryError("Codex app-server process remained after rollback verification")
+        if any(item["trust_status"] != "untrusted" for item in records):
+            raise CanaryError("managed canary hooks remained trusted after config rollback")
+    finally:
+        if project_trust_added:
+            _restore_snapshot(codex_config, before)
 
 
 def _run(
