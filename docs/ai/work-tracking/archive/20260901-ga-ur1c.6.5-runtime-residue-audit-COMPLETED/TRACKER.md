@@ -1,7 +1,7 @@
 # Bead ga-ur1c.6.5 Detect untracked city tmux runtime residue Tracker
 
 **Started**: 2026-09-01
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-09-01
 
 ## Goals
@@ -11,7 +11,7 @@
 
 ## Progress Log
 - **2026-09-01 17:04** — [S:20260901|W:ga-ur1c.6.5-runtime-residue-audit|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed current timestamp as `2026-09-01 17:04 CEST`
-- **2026-09-01 17:04** — [S:20260901|W:ga-ur1c.6.5-runtime-residue-audit|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260901-ga-ur1c.6.5-runtime-residue-audit-ACTIVE/TRACKER.md] Scaffolded the `ga-ur1c.6.5` ACTIVE work-tracking folder through the bead-native kickoff flow
+- **2026-09-01 17:04** — [S:20260901|W:ga-ur1c.6.5-runtime-residue-audit|H:scripts/codex-task|E:docs/ai/work-tracking/archive/20260901-ga-ur1c.6.5-runtime-residue-audit-COMPLETED/TRACKER.md] Scaffolded the `ga-ur1c.6.5` ACTIVE work-tracking folder through the bead-native kickoff flow
 - **2026-09-01 17:04** — [S:20260901|W:ga-ur1c.6.5-runtime-residue-audit|H:bd:show|E:bead:ga-ur1c.6.5] Bound this source-workflow record to primary bead `ga-ur1c.6.5` without Taskmaster mutation
 - **2026-09-01 17:04** — [S:20260901|W:ga-ur1c.6.5-runtime-residue-audit|H:sessions/current|E:sessions/current] Repointed current session, plan, and session state to `ga-ur1c.6.5`
 - **2026-09-01 17:10** — [S:20260901|W:ga-ur1c.6.5-runtime-residue-audit|H:scripts/codex-task:aegis-plan-install|E:/tmp/ga-ur1c-6-5-aegis-plan.txt] Reviewed the Aegis install plan and excluded its 65-path repository bootstrap from this narrow detector repair
@@ -23,6 +23,8 @@
 - **2026-09-01 21:57** — [S:20260901|W:ga-ur1c.6.5-runtime-residue-audit|H:pytest:full-retry|E:.pytest_cache] Classified the first full-suite run's 73 failures as one temp-root harness mismatch after 2404 passes; exact failed set PASSed 73/73 after aligning pytest and tempfile roots, without a source change
 - **2026-09-01 22:01** — [S:20260901|W:ga-ur1c.6.5-runtime-residue-audit|H:pytest:full-clean|E:tests] Clean full repository suite PASS: 2477 passed, 21 skipped in 230.31s with aligned pytest and Python temp roots
 - **2026-09-01 22:03** — [S:20260901|W:ga-ur1c.6.5-runtime-residue-audit|H:bd:update-show|E:bead:ga-ur1c.6.5] Reconciled the stale PID-specific acceptance append-forward: preserved PID 2009895 history and its separately authorized cleanup, while binding current live detector proof to untouched PID/SID 3136806
+- **2026-09-01 22:13** — [S:20260901|W:ga-ur1c.6.5-runtime-residue-audit|H:github:pr-360|E:commit:bb3ef8e1d476d0c1a7a74de31e4c76d9d75a9a02] Published signed head `e705e56affc577b6c3a63c4377b50358eef36960`; all hosted checks passed, the PR was CLEAN/MERGEABLE with zero unresolved threads, and merge commit `bb3ef8e1d476d0c1a7a74de31e4c76d9d75a9a02` preserved tree `f3069189f1f1fc65b5c9fa542427ed37b9af4d5e`
+- **2026-09-01 22:14** — [S:20260901|W:ga-ur1c.6.5|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260901-ga-ur1c.6.5-runtime-residue-audit-COMPLETED/TRACKER.md] Archived the completed work-tracking bundle through the supported helper (transaction 1a5e14a0292912918b3d4048aec72c2440b84672ec6a0be5787399b600e32ece)
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
