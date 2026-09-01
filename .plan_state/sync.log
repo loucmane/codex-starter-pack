@@ -2182,5 +2182,11 @@
     "plan_hash": "85384982e630903f2d4b8cb0f5269183c7d27c2da845c0c98253b35de70a00fe",
     "tracker_hash": "2180b3f55fb53ba49afef0f1d5af2045ea78c83ee43ed8c1ab69cb5d6fad1236",
     "synced_at": "2026-09-02T00:30:07.043484+02:00"
+  },
+  {
+    "plan": "plans/2026-09-02-ga-ur1c.6.6-desktop-transport-retest-attestation.md",
+    "plan_hash": "404afdb319f294e082a33be7f0a3d59a8562405258858eda3a32d0bb9bd55027",
+    "tracker_hash": "47cdaa0a1f752545bf52dd27d1f30aa40ed145a9f44dda00b86ea498bb3046d3",
+    "synced_at": "2026-09-02T00:45:20.526655+02:00"
   }
 ]
