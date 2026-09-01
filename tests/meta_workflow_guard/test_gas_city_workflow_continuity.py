@@ -6,6 +6,8 @@ import fcntl
 import importlib.util
 import hashlib
 import json
+import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -89,14 +91,58 @@ def _snapshot(projects: list[dict[str, object]]) -> dict[str, object]:
             ledgers[rig] = beads
         projected_projects.append(projected)
     return {
-        "schema": "gas-city-workflow.continuity-snapshot.v1",
+        "schema": "gas-city-workflow.continuity-snapshot.v2",
         "registry_sha256": "a" * 64,
+        "runtime": {
+            "city": {
+                "session_ledger": {
+                    "status": "complete",
+                    "authority": "gc-session-list-v1",
+                    "sessions": [],
+                },
+                "tmux": {
+                    "status": "complete",
+                    "authority": "same-uid-procfs",
+                    "uid": os.getuid(),
+                    "servers": [],
+                },
+            }
+        },
         "ledgers": [
             {"rig": rig, "beads": ledgers[rig]}
             for rig in sorted(ledgers)
         ],
         "projects": projected_projects,
     }
+
+
+def _proc_process(
+    root: Path,
+    pid: int,
+    *,
+    argv: list[str],
+    sid: int | None = None,
+    ppid: int = 1,
+    start_ticks: int = 12345,
+    children: list[int] | None = None,
+) -> Path:
+    process = root / str(pid)
+    task = process / "task" / str(pid)
+    task.mkdir(parents=True)
+    (process / "cmdline").write_bytes(b"\0".join(value.encode() for value in argv) + b"\0")
+    stat_fields = ["S", str(ppid), str(pid), str(sid if sid is not None else pid)]
+    stat_fields.extend(["0"] * 15)
+    stat_fields.append(str(start_ticks))
+    stat_fields.extend(["0"] * 8)
+    (process / "stat").write_text(
+        f"{pid} (tmux worker) {' '.join(stat_fields)}\n",
+        encoding="utf-8",
+    )
+    (task / "children").write_text(
+        " ".join(str(value) for value in (children or [])) + "\n",
+        encoding="utf-8",
+    )
+    return process
 
 
 def test_report_classifies_all_work_states_and_uses_one_next_action_source() -> None:
@@ -362,6 +408,18 @@ def test_tracked_residue_dispositions_validate_against_their_schema() -> None:
             encoding="utf-8"
         )
     )
+
+    Draft202012Validator.check_schema(schema)
+    Draft202012Validator(schema).validate(payload)
+
+
+def test_continuity_snapshot_v2_validates_against_its_schema() -> None:
+    schema = json.loads(
+        (SCRIPTS.parent / "config" / "continuity-snapshot.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    payload = _snapshot([_project("gas-city", [])])
 
     Draft202012Validator.check_schema(schema)
     Draft202012Validator(schema).validate(payload)
@@ -820,9 +878,29 @@ def test_live_collector_uses_registry_without_hardcoded_project_ids(tmp_path: Pa
     )
     signing = tmp_path / "signing.json"
     signing.write_text(json.dumps({"policies": {}}), encoding="utf-8")
+    (tmp_path / "empty-proc").mkdir()
 
     class Runner(capture.ReadOnlyRunner):
         def run(self, argv, *, cwd=None):
+            if argv[-3:] == ["session", "list", "--json"]:
+                return subprocess.CompletedProcess(
+                    argv,
+                    0,
+                    json.dumps(
+                        {
+                            "schema_version": "1",
+                            "filters": {},
+                            "sessions": [],
+                            "summary": {
+                                "total": 0,
+                                "active": 0,
+                                "suspended": 0,
+                                "closed": 0,
+                            },
+                        }
+                    ),
+                    "",
+                )
             if "bd" in argv:
                 return subprocess.CompletedProcess(
                     argv,
@@ -841,6 +919,7 @@ def test_live_collector_uses_registry_without_hardcoded_project_ids(tmp_path: Pa
         obsidian_state=obsidian_state,
         signing_policies=signing,
         runner=Runner(),
+        proc_root=tmp_path / "empty-proc",
     )
     second = capture.capture_snapshot(
         registry,
@@ -849,6 +928,7 @@ def test_live_collector_uses_registry_without_hardcoded_project_ids(tmp_path: Pa
         obsidian_state=obsidian_state,
         signing_policies=signing,
         runner=Runner(),
+        proc_root=tmp_path / "empty-proc",
     )
 
     lock_path = obsidian_state / "registry-cycle.lock"
@@ -862,6 +942,7 @@ def test_live_collector_uses_registry_without_hardcoded_project_ids(tmp_path: Pa
             obsidian_state=obsidian_state,
             signing_policies=signing,
             runner=Runner(),
+            proc_root=tmp_path / "empty-proc",
         )
         projected = capture.capture_snapshot(
             registry,
@@ -871,6 +952,7 @@ def test_live_collector_uses_registry_without_hardcoded_project_ids(tmp_path: Pa
             obsidian_cycle_status="idle",
             signing_policies=signing,
             runner=Runner(),
+            proc_root=tmp_path / "empty-proc",
         )
 
     assert first == second
@@ -902,6 +984,270 @@ def test_read_only_runner_pins_the_managed_operator_path(monkeypatch) -> None:
     capture.ReadOnlyRunner().run(["fixture"])
 
     assert observed["env"]["PATH"] == capture.OPERATOR_PATH
+
+
+def test_city_tmux_capture_matches_bare_argv0_and_stable_process_identity(
+    tmp_path: Path,
+) -> None:
+    capture = _load("continuity_capture")
+    proc = tmp_path / "proc"
+    proc.mkdir()
+    _proc_process(
+        proc,
+        321,
+        argv=["tmux", "-u", "-L", "city", "new-session", "-d"],
+        start_ticks=45678,
+        children=[654, 987],
+    )
+    _proc_process(
+        proc,
+        322,
+        argv=["/usr/bin/tmux", "-Lother", "new-session", "-d"],
+    )
+    _proc_process(
+        proc,
+        323,
+        argv=["tmux", "-Lcity", "list-sessions"],
+        sid=100,
+    )
+
+    observed = capture._capture_city_tmux(proc, uid=os.getuid())
+
+    assert observed == {
+        "status": "complete",
+        "authority": "same-uid-procfs",
+        "uid": os.getuid(),
+        "servers": [
+            {
+                "pid": 321,
+                "sid": 321,
+                "ppid": 1,
+                "uid": os.getuid(),
+                "start_ticks": 45678,
+                "cmdline_sha256": hashlib.sha256(
+                    b"tmux\0-u\0-L\0city\0new-session\0-d\0"
+                ).hexdigest(),
+                "argv0": "tmux",
+                "socket_label": "city",
+                "child_pids": [654, 987],
+            }
+        ],
+    }
+
+
+def test_native_session_capture_is_minimal_sorted_and_schema_bound() -> None:
+    capture = _load("continuity_capture")
+
+    class Runner(capture.ReadOnlyRunner):
+        def run(self, argv, *, cwd=None):
+            return subprocess.CompletedProcess(
+                argv,
+                0,
+                json.dumps(
+                    {
+                        "schema_version": "1",
+                        "filters": {},
+                        "sessions": [
+                            {
+                                "id": "ci-zed",
+                                "session_name": "gc__worker-ci-zed",
+                                "state": "suspended",
+                                "transport": "tmux",
+                                "closed": False,
+                                "title": "excluded from continuity",
+                                "created_at": "volatile and excluded",
+                            },
+                            {
+                                "id": "ci-alpha",
+                                "state": "active",
+                                "transport": "tmux",
+                                "closed": False,
+                            },
+                        ],
+                        "summary": {
+                            "total": 2,
+                            "active": 1,
+                            "suspended": 1,
+                            "closed": 0,
+                        },
+                    }
+                ),
+                "",
+            )
+
+    assert capture._capture_session_ledger(Runner()) == {
+        "status": "complete",
+        "authority": "gc-session-list-v1",
+        "sessions": [
+            {
+                "id": "ci-alpha",
+                "session_name": "",
+                "state": "active",
+                "transport": "tmux",
+                "closed": False,
+            },
+            {
+                "id": "ci-zed",
+                "session_name": "gc__worker-ci-zed",
+                "state": "suspended",
+                "transport": "tmux",
+                "closed": False,
+            },
+        ],
+    }
+
+
+def test_city_tmux_capture_treats_disappearance_as_absent_after_stable_rescan(
+    tmp_path: Path, monkeypatch
+) -> None:
+    capture = _load("continuity_capture")
+    proc = tmp_path / "proc"
+    proc.mkdir()
+    process = _proc_process(
+        proc,
+        321,
+        argv=["tmux", "-L", "city", "new-session", "-d"],
+    )
+    cmdline = process / "cmdline"
+    original = Path.read_bytes
+
+    def disappearing(path: Path) -> bytes:
+        payload = original(path)
+        if path == cmdline:
+            shutil.rmtree(process)
+        return payload
+
+    monkeypatch.setattr(Path, "read_bytes", disappearing)
+
+    assert capture._capture_city_tmux(proc, uid=os.getuid()) == {
+        "status": "complete",
+        "authority": "same-uid-procfs",
+        "uid": os.getuid(),
+        "servers": [],
+    }
+
+
+def test_city_tmux_incomplete_same_uid_observation_fails_closed(
+    tmp_path: Path, monkeypatch
+) -> None:
+    capture = _load("continuity_capture")
+    proc = tmp_path / "proc"
+    proc.mkdir()
+    process = _proc_process(proc, 321, argv=["tmux", "-L", "city"])
+    original = Path.read_bytes
+
+    def unreadable(path: Path) -> bytes:
+        if path == process / "cmdline":
+            raise PermissionError("fixture denial")
+        return original(path)
+
+    monkeypatch.setattr(Path, "read_bytes", unreadable)
+
+    assert capture._capture_city_tmux(proc, uid=os.getuid()) == {
+        "status": "unknown",
+        "authority": "same-uid-procfs",
+        "uid": os.getuid(),
+        "servers": [],
+    }
+
+
+def test_city_tmux_identity_drift_during_reread_fails_closed(
+    tmp_path: Path, monkeypatch
+) -> None:
+    capture = _load("continuity_capture")
+    proc = tmp_path / "proc"
+    proc.mkdir()
+    process = _proc_process(proc, 321, argv=["tmux", "-L", "city"])
+    cmdline = process / "cmdline"
+    original = Path.read_bytes
+    reads = 0
+
+    def drifting(path: Path) -> bytes:
+        nonlocal reads
+        payload = original(path)
+        if path == cmdline:
+            reads += 1
+            if reads == 1:
+                cmdline.write_bytes(b"sh\0-c\0sleep 1\0")
+        return payload
+
+    monkeypatch.setattr(Path, "read_bytes", drifting)
+
+    assert capture._capture_city_tmux(proc, uid=os.getuid()) == {
+        "status": "unknown",
+        "authority": "same-uid-procfs",
+        "uid": os.getuid(),
+        "servers": [],
+    }
+
+
+def test_runtime_residue_and_missing_runtime_are_reported_deterministically() -> None:
+    model = _load("continuity_model")
+    project = _project("gas-city", [])
+    snapshot = _snapshot([project])
+    runtime = snapshot["runtime"]["city"]
+    runtime["tmux"]["servers"] = [
+        {
+            "pid": 321,
+            "sid": 321,
+            "ppid": 1,
+            "uid": os.getuid(),
+            "start_ticks": 45678,
+            "cmdline_sha256": "b" * 64,
+            "argv0": "tmux",
+            "socket_label": "city",
+            "child_pids": [],
+        }
+    ]
+
+    residue = model.build_report(snapshot)
+
+    assert residue["ok"] is False
+    assert [finding["code"] for finding in residue["findings"]] == [
+        "untracked-city-tmux-server"
+    ]
+    assert residue["findings"][0]["identity"] == "pid=321,start_ticks=45678"
+    assert residue["work"]["orphaned"][0]["reason"] == "untracked-city-tmux-server"
+
+    runtime["tmux"]["servers"] = []
+    runtime["session_ledger"]["sessions"] = [
+        {
+            "id": "ci-fixture",
+            "session_name": "gc__fixture-ci-fixture",
+            "state": "active",
+            "transport": "tmux",
+            "closed": False,
+        }
+    ]
+    missing = model.build_report(snapshot)
+
+    assert [finding["code"] for finding in missing["findings"]] == [
+        "city-tmux-server-missing"
+    ]
+    assert missing["findings"][0]["identity"] == "ci-fixture"
+
+
+def test_runtime_observation_unknown_is_error_while_v1_history_remains_readable() -> None:
+    model = _load("continuity_model")
+    snapshot = _snapshot([_project("gas-city", [])])
+    snapshot["runtime"]["city"]["tmux"]["status"] = "unknown"
+
+    unknown = model.build_report(snapshot)
+
+    assert unknown["ok"] is False
+    assert [finding["code"] for finding in unknown["findings"]] == [
+        "city-tmux-runtime-observation-unknown"
+    ]
+
+    snapshot["schema"] = "gas-city-workflow.continuity-snapshot.v1"
+    del snapshot["runtime"]
+    historical = model.build_report(snapshot)
+
+    assert historical["ok"] is True
+    assert [finding["code"] for finding in historical["findings"]] == [
+        "city-runtime-not-captured"
+    ]
+    assert historical["findings"][0]["severity"] == "warning"
 
 
 def test_obsidian_process_observation_uses_systemd_scope_provenance() -> None:

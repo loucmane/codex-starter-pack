@@ -8,7 +8,8 @@ import json
 import re
 from typing import Any, Iterable, Mapping
 
-SNAPSHOT_SCHEMA = "gas-city-workflow.continuity-snapshot.v1"
+SNAPSHOT_SCHEMA = "gas-city-workflow.continuity-snapshot.v2"
+LEGACY_SNAPSHOT_SCHEMA = "gas-city-workflow.continuity-snapshot.v1"
 REPORT_SCHEMA = "gas-city-workflow.continuity-report.v1"
 PROJECT_ID_PATTERN = re.compile(r"^[a-z][a-z0-9-]*$")
 BEAD_ID_PATTERN = re.compile(
@@ -291,9 +292,19 @@ def _disposition_matches(
 
 def _validate_snapshot(
     snapshot: Mapping[str, Any],
-) -> tuple[list[Mapping[str, Any]], dict[str, list[Any]]]:
-    if snapshot.get("schema") != SNAPSHOT_SCHEMA:
+) -> tuple[
+    list[Mapping[str, Any]],
+    dict[str, list[Any]],
+    Mapping[str, Any] | None,
+]:
+    schema = snapshot.get("schema")
+    if schema not in {SNAPSHOT_SCHEMA, LEGACY_SNAPSHOT_SCHEMA}:
         raise ContinuityError("snapshot schema is invalid")
+    runtime: Mapping[str, Any] | None = None
+    if schema == SNAPSHOT_SCHEMA:
+        runtime = _validate_city_runtime(snapshot.get("runtime"))
+    elif "runtime" in snapshot:
+        raise ContinuityError("legacy snapshot must not contain v2 runtime state")
     registry_sha256 = snapshot.get("registry_sha256")
     if not isinstance(registry_sha256, str) or not DIGEST_PATTERN.fullmatch(registry_sha256):
         raise ContinuityError("registry_sha256 is invalid")
@@ -320,7 +331,212 @@ def _validate_snapshot(
     }
     if project_rigs != set(ledgers):
         raise ContinuityError("project rigs and ledger rigs must match exactly")
-    return projects, ledgers
+    return projects, ledgers, runtime
+
+
+def _nonnegative_integer(value: object, label: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise ContinuityError(f"{label} must be a non-negative integer")
+    return value
+
+
+def _validate_city_runtime(value: object) -> Mapping[str, Any]:
+    runtime = _mapping(value, "snapshot runtime")
+    if set(runtime) != {"city"}:
+        raise ContinuityError("snapshot runtime fields are invalid")
+    city = _mapping(runtime.get("city"), "snapshot city runtime")
+    if set(city) != {"session_ledger", "tmux"}:
+        raise ContinuityError("snapshot city runtime fields are invalid")
+
+    ledger = _mapping(city.get("session_ledger"), "city session ledger")
+    if set(ledger) != {"status", "authority", "sessions"}:
+        raise ContinuityError("city session ledger fields are invalid")
+    if ledger.get("status") not in {"complete", "unknown"}:
+        raise ContinuityError("city session ledger status is invalid")
+    if ledger.get("authority") != "gc-session-list-v1":
+        raise ContinuityError("city session ledger authority is invalid")
+    seen_sessions: set[str] = set()
+    raw_sessions = _list(ledger.get("sessions"), "city sessions")
+    if ledger.get("status") == "unknown" and raw_sessions:
+        raise ContinuityError("unknown city session ledger must not contain sessions")
+    for raw in raw_sessions:
+        session = _mapping(raw, "city session")
+        if set(session) != {"id", "session_name", "state", "transport", "closed"}:
+            raise ContinuityError("city session fields are invalid")
+        session_id = _string(session.get("id"), "city session id")
+        if session_id in seen_sessions:
+            raise ContinuityError("city session ids must be unique")
+        seen_sessions.add(session_id)
+        for field in ("session_name", "state", "transport"):
+            if not isinstance(session.get(field), str):
+                raise ContinuityError(f"city session {field} must be a string")
+        if not isinstance(session.get("closed"), bool):
+            raise ContinuityError("city session closed must be a boolean")
+
+    tmux = _mapping(city.get("tmux"), "city tmux runtime")
+    if set(tmux) != {"status", "authority", "uid", "servers"}:
+        raise ContinuityError("city tmux runtime fields are invalid")
+    if tmux.get("status") not in {"complete", "unknown"}:
+        raise ContinuityError("city tmux runtime status is invalid")
+    if tmux.get("authority") != "same-uid-procfs":
+        raise ContinuityError("city tmux runtime authority is invalid")
+    uid = _nonnegative_integer(tmux.get("uid"), "city tmux runtime uid")
+    seen_processes: set[tuple[int, int]] = set()
+    raw_servers = _list(tmux.get("servers"), "city tmux servers")
+    if tmux.get("status") == "unknown" and raw_servers:
+        raise ContinuityError("unknown city tmux runtime must not contain servers")
+    for raw in raw_servers:
+        server = _mapping(raw, "city tmux server")
+        if set(server) != {
+            "pid",
+            "sid",
+            "ppid",
+            "uid",
+            "start_ticks",
+            "cmdline_sha256",
+            "argv0",
+            "socket_label",
+            "child_pids",
+        }:
+            raise ContinuityError("city tmux server fields are invalid")
+        pid = _nonnegative_integer(server.get("pid"), "city tmux server pid")
+        sid = _nonnegative_integer(server.get("sid"), "city tmux server sid")
+        _nonnegative_integer(server.get("ppid"), "city tmux server ppid")
+        server_uid = _nonnegative_integer(server.get("uid"), "city tmux server uid")
+        start_ticks = _nonnegative_integer(
+            server.get("start_ticks"), "city tmux server start ticks"
+        )
+        if pid == 0 or sid != pid or server_uid != uid:
+            raise ContinuityError("city tmux server identity is invalid")
+        _string(
+            server.get("cmdline_sha256"),
+            "city tmux server cmdline digest",
+            pattern=DIGEST_PATTERN,
+        )
+        if server.get("argv0") != "tmux" or server.get("socket_label") != "city":
+            raise ContinuityError("city tmux server command identity is invalid")
+        children = _list(server.get("child_pids"), "city tmux server children")
+        child_pids = [
+            _nonnegative_integer(child, "city tmux child pid") for child in children
+        ]
+        if child_pids != sorted(set(child_pids)) or any(child == 0 for child in child_pids):
+            raise ContinuityError("city tmux child pids are invalid")
+        identity = (pid, start_ticks)
+        if identity in seen_processes:
+            raise ContinuityError("city tmux server identities must be unique")
+        seen_processes.add(identity)
+    return runtime
+
+
+def _runtime_work_item(code: str, identity: str) -> dict[str, Any]:
+    return {
+        "id": f"city-runtime:{code}:{identity}",
+        "project_id": "city-runtime",
+        "bead_id": None,
+        "title": code,
+        "status": "orphaned",
+        "reason": code,
+        "blockers": [],
+    }
+
+
+def _classify_city_runtime(
+    runtime: Mapping[str, Any] | None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    if runtime is None:
+        return (
+            [
+                _finding(
+                    code="city-runtime-not-captured",
+                    project_id="city-runtime",
+                    surface="runtime",
+                    identity="legacy-snapshot-v1",
+                    bead_id=None,
+                    severity="warning",
+                )
+            ],
+            [],
+        )
+    city = _mapping(runtime.get("city"), "snapshot city runtime")
+    ledger = _mapping(city.get("session_ledger"), "city session ledger")
+    tmux = _mapping(city.get("tmux"), "city tmux runtime")
+    findings: list[dict[str, Any]] = []
+    orphaned: list[dict[str, Any]] = []
+
+    for status, code, surface in (
+        (ledger.get("status"), "city-session-ledger-observation-unknown", "session-ledger"),
+        (tmux.get("status"), "city-tmux-runtime-observation-unknown", "tmux-runtime"),
+    ):
+        if status == "unknown":
+            findings.append(
+                _finding(
+                    code=code,
+                    project_id="city-runtime",
+                    surface=surface,
+                    identity="city",
+                    bead_id=None,
+                )
+            )
+            orphaned.append(_runtime_work_item(code, "city"))
+    if findings:
+        return findings, orphaned
+
+    sessions = [
+        _mapping(raw, "city session")
+        for raw in _list(ledger.get("sessions"), "city sessions")
+    ]
+    tmux_sessions = [
+        session
+        for session in sessions
+        if session.get("closed") is False and session.get("transport") == "tmux"
+    ]
+    servers = [
+        _mapping(raw, "city tmux server")
+        for raw in _list(tmux.get("servers"), "city tmux servers")
+    ]
+    if len(servers) > 1:
+        for server in servers:
+            identity = f"pid={server['pid']},start_ticks={server['start_ticks']}"
+            code = "city-tmux-server-split-brain"
+            findings.append(
+                _finding(
+                    code=code,
+                    project_id="city-runtime",
+                    surface="tmux-runtime",
+                    identity=identity,
+                    bead_id=None,
+                )
+            )
+            orphaned.append(_runtime_work_item(code, identity))
+    if servers and not tmux_sessions:
+        for server in servers:
+            identity = f"pid={server['pid']},start_ticks={server['start_ticks']}"
+            code = "untracked-city-tmux-server"
+            findings.append(
+                _finding(
+                    code=code,
+                    project_id="city-runtime",
+                    surface="tmux-runtime",
+                    identity=identity,
+                    bead_id=None,
+                )
+            )
+            orphaned.append(_runtime_work_item(code, identity))
+    elif tmux_sessions and not servers:
+        for session in tmux_sessions:
+            identity = str(session["id"])
+            code = "city-tmux-server-missing"
+            findings.append(
+                _finding(
+                    code=code,
+                    project_id="city-runtime",
+                    surface="session-ledger",
+                    identity=identity,
+                    bead_id=None,
+                )
+            )
+            orphaned.append(_runtime_work_item(code, identity))
+    return findings, orphaned
 
 
 def _classify_project(
@@ -865,9 +1081,10 @@ def _obsidian_findings(project: Mapping[str, Any]) -> list[dict[str, Any]]:
 
 
 def build_report(snapshot: Mapping[str, Any]) -> dict[str, Any]:
-    projects, beads_by_rig = _validate_snapshot(snapshot)
+    projects, beads_by_rig, runtime = _validate_snapshot(snapshot)
     work = {category: [] for category in WORK_CATEGORIES}
-    findings: list[dict[str, Any]] = []
+    findings, runtime_orphaned = _classify_city_runtime(runtime)
+    work["orphaned"].extend(runtime_orphaned)
     project_summaries: list[dict[str, Any]] = []
     by_rig: dict[str, list[Mapping[str, Any]]] = {}
     for project in projects:

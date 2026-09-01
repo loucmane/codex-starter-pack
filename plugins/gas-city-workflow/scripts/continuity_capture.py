@@ -31,6 +31,7 @@ RESIDUE_DISPOSITIONS = (
     SCRIPT_DIR.parent / "config" / "continuity-residue-dispositions.json"
 )
 OPERATOR_PATH = "/home/loucmane/gascity/bin:/usr/local/bin:/usr/bin:/bin"
+PROC_ROOT = Path("/proc")
 FOLLOWUP_SCHEMA = "gas-city-workflow.followups.v1"
 RESIDUE_DISPOSITIONS_SCHEMA = "gas-city-workflow.residue-dispositions.v1"
 BRANCH_PREFIX = "refs/heads/"
@@ -313,6 +314,197 @@ def _systemd_properties(text: str) -> dict[str, str]:
         for line in text.splitlines()
         if "=" in line
         for key, value in [line.split("=", 1)]
+    }
+
+
+def _proc_stat(path: Path) -> dict[str, int | str]:
+    raw = path.read_text(encoding="utf-8").strip()
+    marker = raw.rfind(") ")
+    if marker <= 0:
+        raise ValueError("malformed proc stat")
+    pid_text, _, _ = raw[:marker].partition(" ")
+    fields = raw[marker + 2 :].split()
+    if len(fields) < 20:
+        raise ValueError("truncated proc stat")
+    pid = int(pid_text)
+    return {
+        "pid": pid,
+        "state": fields[0],
+        "ppid": int(fields[1]),
+        "sid": int(fields[3]),
+        "start_ticks": int(fields[19]),
+    }
+
+
+def _city_socket_label(argv: Sequence[str]) -> str | None:
+    for index, argument in enumerate(argv):
+        if argument == "-L" and index + 1 < len(argv):
+            return argv[index + 1]
+        if argument.startswith("-L") and len(argument) > 2:
+            return argument[2:]
+    return None
+
+
+def _unknown_city_tmux(uid: int) -> dict[str, Any]:
+    return {
+        "status": "unknown",
+        "authority": "same-uid-procfs",
+        "uid": uid,
+        "servers": [],
+    }
+
+
+def _capture_city_tmux(proc_root: Path, *, uid: int) -> dict[str, Any]:
+    """Capture stable same-UID tmux server identities without opening its socket."""
+
+    try:
+        process_dirs = sorted(
+            (path for path in proc_root.iterdir() if path.name.isdigit()),
+            key=lambda path: int(path.name),
+        )
+    except OSError:
+        return _unknown_city_tmux(uid)
+    servers: list[dict[str, Any]] = []
+    for process in process_dirs:
+        try:
+            if process.stat().st_uid != uid:
+                continue
+            before = _proc_stat(process / "stat")
+            if before["state"] == "Z":
+                continue
+            cmdline = (process / "cmdline").read_bytes()
+        except FileNotFoundError:
+            continue
+        except (OSError, UnicodeError, ValueError):
+            return _unknown_city_tmux(uid)
+        if not cmdline:
+            return _unknown_city_tmux(uid)
+        argv = [
+            value.decode("utf-8", errors="surrogateescape")
+            for value in cmdline.split(b"\0")
+            if value
+        ]
+        if not argv or Path(argv[0]).name != "tmux":
+            continue
+        socket_label = _city_socket_label(argv)
+        if socket_label != "city":
+            continue
+        try:
+            children_before = (
+                process / "task" / process.name / "children"
+            ).read_text(encoding="utf-8")
+            after = _proc_stat(process / "stat")
+            cmdline_after = (process / "cmdline").read_bytes()
+            children_after = (
+                process / "task" / process.name / "children"
+            ).read_text(encoding="utf-8")
+        except FileNotFoundError:
+            # A process that disappears during the stable identity read is not
+            # runtime residue.  Its absence is proven by the failed reread.
+            continue
+        except (OSError, UnicodeError, ValueError):
+            return _unknown_city_tmux(uid)
+        if (
+            before != after
+            or cmdline != cmdline_after
+            or children_before != children_after
+        ):
+            return _unknown_city_tmux(uid)
+        pid = int(before["pid"])
+        sid = int(before["sid"])
+        if pid != int(process.name):
+            return _unknown_city_tmux(uid)
+        if sid != pid:
+            # A short-lived client can carry the same -L selector; only the
+            # session-leading daemon is the persistent server surface.
+            continue
+        try:
+            children = sorted({int(value) for value in children_after.split()})
+        except ValueError:
+            return _unknown_city_tmux(uid)
+        if any(value <= 0 for value in children):
+            return _unknown_city_tmux(uid)
+        servers.append(
+            {
+                "pid": pid,
+                "sid": sid,
+                "ppid": int(before["ppid"]),
+                "uid": uid,
+                "start_ticks": int(before["start_ticks"]),
+                "cmdline_sha256": hashlib.sha256(cmdline).hexdigest(),
+                "argv0": "tmux",
+                "socket_label": socket_label,
+                "child_pids": children,
+            }
+        )
+    return {
+        "status": "complete",
+        "authority": "same-uid-procfs",
+        "uid": uid,
+        "servers": sorted(
+            servers, key=lambda item: (int(item["pid"]), int(item["start_ticks"]))
+        ),
+    }
+
+
+def _capture_session_ledger(runner: ReadOnlyRunner) -> dict[str, Any]:
+    result = runner.run([GC, "--city", CITY, "session", "list", "--json"])
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise ContinuityError(f"city session list returned invalid JSON: {exc}") from exc
+    if not isinstance(payload, Mapping) or payload.get("schema_version") != "1":
+        raise ContinuityError("city session list schema is invalid")
+    raw_sessions = payload.get("sessions")
+    if not isinstance(raw_sessions, list):
+        raise ContinuityError("city session list sessions are invalid")
+    sessions = []
+    ids: set[str] = set()
+    for raw in raw_sessions:
+        if not isinstance(raw, Mapping):
+            raise ContinuityError("city session list contains an invalid row")
+        session_id = raw.get("id")
+        if not isinstance(session_id, str) or not session_id or session_id in ids:
+            raise ContinuityError("city session list contains an invalid or duplicate id")
+        ids.add(session_id)
+        session_name = raw.get("session_name", "")
+        state = raw.get("state", "")
+        transport = raw.get("transport", "")
+        closed = raw.get("closed", False)
+        if (
+            not isinstance(session_name, str)
+            or not isinstance(state, str)
+            or not isinstance(transport, str)
+            or not isinstance(closed, bool)
+        ):
+            raise ContinuityError(f"city session {session_id} fields are invalid")
+        sessions.append(
+            {
+                "id": session_id,
+                "session_name": session_name,
+                "state": state,
+                "transport": transport,
+                "closed": closed,
+            }
+        )
+    return {
+        "status": "complete",
+        "authority": "gc-session-list-v1",
+        "sessions": sorted(sessions, key=lambda item: str(item["id"])),
+    }
+
+
+def _capture_city_runtime(
+    runner: ReadOnlyRunner,
+    *,
+    proc_root: Path,
+    uid: int,
+) -> dict[str, Any]:
+    return {
+        "city": {
+            "session_ledger": _capture_session_ledger(runner),
+            "tmux": _capture_city_tmux(proc_root, uid=uid),
+        }
     }
 
 
@@ -671,12 +863,14 @@ def capture_snapshot(
     signing_policies: Path = SIGNING_POLICIES,
     residue_dispositions: Path | None = None,
     runner: ReadOnlyRunner | None = None,
+    proc_root: Path = PROC_ROOT,
 ) -> dict[str, Any]:
     if obsidian_cycle_status not in {None, "idle"}:
         raise ContinuityError(
             "Obsidian cycle projection must be idle when explicitly provided"
         )
     runner = runner or ReadOnlyRunner()
+    runtime = _capture_city_runtime(runner, proc_root=proc_root, uid=os.getuid())
     registry_bytes = registry_path.read_bytes()
     projects = _load_registry(registry_path)
     registered_ids = {str(project.get("id")) for project in projects}
@@ -875,6 +1069,7 @@ def capture_snapshot(
     return {
         "schema": SNAPSHOT_SCHEMA,
         "registry_sha256": hashlib.sha256(registry_bytes).hexdigest(),
+        "runtime": runtime,
         "ledgers": [
             {"rig": rig, "beads": beads_by_rig[rig]}
             for rig in sorted(beads_by_rig)

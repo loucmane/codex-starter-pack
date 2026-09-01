@@ -66,7 +66,9 @@ validates evidence-only reports, and enforces seal/readback/dispatch/release ord
 
 The continuity workflow is read-only. It de-duplicates shared Bead stores by rig, derives active
 initiative scope from Beads, and checks Aegis, Git/worktrees, open PRs, lifecycle transactions,
-managed-signing receipts, structured follow-ups, and Obsidian coverage. A future project can be
+managed-signing receipts, structured follow-ups, Obsidian coverage, and city-global native-session
+versus same-UID `tmux -L city` runtime parity. Procfs visibility failures remain unknown and block;
+the capture never reads process environments or opens the tmux socket. A future project can be
 included with a validated local descriptor through repeatable `snapshot --project-root`; the
 auditor never scans arbitrary directories. See `references/continuity-contract.md`.
 
