@@ -2128,5 +2128,23 @@
     "plan_hash": "1cfa83d269bc03f95d9e4b62823189d92a545093e44de2c3b27001f77f0ad8cf",
     "tracker_hash": "5cbf4690ad61f44a1b8df3e4b72e7ac6b657013e98dd5ed50d0e61a316439ecc",
     "synced_at": "2026-09-01T22:37:15.130990+02:00"
+  },
+  {
+    "plan": "plans/2026-09-01-ga-ur1c.4.2-delegation-test-lint.md",
+    "plan_hash": "1cfa83d269bc03f95d9e4b62823189d92a545093e44de2c3b27001f77f0ad8cf",
+    "tracker_hash": "daa64789c5bb5d68667bc7b4b5c60df70301170bf2a32465361a3652b163893a",
+    "synced_at": "2026-09-01T22:44:45.198530+02:00"
+  },
+  {
+    "plan": "plans/2026-09-01-ga-ur1c.4.2-delegation-test-lint.md",
+    "plan_hash": "41cc2bc0be12339bb6f25b15d1884a8efbeda20c68b68b6c3821dfab23a9423b",
+    "tracker_hash": "3f17359befba16956fc1f079bbb3efadcfaa612f671aa8c47412638af4981b9c",
+    "synced_at": "2026-09-01T22:44:45.762343+02:00"
+  },
+  {
+    "plan": "plans/2026-09-01-ga-ur1c.4.2-delegation-test-lint.md",
+    "plan_hash": "41cc2bc0be12339bb6f25b15d1884a8efbeda20c68b68b6c3821dfab23a9423b",
+    "tracker_hash": "3f17359befba16956fc1f079bbb3efadcfaa612f671aa8c47412638af4981b9c",
+    "synced_at": "2026-09-01T22:44:46.238900+02:00"
   }
 ]
