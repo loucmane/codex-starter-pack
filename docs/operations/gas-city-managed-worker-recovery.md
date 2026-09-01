@@ -175,8 +175,10 @@ boot transition and prove the current boot:
 - automatic Aegis/Obsidian reconciliation current and live-index readable;
 - all project rigs suspended with zero unexplained sessions or process residue.
 
-The known Codex Desktop WSL transport workaround remains an accepted warning only on a classified
-affected build. Removing it is a separate attended retest with an external rollback path.
+The known Codex Desktop WSL transport workaround remains mandatory on classified affected builds.
+Removing it on a newer build is a separate attended retest with an external rollback path, and the
+successful result must be recorded through `record-codex-desktop-transport-retest`; otherwise the
+read-only doctor continues to report the build as an unattested candidate.
 
 ## Closeout
 

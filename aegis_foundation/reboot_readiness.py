@@ -10,9 +10,11 @@ from __future__ import annotations
 
 import argparse
 import configparser
+import hashlib
 import json
 import os
 import pwd
+import re
 import subprocess
 import sys
 import tomllib
@@ -39,8 +41,27 @@ OPERATOR_SIGNING_KEYGRIP = "640406DD1B34A5EA0BB7CB46F21071BB3DB370FA"
 OPERATOR_GPG_READINESS_SCHEMA = "codex.gpg-readiness.v2"
 MANAGED_PATH = "/home/loucmane/gascity/bin:/usr/local/bin:/usr/bin:/bin"
 KNOWN_AFFECTED_DESKTOP_VERSIONS = frozenset({"26.820.60940.0", "26.820.7780.0"})
+DESKTOP_RETEST_SCHEMA = "gas-city.codex-desktop-transport-retest.v1"
+DEFAULT_DESKTOP_RETEST_ATTESTATION = (
+    Path.home() / ".config/gas-city/codex-desktop-transport-retest.json"
+)
+DESKTOP_RETEST_KEYS = frozenset(
+    {
+        "schema",
+        "desktop_version",
+        "windows_config",
+        "windows_config_sha256",
+        "rollback_backup",
+        "rollback_backup_sha256",
+        "new_wsl_task_passed",
+        "resumed_wsl_task_passed",
+        "outcome",
+        "completed_at",
+    }
+)
+SHA256_RE = re.compile(r"[0-9a-f]{64}")
 STATUS_ORDER = {"pass": 0, "unknown": 1, "warn": 2, "fail": 3}
-DOCTOR_VERSION = "2026.08.28.4"
+DOCTOR_VERSION = "2026.09.02.1"
 
 
 @dataclass(frozen=True)
@@ -119,6 +140,7 @@ class ProbeConfig:
     city: Path = DEFAULT_CITY
     gc: Path = DEFAULT_GC
     windows_config: Path | None = None
+    desktop_retest_attestation: Path | None = None
     wsl_config: Path = Path("/etc/wsl.conf")
     boot_id_path: Path = Path("/proc/sys/kernel/random/boot_id")
     user_unit_dir: Path | None = None
@@ -186,6 +208,231 @@ def _toml(path: Path) -> Mapping[str, object]:
     if not isinstance(payload, dict):
         raise ValueError("TOML root is not a table")
     return payload
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _parse_aware_timestamp(value: object) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo is not None else None
+
+
+def verify_desktop_retest_attestation(
+    path: Path,
+    *,
+    desktop_version: str | None,
+    windows_config: Path | None,
+) -> tuple[bool, dict[str, object]]:
+    """Verify exact local evidence without granting it configuration authority."""
+
+    details: dict[str, object] = {"path": str(path), "status": "absent"}
+    if not path.exists():
+        return False, details
+    if path.is_symlink() or not path.is_file():
+        details.update(status="invalid-file", reason="attestation must be a regular file")
+        return False, details
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        details.update(status="malformed", reason=str(exc))
+        return False, details
+    if not isinstance(payload, dict) or set(payload) != DESKTOP_RETEST_KEYS:
+        actual_keys = sorted(payload) if isinstance(payload, dict) else []
+        details.update(
+            status="invalid-schema",
+            reason="attestation keys do not match the strict schema",
+            actual_keys=actual_keys,
+        )
+        return False, details
+    if payload.get("schema") != DESKTOP_RETEST_SCHEMA:
+        details.update(status="invalid-schema", reason="unsupported attestation schema")
+        return False, details
+    completed_at = _parse_aware_timestamp(payload.get("completed_at"))
+    if completed_at is None:
+        details.update(status="invalid-schema", reason="completed_at must include a timezone")
+        return False, details
+    if completed_at > datetime.now(timezone.utc).astimezone(completed_at.tzinfo):
+        details.update(status="invalid-time", reason="completed_at is in the future")
+        return False, details
+    if (
+        payload.get("outcome") != "pass"
+        or payload.get("new_wsl_task_passed") is not True
+        or payload.get("resumed_wsl_task_passed") is not True
+    ):
+        details.update(status="failed", reason="both transport checks and outcome must pass")
+        return False, details
+    if desktop_version is None or payload.get("desktop_version") != desktop_version:
+        details.update(status="mismatch", reason="desktop version does not match")
+        return False, details
+    if windows_config is None or payload.get("windows_config") != str(windows_config):
+        details.update(status="mismatch", reason="Windows config path does not match")
+        return False, details
+    config_digest = payload.get("windows_config_sha256")
+    rollback_digest = payload.get("rollback_backup_sha256")
+    if (
+        not isinstance(config_digest, str)
+        or SHA256_RE.fullmatch(config_digest) is None
+        or not isinstance(rollback_digest, str)
+        or SHA256_RE.fullmatch(rollback_digest) is None
+    ):
+        details.update(status="invalid-schema", reason="attested digests must be lowercase SHA-256")
+        return False, details
+    try:
+        observed_config_digest = _sha256_file(windows_config)
+    except OSError as exc:
+        details.update(status="unreadable", reason=f"Windows config: {exc}")
+        return False, details
+    if observed_config_digest != config_digest:
+        details.update(
+            status="mismatch",
+            reason="Windows config digest does not match",
+            observed_windows_config_sha256=observed_config_digest,
+        )
+        return False, details
+    rollback_raw = payload.get("rollback_backup")
+    if not isinstance(rollback_raw, str) or not rollback_raw:
+        details.update(status="invalid-schema", reason="rollback backup path is missing")
+        return False, details
+    rollback = Path(rollback_raw)
+    if not rollback.is_absolute() or rollback.is_symlink() or not rollback.is_file():
+        details.update(
+            status="invalid-backup", reason="rollback backup must be an absolute regular file"
+        )
+        return False, details
+    try:
+        observed_rollback_digest = _sha256_file(rollback)
+    except OSError as exc:
+        details.update(status="unreadable", reason=f"rollback backup: {exc}")
+        return False, details
+    if observed_rollback_digest != rollback_digest:
+        details.update(
+            status="mismatch",
+            reason="rollback backup digest does not match",
+            observed_rollback_backup_sha256=observed_rollback_digest,
+        )
+        return False, details
+    details.update(
+        status="verified",
+        schema=DESKTOP_RETEST_SCHEMA,
+        desktop_version=desktop_version,
+        windows_config_sha256=config_digest,
+        rollback_backup=rollback_raw,
+        rollback_backup_sha256=rollback_digest,
+        completed_at=payload["completed_at"],
+    )
+    return True, details
+
+
+def _write_private_bytes_exclusive(path: Path, content: bytes) -> None:
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, "wb") as handle:
+        handle.write(content)
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def _write_private_json_atomic(
+    path: Path,
+    payload: Mapping[str, object],
+    *,
+    expect_existing_sha256: str | None = None,
+) -> bool:
+    rendered = json.dumps(payload, indent=2, sort_keys=True) + "\n"
+    if path.exists():
+        if path.is_symlink() or not path.is_file():
+            raise ValueError(f"refusing non-regular attestation target: {path}")
+        if path.read_text(encoding="utf-8") == rendered:
+            return False
+        observed = _sha256_file(path)
+        if expect_existing_sha256 is None:
+            raise ValueError(f"attestation already exists with different bytes: {path}")
+        if SHA256_RE.fullmatch(expect_existing_sha256) is None:
+            raise ValueError("expected existing digest must be lowercase SHA-256")
+        if observed != expect_existing_sha256:
+            raise ValueError(
+                "existing attestation digest does not match: "
+                f"expected={expect_existing_sha256} observed={observed}"
+            )
+        backup = path.with_name(f"{path.name}.bak-{observed}")
+        prior_bytes = path.read_bytes()
+        if backup.exists():
+            if backup.is_symlink() or not backup.is_file() or backup.read_bytes() != prior_bytes:
+                raise ValueError(f"existing attestation backup does not match: {backup}")
+        else:
+            _write_private_bytes_exclusive(backup, prior_bytes)
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    temporary = path.with_name(f".{path.name}.tmp-{os.getpid()}")
+    try:
+        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(rendered)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    finally:
+        try:
+            temporary.unlink()
+        except FileNotFoundError:
+            pass
+    return True
+
+
+def record_desktop_retest_attestation(
+    *,
+    output: Path,
+    desktop_version: str,
+    windows_config: Path,
+    rollback_backup: Path,
+    completed_at: str,
+    expect_existing_sha256: str | None = None,
+) -> bool:
+    if _version_tuple(desktop_version) is None:
+        raise ValueError("desktop version must contain only numeric dot-separated components")
+    parsed_completion = _parse_aware_timestamp(completed_at)
+    if parsed_completion is None:
+        raise ValueError("completed-at must be an ISO-8601 timestamp with a timezone")
+    if parsed_completion > datetime.now(timezone.utc).astimezone(parsed_completion.tzinfo):
+        raise ValueError("completed-at cannot be in the future")
+    if windows_config.is_symlink() or not windows_config.is_file():
+        raise ValueError("Windows config must be a regular file")
+    if rollback_backup.is_symlink() or not rollback_backup.is_file():
+        raise ValueError("rollback backup must be a regular file")
+    payload: dict[str, object] = {
+        "schema": DESKTOP_RETEST_SCHEMA,
+        "desktop_version": desktop_version,
+        "windows_config": str(windows_config),
+        "windows_config_sha256": _sha256_file(windows_config),
+        "rollback_backup": str(rollback_backup),
+        "rollback_backup_sha256": _sha256_file(rollback_backup),
+        "new_wsl_task_passed": True,
+        "resumed_wsl_task_passed": True,
+        "outcome": "pass",
+        "completed_at": completed_at,
+    }
+    changed = _write_private_json_atomic(
+        output,
+        payload,
+        expect_existing_sha256=expect_existing_sha256,
+    )
+    verified, details = verify_desktop_retest_attestation(
+        output,
+        desktop_version=desktop_version,
+        windows_config=windows_config,
+    )
+    if not verified:
+        raise ValueError(f"written attestation did not verify: {details}")
+    return changed
 
 
 def check_wsl_systemd(config: ProbeConfig) -> list[Check]:
@@ -470,6 +717,40 @@ def check_desktop(config: ProbeConfig, runner: Runner, observer: str) -> list[Ch
     )
 
     version, version_check = _desktop_version(runner, observer)
+    attestation_path = config.desktop_retest_attestation or DEFAULT_DESKTOP_RETEST_ATTESTATION
+    attestation_verified, attestation_details = verify_desktop_retest_attestation(
+        attestation_path,
+        desktop_version=version,
+        windows_config=path,
+    )
+    newest_affected = max(_version_tuple(item) or () for item in KNOWN_AFFECTED_DESKTOP_VERSIONS)
+    parsed_version = _version_tuple(version) if version is not None else None
+    verified_newer_build = (
+        attestation_verified
+        and version not in KNOWN_AFFECTED_DESKTOP_VERSIONS
+        and parsed_version is not None
+        and parsed_version > newest_affected
+    )
+    if verified_newer_build:
+        version_check = Check(
+            "desktop.version",
+            "pass",
+            "Installed Codex Desktop version passed the controlled WSL transport retest",
+            {
+                "version": version,
+                "known_affected": False,
+                "candidate_retest": False,
+                "retest_attestation": attestation_details,
+            },
+        )
+    elif isinstance(version_check.details, dict):
+        version_check = Check(
+            version_check.key,
+            version_check.status,
+            version_check.summary,
+            {**version_check.details, "retest_attestation": attestation_details},
+            version_check.remediation,
+        )
     servers = payload.get("mcp_servers") if isinstance(payload, dict) else None
     codex_app = servers.get("codex_app") if isinstance(servers, dict) else None
     workaround = (
@@ -484,6 +765,12 @@ def check_desktop(config: ProbeConfig, runner: Runner, observer: str) -> list[Ch
             if workaround
             else "Affected-build codex_app workaround is missing"
         )
+    elif verified_newer_build and workaround:
+        workaround_status = "pass"
+        workaround_summary = "Verified newer build retains the conservative codex_app workaround"
+    elif verified_newer_build:
+        workaround_status = "pass"
+        workaround_summary = "codex_app workaround is absent after a verified newer-build retest"
     elif workaround:
         workaround_status = "pass"
         workaround_summary = "codex_app workaround remains safely pinned pending retest"
@@ -498,6 +785,8 @@ def check_desktop(config: ProbeConfig, runner: Runner, observer: str) -> list[Ch
             "command": codex_app.get("command") if isinstance(codex_app, dict) else None,
             "enabled": codex_app.get("enabled") if isinstance(codex_app, dict) else None,
             "desktop_version": version,
+            "verified_newer_build": verified_newer_build,
+            "retest_attestation": attestation_details,
         },
         (
             None
@@ -1051,6 +1340,7 @@ def parser() -> argparse.ArgumentParser:
     cli.add_argument("--city", type=Path, default=DEFAULT_CITY)
     cli.add_argument("--gc", type=Path, default=DEFAULT_GC)
     cli.add_argument("--windows-config", type=Path)
+    cli.add_argument("--desktop-retest-attestation", type=Path)
     cli.add_argument("--supervisor-unit", default=DEFAULT_SUPERVISOR_UNIT)
     cli.add_argument("--obsidian-command", type=Path, default=DEFAULT_OBSIDIAN)
     cli.add_argument("--obsidian-vault", default=DEFAULT_OBSIDIAN_VAULT)
@@ -1075,6 +1365,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             city=args.city,
             gc=args.gc,
             windows_config=args.windows_config,
+            desktop_retest_attestation=args.desktop_retest_attestation,
             supervisor_unit=args.supervisor_unit,
             obsidian_command=args.obsidian_command,
             obsidian_vault=args.obsidian_vault,
@@ -1091,6 +1382,49 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         print(render_human(report))
     return exit_code(report)
+
+
+def retest_parser() -> argparse.ArgumentParser:
+    cli = argparse.ArgumentParser(
+        description="Record exact operator-attested Codex Desktop WSL transport retest evidence."
+    )
+    cli.add_argument("--output", type=Path, default=DEFAULT_DESKTOP_RETEST_ATTESTATION)
+    cli.add_argument("--desktop-version", required=True)
+    cli.add_argument("--windows-config", type=Path, required=True)
+    cli.add_argument("--rollback-backup", type=Path, required=True)
+    cli.add_argument("--completed-at", required=True)
+    cli.add_argument("--expect-existing-sha256")
+    cli.add_argument("--new-wsl-task-passed", action="store_true", required=True)
+    cli.add_argument("--resumed-wsl-task-passed", action="store_true", required=True)
+    return cli
+
+
+def retest_main(argv: Sequence[str] | None = None) -> int:
+    args = retest_parser().parse_args(argv)
+    try:
+        changed = record_desktop_retest_attestation(
+            output=args.output,
+            desktop_version=args.desktop_version,
+            windows_config=args.windows_config,
+            rollback_backup=args.rollback_backup,
+            completed_at=args.completed_at,
+            expect_existing_sha256=args.expect_existing_sha256,
+        )
+    except (OSError, UnicodeError, ValueError) as exc:
+        print(f"codex-desktop-transport-retest: REFUSED: {exc}", file=sys.stderr)
+        return 2
+    print(
+        json.dumps(
+            {
+                "ok": True,
+                "changed": changed,
+                "path": str(args.output),
+                "schema": DESKTOP_RETEST_SCHEMA,
+            },
+            sort_keys=True,
+        )
+    )
+    return 0
 
 
 if __name__ == "__main__":
