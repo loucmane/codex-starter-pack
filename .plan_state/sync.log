@@ -1942,5 +1942,29 @@
     "plan_hash": "1bada1a42dab71f5490dac24b0e6e939b6cb987eab428c3230d97268279cc5ff",
     "tracker_hash": "993ff13057c518052b1bb117f7cc0c5063ed893843b50ee91c8c57c79479b7f7",
     "synced_at": "2026-09-01T13:04:54.453642+02:00"
+  },
+  {
+    "plan": "plans/2026-09-01-ga-ur1c.6.3-source-closeout-continuation.md",
+    "plan_hash": "1bada1a42dab71f5490dac24b0e6e939b6cb987eab428c3230d97268279cc5ff",
+    "tracker_hash": "993ff13057c518052b1bb117f7cc0c5063ed893843b50ee91c8c57c79479b7f7",
+    "synced_at": "2026-09-01T13:11:44.628130+02:00"
+  },
+  {
+    "plan": "plans/2026-09-01-ga-ur1c.6.3-source-closeout-continuation.md",
+    "plan_hash": "1bada1a42dab71f5490dac24b0e6e939b6cb987eab428c3230d97268279cc5ff",
+    "tracker_hash": "993ff13057c518052b1bb117f7cc0c5063ed893843b50ee91c8c57c79479b7f7",
+    "synced_at": "2026-09-01T13:11:44.872039+02:00"
+  },
+  {
+    "plan": "plans/2026-09-01-ga-ur1c.6.3-source-closeout-continuation.md",
+    "plan_hash": "1bada1a42dab71f5490dac24b0e6e939b6cb987eab428c3230d97268279cc5ff",
+    "tracker_hash": "993ff13057c518052b1bb117f7cc0c5063ed893843b50ee91c8c57c79479b7f7",
+    "synced_at": "2026-09-01T13:16:02.069099+02:00"
+  },
+  {
+    "plan": "plans/2026-09-01-ga-ur1c.6.3-source-closeout-continuation.md",
+    "plan_hash": "1bada1a42dab71f5490dac24b0e6e939b6cb987eab428c3230d97268279cc5ff",
+    "tracker_hash": "993ff13057c518052b1bb117f7cc0c5063ed893843b50ee91c8c57c79479b7f7",
+    "synced_at": "2026-09-01T13:16:16.748896+02:00"
   }
 ]

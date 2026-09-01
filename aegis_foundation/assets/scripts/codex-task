@@ -2753,6 +2753,28 @@ def _retire_recovered_source_current_work(transaction: Mapping[str, object]) -> 
         raise TaskError(f"Source current-work retirement refused: {exc}") from exc
 
 
+def _recovered_source_current_work_retirement_binding(
+    transaction: Mapping[str, object],
+) -> Dict[str, object]:
+    if LIGHTWEIGHT_WORKFLOW_TARGET:
+        return copy.deepcopy(dict(transaction))
+    current_path = REPO_ROOT / ".aegis/state/current-work.json"
+    if not current_path.exists() and not current_path.is_symlink():
+        return copy.deepcopy(dict(transaction))
+    module = _load_source_workflow_state_module()
+    if module is None:
+        raise TaskError("Source current-work retirement helper is unavailable")
+    try:
+        binding = module.recovered_source_current_work_retirement_binding(
+            REPO_ROOT, transaction
+        )
+    except Exception as exc:  # noqa: BLE001 - normalize fail-closed helper errors.
+        raise TaskError(f"Source current-work retirement binding refused: {exc}") from exc
+    if not isinstance(binding, dict):
+        raise TaskError("Source current-work retirement binding is invalid")
+    return binding
+
+
 def _resolve_current_repo_document(relative_path: str) -> Optional[Path]:
     link = REPO_ROOT / relative_path
     if not link.exists():
@@ -2806,6 +2828,25 @@ def _atomic_write_json(path: Path, payload: Mapping[str, object]) -> None:
         with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
             json.dump(payload, handle, indent=2, sort_keys=True)
             handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        directory_descriptor = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_descriptor)
+        finally:
+            os.close(directory_descriptor)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
+def _atomic_write_text(path: Path, text: str) -> None:
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(text)
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary, path)
@@ -3094,6 +3135,40 @@ def _completed_source_retirement_binding(
     return retirement
 
 
+def _rewrite_recovered_source_session_reference(
+    transaction: Mapping[str, object],
+    retirement: Mapping[str, object],
+) -> None:
+    transaction_paths = transaction.get("paths")
+    retirement_paths = retirement.get("paths")
+    if not isinstance(transaction_paths, Mapping) or not isinstance(
+        retirement_paths, Mapping
+    ):
+        raise TaskError("Source closeout retirement paths are invalid")
+    current_session = transaction_paths.get("session")
+    prior_session = retirement_paths.get("session")
+    if prior_session == current_session:
+        return
+    prior_path = _contained_source_closeout_path(prior_session, "retirement session")
+    active_reference = str(transaction_paths.get("active") or "")
+    archive_reference = str(transaction_paths.get("archive") or "")
+    if not active_reference or not archive_reference:
+        raise TaskError("Source closeout retirement references are invalid")
+    if not prior_path.is_file() or prior_path.is_symlink():
+        raise TaskError("Source closeout retirement session must be a regular file")
+    before = prior_path.read_text(encoding="utf-8")
+    if active_reference in before:
+        _atomic_write_text(
+            prior_path,
+            before.replace(active_reference, archive_reference),
+        )
+        return
+    if archive_reference not in before:
+        raise TaskError(
+            "Source closeout retirement session has neither active nor archive reference"
+        )
+
+
 def _execute_source_closeout(transaction: Dict[str, object]) -> Path:
     paths = transaction["paths"]
     assert isinstance(paths, dict)
@@ -3125,8 +3200,10 @@ def _execute_source_closeout(transaction: Dict[str, object]) -> Path:
     ):
         if active.exists() and not _remove_empty_directory_tree(active):
             raise TaskError("Source closeout ACTIVE shell is not empty")
+        retirement = _recovered_source_current_work_retirement_binding(transaction)
         _verify_source_closeout_terminal(transaction)
-        retirement = _completed_source_retirement_binding(transaction)
+        _rewrite_recovered_source_session_reference(transaction, retirement)
+        retirement = _completed_source_retirement_binding(retirement)
         _retire_recovered_source_current_work(retirement)
         _source_closeout_checkpoint("current_work_retired")
         _source_closeout_checkpoint("terminal_verified")
@@ -3174,8 +3251,11 @@ def _execute_source_closeout(transaction: Dict[str, object]) -> Path:
         _source_closeout_checkpoint("plan_synced")
         _set_source_closeout_phase(transaction, "plan_synced")
 
+    retirement = _recovered_source_current_work_retirement_binding(transaction)
     _verify_source_closeout_terminal(transaction)
-    _retire_recovered_source_current_work(transaction)
+    _rewrite_recovered_source_session_reference(transaction, retirement)
+    retirement = _completed_source_retirement_binding(retirement)
+    _retire_recovered_source_current_work(retirement)
     _source_closeout_checkpoint("current_work_retired")
     _source_closeout_checkpoint("terminal_verified")
     _durable_unlink(_source_closeout_journal_path())
