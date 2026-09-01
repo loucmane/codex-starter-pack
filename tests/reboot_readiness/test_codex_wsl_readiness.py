@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Mapping, Sequence
 
 from aegis_foundation.reboot_readiness import (
     CommandResult,
+    DESKTOP_RETEST_SCHEMA,
     ProbeConfig,
     build_report,
     check_desktop,
@@ -90,6 +92,7 @@ def make_config(tmp_path: Path, *, stale_units: int = 0) -> ProbeConfig:
         city=city,
         gc=Path("/managed/gc"),
         windows_config=windows_config,
+        desktop_retest_attestation=tmp_path / "state/codex-desktop-transport-retest.json",
         wsl_config=wsl_config,
         boot_id_path=boot_id,
         user_unit_dir=unit_dir,
@@ -97,6 +100,42 @@ def make_config(tmp_path: Path, *, stale_units: int = 0) -> ProbeConfig:
         supervisor_unit=canonical_name,
         user="tester",
     )
+
+
+def sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def write_desktop_retest_attestation(
+    config: ProbeConfig,
+    *,
+    desktop_version: str,
+    extra: dict[str, object] | None = None,
+) -> Path:
+    assert config.desktop_retest_attestation is not None
+    assert config.windows_config is not None
+    rollback = config.windows_config.with_name("config.toml.rollback")
+    rollback.write_text("rollback\n", encoding="utf-8")
+    payload: dict[str, object] = {
+        "schema": DESKTOP_RETEST_SCHEMA,
+        "desktop_version": desktop_version,
+        "windows_config": str(config.windows_config),
+        "windows_config_sha256": sha256_file(config.windows_config),
+        "rollback_backup": str(rollback),
+        "rollback_backup_sha256": sha256_file(rollback),
+        "new_wsl_task_passed": True,
+        "resumed_wsl_task_passed": True,
+        "outcome": "pass",
+        "completed_at": "2026-09-01T20:00:00+02:00",
+    }
+    if extra:
+        payload.update(extra)
+    config.desktop_retest_attestation.parent.mkdir(parents=True)
+    config.desktop_retest_attestation.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return config.desktop_retest_attestation
 
 
 def powershell_version_command() -> tuple[str, ...]:
@@ -319,6 +358,76 @@ def test_newer_desktop_build_requests_controlled_retest(tmp_path: Path) -> None:
 
     assert version.status == "warn"
     assert version.details["candidate_retest"] is True
+    assert version.details["retest_attestation"]["status"] == "absent"
+
+
+def test_newer_desktop_build_accepts_exact_transport_retest(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    assert config.windows_config is not None
+    write_windows_config(config.windows_config, workaround=False)
+    write_desktop_retest_attestation(config, desktop_version="26.900.1.0")
+    runner = FakeRunner({powershell_version_command(): CommandResult(0, "26.900.1.0\n")})
+
+    checks = check_desktop(config, runner, "host-wsl")
+    keyed = {check.key: check for check in checks}
+
+    assert keyed["desktop.version"].status == "pass"
+    assert keyed["desktop.version"].details["candidate_retest"] is False
+    assert keyed["desktop.version"].details["retest_attestation"]["status"] == "verified"
+    assert keyed["desktop.codex_app_workaround"].status == "pass"
+    assert keyed["desktop.codex_app_workaround"].details["verified_newer_build"] is True
+
+
+def test_affected_build_ignores_attestation_and_requires_workaround(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    assert config.windows_config is not None
+    write_windows_config(config.windows_config, workaround=False)
+    write_desktop_retest_attestation(config, desktop_version="26.820.7780.0")
+    runner = FakeRunner({powershell_version_command(): CommandResult(0, "26.820.7780.0\n")})
+
+    checks = check_desktop(config, runner, "host-wsl")
+    keyed = {check.key: check for check in checks}
+
+    assert keyed["desktop.version"].status == "warn"
+    assert keyed["desktop.codex_app_workaround"].status == "fail"
+    assert keyed["desktop.codex_app_workaround"].details["verified_newer_build"] is False
+
+
+def test_mismatched_transport_retest_remains_warning(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    assert config.windows_config is not None
+    write_windows_config(config.windows_config, workaround=False)
+    write_desktop_retest_attestation(
+        config,
+        desktop_version="26.900.1.0",
+        extra={"windows_config_sha256": "0" * 64},
+    )
+    runner = FakeRunner({powershell_version_command(): CommandResult(0, "26.900.1.0\n")})
+
+    checks = check_desktop(config, runner, "host-wsl")
+    keyed = {check.key: check for check in checks}
+
+    assert keyed["desktop.version"].status == "warn"
+    assert keyed["desktop.version"].details["retest_attestation"]["status"] == "mismatch"
+    assert keyed["desktop.codex_app_workaround"].status == "warn"
+
+
+def test_extra_attestation_field_is_rejected(tmp_path: Path) -> None:
+    config = make_config(tmp_path)
+    assert config.windows_config is not None
+    write_windows_config(config.windows_config, workaround=False)
+    write_desktop_retest_attestation(
+        config,
+        desktop_version="26.900.1.0",
+        extra={"comment": "not part of the authority schema"},
+    )
+    runner = FakeRunner({powershell_version_command(): CommandResult(0, "26.900.1.0\n")})
+
+    checks = check_desktop(config, runner, "host-wsl")
+    version = next(check for check in checks if check.key == "desktop.version")
+
+    assert version.status == "warn"
+    assert version.details["retest_attestation"]["status"] == "invalid-schema"
 
 
 def test_wsl_systemd_false_is_a_real_failure(tmp_path: Path) -> None:

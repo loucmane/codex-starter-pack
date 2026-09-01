@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import subprocess
 from pathlib import Path
 
@@ -10,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 BOOTSTRAP = ROOT / "scripts/windows/gas-city-wsl-bootstrap.ps1"
 WINDOWS_INSTALLER = ROOT / "scripts/windows/install-gas-city-wsl-bootstrap.ps1"
 DOCTOR_INSTALLER = ROOT / "scripts/install-codex-wsl-readiness"
+RETEST_RECORDER = ROOT / "scripts/record-codex-desktop-transport-retest"
 
 
 def test_windows_bootstrap_is_read_only_except_evidence() -> None:
@@ -101,3 +103,56 @@ def test_stable_doctor_installer_applies_and_checks_in_temp(tmp_path: Path) -> N
         text=True,
     )
     assert checked.returncode == 0, checked.stderr
+
+
+def test_transport_retest_recorder_is_private_idempotent_and_fail_closed(tmp_path: Path) -> None:
+    config = tmp_path / "windows/config.toml"
+    backup = tmp_path / "windows/config.toml.rollback"
+    output = tmp_path / "state/retest.json"
+    config.parent.mkdir(parents=True)
+    config.write_text("[desktop]\nrunCodexInWindowsSubsystemForLinux = true\n", encoding="utf-8")
+    backup.write_text("rollback\n", encoding="utf-8")
+    command = [
+        str(RETEST_RECORDER),
+        "--output",
+        str(output),
+        "--desktop-version",
+        "26.900.1.0",
+        "--windows-config",
+        str(config),
+        "--rollback-backup",
+        str(backup),
+        "--completed-at",
+        "2026-09-01T20:00:00+02:00",
+        "--new-wsl-task-passed",
+        "--resumed-wsl-task-passed",
+    ]
+
+    first = subprocess.run(command, cwd=ROOT, check=False, capture_output=True, text=True)
+    assert first.returncode == 0, first.stderr
+    assert '"changed": true' in first.stdout
+    assert output.stat().st_mode & 0o777 == 0o600
+    first_bytes = output.read_bytes()
+    first_digest = hashlib.sha256(first_bytes).hexdigest()
+
+    second = subprocess.run(command, cwd=ROOT, check=False, capture_output=True, text=True)
+    assert second.returncode == 0, second.stderr
+    assert '"changed": false' in second.stdout
+
+    config.write_text("[desktop]\nrunCodexInWindowsSubsystemForLinux = false\n", encoding="utf-8")
+    refused = subprocess.run(command, cwd=ROOT, check=False, capture_output=True, text=True)
+    assert refused.returncode == 2
+    assert "already exists with different bytes" in refused.stderr
+
+    replaced = subprocess.run(
+        [*command, "--expect-existing-sha256", first_digest],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert replaced.returncode == 0, replaced.stderr
+    assert '"changed": true' in replaced.stdout
+    backup_path = output.with_name(f"{output.name}.bak-{first_digest}")
+    assert backup_path.read_bytes() == first_bytes
+    assert backup_path.stat().st_mode & 0o777 == 0o600

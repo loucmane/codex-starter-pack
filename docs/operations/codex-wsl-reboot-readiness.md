@@ -195,11 +195,38 @@ workaround. The attended retest is:
 5. relaunch and test both a new WSL task and resuming an older disposable WSL task;
 6. restore externally and fully restart on any failure.
 
+After both checks pass, record the result with the merge-bound helper instead of relying on chat
+memory:
+
+```bash
+scripts/record-codex-desktop-transport-retest \
+  --desktop-version 26.825.5331.0 \
+  --windows-config /mnt/c/Users/<user>/.codex/config.toml \
+  --rollback-backup /mnt/c/Users/<user>/.codex/config.toml.bak-pre-transport-test \
+  --completed-at 2026-09-01T20:00:00+02:00 \
+  --new-wsl-task-passed \
+  --resumed-wsl-task-passed
+```
+
+The helper writes a private, deterministic attestation to
+`~/.config/gas-city/codex-desktop-transport-retest.json`. The doctor accepts it only when its
+strict schema, Desktop version, live Windows-config path and SHA-256, absolute regular-file
+rollback backup and SHA-256, both transport checks, passing outcome, and timezone-aware
+completion time all match. The attestation never changes configuration and is ignored for every
+known affected build. Malformed, stale, mismatched, failed, or incomplete evidence leaves the
+newer build in `candidate_retest` warning state.
+
+For a later Desktop version, preserve the previous record append-forward and replace it only by
+passing the exact current attestation digest as `--expect-existing-sha256`. The helper refuses a
+different or omitted predecessor digest and stores the previous bytes as a private digest-named
+backup before the atomic replacement.
+
 ## Current known degradation
 
 The stale supervisor-unit inventory is clear: only the canonical per-home unit remains enabled.
-The accepted live warning is the affected Codex Desktop build, which keeps the `codex_app`
-workaround pinned until a newer-build retest passes.
+An affected or not-yet-attested Codex Desktop build keeps the `codex_app` workaround pinned. An
+exact newer-build attestation makes both the version and workaround checks pass without turning
+the doctor into a configuration mutator.
 
 ## Planned boot acceptance
 

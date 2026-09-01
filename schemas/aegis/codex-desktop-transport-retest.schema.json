@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/loucmane/gas-city-operations/schemas/aegis/codex-desktop-transport-retest.schema.json",
+  "title": "Codex Desktop WSL transport retest attestation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "desktop_version",
+    "windows_config",
+    "windows_config_sha256",
+    "rollback_backup",
+    "rollback_backup_sha256",
+    "new_wsl_task_passed",
+    "resumed_wsl_task_passed",
+    "outcome",
+    "completed_at"
+  ],
+  "properties": {
+    "schema": {
+      "const": "gas-city.codex-desktop-transport-retest.v1"
+    },
+    "desktop_version": {
+      "type": "string",
+      "pattern": "^[0-9]+(?:\\.[0-9]+)+$"
+    },
+    "windows_config": {
+      "type": "string",
+      "minLength": 1
+    },
+    "windows_config_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "rollback_backup": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rollback_backup_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "new_wsl_task_passed": {
+      "const": true
+    },
+    "resumed_wsl_task_passed": {
+      "const": true
+    },
+    "outcome": {
+      "const": "pass"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

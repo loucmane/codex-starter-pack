@@ -2146,5 +2146,29 @@
     "plan_hash": "41cc2bc0be12339bb6f25b15d1884a8efbeda20c68b68b6c3821dfab23a9423b",
     "tracker_hash": "3f17359befba16956fc1f079bbb3efadcfaa612f671aa8c47412638af4981b9c",
     "synced_at": "2026-09-01T22:44:46.238900+02:00"
+  },
+  {
+    "plan": "plans/2026-09-02-ga-ur1c.6.6-desktop-transport-retest-attestation.md",
+    "plan_hash": "ee41b451aba007bf25dfab9543f7a4d86ccad7d04a9eca1900b8f7b1402dedf9",
+    "tracker_hash": "fb8fa60ca00f9d47ae03e46c09de3ad23c5e0ca81066b2cb8c3944592d9e01a0",
+    "synced_at": "2026-09-02T00:00:10.205381+02:00"
+  },
+  {
+    "plan": "plans/2026-09-02-ga-ur1c.6.6-desktop-transport-retest-attestation.md",
+    "plan_hash": "ee41b451aba007bf25dfab9543f7a4d86ccad7d04a9eca1900b8f7b1402dedf9",
+    "tracker_hash": "fb8fa60ca00f9d47ae03e46c09de3ad23c5e0ca81066b2cb8c3944592d9e01a0",
+    "synced_at": "2026-09-02T00:01:14.153629+02:00"
+  },
+  {
+    "plan": "plans/2026-09-02-ga-ur1c.6.6-desktop-transport-retest-attestation.md",
+    "plan_hash": "e87b53b1cfb8b7772a50f7a8417f90acc3678ab58de2423a0a963e96aec8cee8",
+    "tracker_hash": "aa7fa181586bd57126bfcff1e235305103f4f656e3dbc095c0130546fd2eab72",
+    "synced_at": "2026-09-02T00:02:41.154175+02:00"
+  },
+  {
+    "plan": "plans/2026-09-02-ga-ur1c.6.6-desktop-transport-retest-attestation.md",
+    "plan_hash": "85384982e630903f2d4b8cb0f5269183c7d27c2da845c0c98253b35de70a00fe",
+    "tracker_hash": "c6298cd3a79f800d1889f47e11f59efdf0ca3fa1c4a7c32d08dc2d43dd8a0233",
+    "synced_at": "2026-09-02T00:19:51.998179+02:00"
   }
 ]
