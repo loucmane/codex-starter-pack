@@ -708,6 +708,10 @@ def _obsidian_findings(project: Mapping[str, Any]) -> list[dict[str, Any]]:
     project_id = str(project["id"])
     obsidian = _mapping(project.get("obsidian"), f"project {project_id} obsidian")
     cycle_status = _obsidian_status(obsidian, "cycle", "cycle_status")
+    cycle = obsidian.get("cycle")
+    post_cycle_projection = (
+        isinstance(cycle, Mapping) and cycle.get("projection") == "post-cycle"
+    )
     findings = []
     if obsidian.get("registered") is not True:
         findings.append(
@@ -810,7 +814,10 @@ def _obsidian_findings(project: Mapping[str, Any]) -> list[dict[str, Any]]:
                     bead_id=None,
                 )
             )
-        if not isinstance(live_index.get("observed_at"), str):
+        if (
+            not isinstance(live_index.get("observed_at"), str)
+            and not post_cycle_projection
+        ):
             findings.append(
                 _finding(
                     code="obsidian-live-index-observation-time-missing",

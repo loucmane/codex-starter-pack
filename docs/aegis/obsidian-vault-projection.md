@@ -113,7 +113,11 @@ can read the configured managed note.
 The reconciler never starts a rig or database, discovers a store, or edits a repository. It reads
 whatever the declared host command can currently prove. Reconciliation and strict checks serialize
 through the same non-blocking registry-cycle lock, so a check never compares a dashboard or project
-against bytes from two different cycles. It retains the
+against bytes from two different cycles. The reconciler-owned dashboard uses an explicit semantic
+post-cycle projection: it preserves filesystem, live-index authority, process, and cycle status,
+but excludes the per-cycle attempt/completion/observation timestamps from its digest-bound input.
+Ordinary diagnostic snapshots retain those exact timestamps. This prevents a successful run from
+invalidating its own dashboard solely by advancing audit clocks. It retains the
 last valid output on failure, records last-success and last-error state with mode `0600`, and runs
 all three vault gates after every changed publication. Because publication is an atomic directory
 exchange, the hardened service grants write access to each registered output's existing parent,

@@ -23,3 +23,11 @@
 - Atomically recover only pure missing-file drift in an Aegis-owned generated subtree when every
   survivor and regenerated overlapping file matches the ownership manifest. Unknown, symlinked,
   or hash-modified content remains a hard refusal.
+
+## Append-forward semantic projection repair
+- Preserve exact audit timestamps in ordinary continuity snapshots and reconciler state.
+- Mark only the explicit reconciler-owned idle candidate as a `post-cycle` semantic projection.
+- Normalize its attempt, completion, and observation timestamps to `null` before the snapshot is
+  digest-bound, while retaining filesystem/live-index/process/cycle truth.
+- Suppress the missing-observation-time finding only for that named projection; every ordinary
+  confirmed live-index record still requires an exact observed timestamp.
