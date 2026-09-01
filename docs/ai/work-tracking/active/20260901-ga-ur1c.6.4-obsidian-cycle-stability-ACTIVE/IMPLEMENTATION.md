@@ -31,3 +31,13 @@
   digest-bound, while retaining filesystem/live-index/process/cycle truth.
 - Suppress the missing-observation-time finding only for that named projection; every ordinary
   confirmed live-index record still requires an exact observed timestamp.
+
+## Live acceptance
+- The transaction repair was installed merge-bound before the semantic projection repair; the
+  latter changes the canonical dashboard capture scripts consumed by the installed registry and
+  requires no runtime-byte replacement.
+- A redundant reinstall was refused safely because all four installed artifacts already matched
+  the reviewed source. Acceptance therefore observed the active scheduler without another service
+  transition.
+- Consecutive cycles preserved exact output-tree manifests, emitted no live-index refreshes, passed
+  the serialized strict check, and left all user-unit, Obsidian-process, and rig invariants intact.

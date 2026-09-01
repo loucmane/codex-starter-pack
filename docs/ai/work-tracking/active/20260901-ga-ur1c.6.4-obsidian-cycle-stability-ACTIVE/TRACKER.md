@@ -7,7 +7,7 @@
 ## Goals
 - [x] Make continuity dashboard capture post-run stable across the registry lock release
 - [x] Make installation/check/rollback snapshots coherent across timer activation
-- [ ] Prove terminal publication followed by a strict byte-identical no-op cycle
+- [x] Prove terminal publication followed by a strict byte-identical no-op cycle
 
 ## Progress Log
 - **2026-09-01 13:33** — [S:20260901|W:ga-ur1c.6.4-obsidian-cycle-stability|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed current timestamp as `2026-09-01 13:33 CEST`
@@ -23,13 +23,15 @@
 - **2026-09-01 15:14** — [S:20260901|W:ga-ur1c.6.4-obsidian-cycle-stability|H:live-acceptance|E:merge:b3769f7e1910a8ec014d5bb47c603d5d0d7fd35e;runtime:4ffcdd401a575d4efdc95e9c108099eae44b017d0aea92c8b551fe8c3932cfb6] Installed the merge-bound transaction repair with the timer waiting, service success, all rigs suspended, and unchanged Obsidian epoch; acceptance then isolated per-cycle audit timestamps as the remaining dashboard-only rebuild source
 - **2026-09-01 15:14** — [S:20260901|W:ga-ur1c.6.4-obsidian-cycle-stability|H:post-cycle-semantic-projection|E:pytest:73-passed] Added the append-forward semantic projection repair and regressions proving distinct successful cycle timestamps cannot perturb dashboard identity while ordinary timestamped diagnostics remain strict
 - **2026-09-01 15:24** — [S:20260901|W:ga-ur1c.6.4-obsidian-cycle-stability|H:pytest|E:pytest:2260-passed+21-skipped] Completed the broad affected meta-workflow and Claude-adapter suites under frozen dependencies and WSL `/tmp`; the package-install invocation module remained excluded under the standing package boundary and packaging was already green in hosted CI
+- **2026-09-01 16:09** — [S:20260901|W:ga-ur1c.6.4-obsidian-cycle-stability|H:installed-reconciler|E:reports/live-acceptance-2026-09-01.md] Bound the already-completed merge-bound transactional reinstall, observed consecutive scheduled cycles at `14:06:28Z` and `14:07:37Z`, and proved all five generated trees byte-identical with zero live-index reloads
+- **2026-09-01 16:09** — [S:20260901|W:ga-ur1c.6.4-obsidian-cycle-stability|H:strict-live-index|E:reports/live-acceptance-2026-09-01.md] Strict live-index checks passed for all four projects and the continuity dashboard; timer/service, WSL Obsidian epoch, installed digests, zero-agent state, and four suspended rigs remained exact
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
 - [x] plan-step-implement — Update workflow/guard/docs and capture tests
 - [x] plan-step-transaction-repair — Repair installer/check/recovery transaction and prove regressions
-- [ ] plan-step-live-acceptance — Install merge-bound repair and prove changed/no-op cycles
-- [ ] plan-step-verify — Evidence stored, documentation updated
+- [x] plan-step-live-acceptance — Install merge-bound repair and prove changed/no-op cycles
+- [x] plan-step-verify — Evidence stored, documentation updated
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes

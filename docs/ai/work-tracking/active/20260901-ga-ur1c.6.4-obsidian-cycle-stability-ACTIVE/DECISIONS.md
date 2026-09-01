@@ -17,3 +17,7 @@
   explicit post-cycle dashboard projection names and removes only those clocks; it does not weaken
   live-index authority, process observation, pending-candidate detection, or direct live snapshots.
   Hashing exact audit clocks was rejected because it makes a no-op cycle impossible by design.
+- 2026-09-01 — Do not repeat a byte-identical reconciler reinstall after exact installed-byte and
+  manifest checks pass. Bind the preserved merge-bound transition evidence and prove the terminal
+  behavior through consecutive scheduled cycles plus the serialized strict live-index check. This
+  preserves the one-transition safety boundary while still exercising the installed runtime.

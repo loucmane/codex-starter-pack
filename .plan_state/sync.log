@@ -2032,5 +2032,17 @@
     "plan_hash": "47918f0eac94b7aa6b49ba95c47cf62796ca132114c22a91a7f859e6b4a1cde5",
     "tracker_hash": "e307ba23e91a0a62822b0e26c4bd6fb3f138612af4cfa4f750ff99c70c20c413",
     "synced_at": "2026-09-01T15:28:15.923646+02:00"
+  },
+  {
+    "plan": "plans/2026-09-01-ga-ur1c.6.4-obsidian-cycle-stability.md",
+    "plan_hash": "47918f0eac94b7aa6b49ba95c47cf62796ca132114c22a91a7f859e6b4a1cde5",
+    "tracker_hash": "e307ba23e91a0a62822b0e26c4bd6fb3f138612af4cfa4f750ff99c70c20c413",
+    "synced_at": "2026-09-01T16:04:10.143018+02:00"
+  },
+  {
+    "plan": "plans/2026-09-01-ga-ur1c.6.4-obsidian-cycle-stability.md",
+    "plan_hash": "518dfbe600646df00fca5b7a35b1a618b6257ef6185346f191964d56908f5a54",
+    "tracker_hash": "08fccef07901d3bd7c97fd37641bff6c95114390b4857c52b63f800583c5ed20",
+    "synced_at": "2026-09-01T16:10:42.828320+02:00"
   }
 ]
