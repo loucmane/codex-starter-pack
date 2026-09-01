@@ -119,15 +119,17 @@ python3 plugins/gas-city-workflow/scripts/managed_delegation_canary.py trust-pro
 ```
 
 The apply path never invokes `spawn_agent`; it submits a synthetic PreToolUse envelope directly
-to the installed target-local gate. Its evidence records `child_launch_attempted=false`, the
-exact source/tree and hook-manifest identities, the Codex trust transaction, the tier-C denial,
-an unrelated local-read allow, and byte/mode/owner-exact config restoration. A used run ID is
-immutable and fails closed, making append-forward retries explicit. This is the reusable live
-acceptance step for current and future descriptor-onboarded projects. `trust-project` retains the
-same exact-hook trust only after the real installed project gate denies the synthetic request,
-allows the unrelated local read, and a second application is a byte-identical no-op; failure
-restores the starting config. Neither mode grants routing, resumes a rig, or mutates tracked
-project source.
+to the installed target-local gate. Before hook enumeration it transactionally adds only the
+fixture's exact canonical project trust entry, because Codex deliberately omits project hooks for
+an untrusted project. It then trusts only the seven exact generated hook hashes. Its evidence
+records `child_launch_attempted=false`, the exact source/tree and hook-manifest identities, both
+Codex trust layers, the tier-C denial, an unrelated local-read allow, and byte/mode/owner-exact
+config restoration. A used run ID is immutable and fails closed, making append-forward retries
+explicit. This is the reusable live acceptance step for current and future descriptor-onboarded
+projects. `trust-project` retains the exact project entry and exact-hook trust only after the real
+installed project gate denies the synthetic request, allows the unrelated local read, and a
+second application is a byte-identical no-op; failure restores the starting config. Neither mode
+grants routing, resumes a rig, or mutates tracked project source.
 
 For blind report lanes, `config/evidence-reviewer/` defines one generic rig-scoped Sol reviewer
 whose work directory is `/home/loucmane/gascity/evidence-runs`, whose additional writable-root

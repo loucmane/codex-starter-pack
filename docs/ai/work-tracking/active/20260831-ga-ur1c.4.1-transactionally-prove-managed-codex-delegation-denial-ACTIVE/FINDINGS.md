@@ -10,6 +10,12 @@
   entire install/list/trust/deny/allow/rollback path without persisting trust, while
   `trust-project` applies the same exact-hash transaction to a real installed project and retains
   it only after denial, non-interference, and idempotence all pass.
+- 2026-09-01 — Live run `ga-ur1c-4-1-37acb2a4-20260901` proved a missing prerequisite:
+  Codex returned the existing user hook but deliberately omitted all seven project hooks while
+  the fresh synthetic project was absent from `[projects]`. The evidence-reviewer installer
+  already establishes exact project trust before hook enumeration. The canary must perform the
+  same narrow transaction and restore it with the hook hashes; an empty project-hook listing is
+  not an app-server defect and must never be bypassed.
 
 ## Progress Log
 - **2026-08-31 20:31 CEST** - [S:20260831|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:pytest|E:cmd`TMPDIR=/tmp PYTHONDONTWRITEBYTECODE=1 pytest -q -s -p no:cacheprovider -k 'not editable_package_aegis_cli_invocation and not editable_package_mcp_describe_config and not local_checkout_stdio_mcp_lists_aegis_surfaces'`] Validated the candidate with 2431 passing tests and 21 expected skips; excluded exactly two scope-prohibited network package-install tests and one independently reproduced 30-second MCP stdio hang.
