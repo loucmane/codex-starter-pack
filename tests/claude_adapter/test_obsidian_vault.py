@@ -315,6 +315,41 @@ def test_refuses_in_repo_unknown_or_tampered_destinations(tmp_path: Path) -> Non
     assert obsidian_vault.check_vault(symlink)["ok"] is False
 
 
+def test_rebuild_repairs_only_digest_proven_missing_owned_files(tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    snapshot = obsidian_vault.collect_snapshot(root, _events(root))
+    output = tmp_path / "managed-repair"
+    obsidian_vault.build_vault(snapshot, output, target_dir=root)
+    missing = output / "Home.md"
+    expected = missing.read_bytes()
+    missing.unlink()
+
+    check = obsidian_vault.check_vault(output)
+    assert check["ok"] is False
+    assert "missing owned files: Home.md" in check["problems"]
+
+    repaired = obsidian_vault.build_vault(snapshot, output, target_dir=root)
+
+    assert repaired["status"] == "repaired"
+    assert repaired["changed"] is True
+    assert missing.read_bytes() == expected
+    assert obsidian_vault.check_vault(
+        output, expected_source_digest=snapshot["source_digest"]
+    )["ok"]
+
+
+def test_missing_owned_repair_refuses_unknown_or_modified_survivors(tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    snapshot = obsidian_vault.collect_snapshot(root, _events(root))
+    output = tmp_path / "managed-repair-refusal"
+    obsidian_vault.build_vault(snapshot, output, target_dir=root)
+    (output / "Home.md").unlink()
+    (output / "README.md").write_text("modified\n", encoding="utf-8")
+
+    with pytest.raises(obsidian_vault.VaultError, match="hash mismatch: README.md"):
+        obsidian_vault.build_vault(snapshot, output, target_dir=root)
+
+
 def test_atomic_replace_restores_previous_vault_when_publish_fails(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

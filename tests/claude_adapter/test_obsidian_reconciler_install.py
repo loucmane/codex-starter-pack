@@ -96,7 +96,17 @@ def test_source_installer_plans_from_external_working_directory(tmp_path: Path) 
         check=False,
     )
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout)["schema_version"] == "1"
+    plan = json.loads(result.stdout)
+    assert plan["schema_version"] == "1"
+    assert plan["service_transition"] == [
+        "stop aegis-obsidian-reconcile.timer",
+        "wait for aegis-obsidian-reconcile.service to become inactive",
+        "systemctl --user daemon-reload",
+        "enable aegis-obsidian-reconcile.timer",
+        "start aegis-obsidian-reconcile.service",
+        "check installed reconciliation while timer remains inactive",
+        "start aegis-obsidian-reconcile.timer",
+    ]
 
 
 def test_systemctl_start_uses_reconciliation_wide_timeout(
@@ -148,17 +158,43 @@ def test_install_applies_exact_user_files_and_enables_timer(
     output_parent = home / "vaults/main/GasCity"
     output_parent.mkdir(parents=True)
     systemctl_calls: list[tuple[str, ...]] = []
+    timer_enabled = True
+    timer_active = True
 
     def systemctl(*arguments: str) -> subprocess.CompletedProcess[str]:
+        nonlocal timer_active, timer_enabled
         systemctl_calls.append(arguments)
+        if arguments[:2] == ("stop", "aegis-obsidian-reconcile.timer"):
+            timer_active = False
+        if arguments[:2] == ("enable", "aegis-obsidian-reconcile.timer"):
+            timer_enabled = True
+        if arguments[:2] == ("start", "aegis-obsidian-reconcile.timer"):
+            timer_active = True
         if arguments[:2] == ("start", "aegis-obsidian-reconcile.service"):
             state = home / ".local/state/aegis/obsidian-reconciler"
             assert state.is_dir()
             assert state.stat().st_mode & 0o777 == 0o700
         if arguments[0] == "is-enabled":
-            return subprocess.CompletedProcess(arguments, 0, "enabled\n", "")
+            enabled = timer_enabled if arguments[1].endswith(".timer") else False
+            return subprocess.CompletedProcess(
+                arguments,
+                0 if enabled else 1,
+                "enabled\n" if enabled else "disabled\n",
+                "",
+            )
         if arguments[0] == "is-active":
-            return subprocess.CompletedProcess(arguments, 0, "active\n", "")
+            active = timer_active if arguments[1].endswith(".timer") else False
+            return subprocess.CompletedProcess(
+                arguments,
+                0 if active else 1,
+                "active\n" if active else "inactive\n",
+                "",
+            )
+        if arguments[0] == "show" and "SubState" in arguments:
+            value = "waiting\n" if arguments[1].endswith(".timer") and timer_active else "dead\n"
+            return subprocess.CompletedProcess(arguments, 0, value, "")
+        if arguments[0] == "show" and "Result" in arguments:
+            return subprocess.CompletedProcess(arguments, 0, "success\n", "")
         return subprocess.CompletedProcess(arguments, 0, "", "")
 
     monkeypatch.setattr(obsidian_install, "_run_systemctl", systemctl)
@@ -178,12 +214,95 @@ def test_install_applies_exact_user_files_and_enables_timer(
     assert (home / ".local/bin/aegis-obsidian-reconcile").stat().st_mode & 0o777 == 0o755
     assert (home / ".config/aegis/obsidian-projects.json").stat().st_mode & 0o777 == 0o600
     assert (home / ".local/state/aegis/obsidian-reconciler/install-manifest.json").is_file()
-    assert ("enable", "--now", "aegis-obsidian-reconcile.timer") in systemctl_calls
-    assert ("start", "aegis-obsidian-reconcile.service") in systemctl_calls
+    assert ("enable", "--now", "aegis-obsidian-reconcile.timer") not in systemctl_calls
+    assert ("enable", "aegis-obsidian-reconcile.timer") in systemctl_calls
+    assert systemctl_calls.index(
+        ("start", "aegis-obsidian-reconcile.service")
+    ) < systemctl_calls.index(("start", "aegis-obsidian-reconcile.timer"))
 
 
-def test_install_failure_rolls_back_new_files(
+def test_rollback_unit_policy_ignores_transient_preflight_substates() -> None:
+    errors = obsidian_install._rollback_unit_policy_errors(
+        before_timer={"enabled": True, "active": True, "substate": "running"},
+        baseline_service={
+            "enabled": False,
+            "active": False,
+            "substate": "dead",
+            "result": "success",
+        },
+        restored_timer={"enabled": True, "active": True, "substate": "waiting"},
+        restored_service={
+            "enabled": False,
+            "active": False,
+            "substate": "dead",
+            "result": "success",
+        },
+    )
+
+    assert errors == []
+
+
+def test_quiescence_failure_restores_timer_without_stopping_active_service(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    home = tmp_path / "home"
+    registry = _source_registry(tmp_path, home)
+    (home / "vaults/main/GasCity").mkdir(parents=True)
+    calls: list[tuple[str, ...]] = []
+    timer_active = True
+
+    def systemctl(*arguments: str) -> subprocess.CompletedProcess[str]:
+        nonlocal timer_active
+        calls.append(arguments)
+        if arguments[:2] == ("stop", "aegis-obsidian-reconcile.timer"):
+            timer_active = False
+        if arguments[:2] == ("start", "aegis-obsidian-reconcile.timer"):
+            timer_active = True
+        if arguments[0] == "is-enabled":
+            enabled = arguments[1].endswith(".timer")
+            return subprocess.CompletedProcess(
+                arguments, 0 if enabled else 1, "enabled\n" if enabled else "disabled\n", ""
+            )
+        if arguments[0] == "is-active":
+            active = timer_active if arguments[1].endswith(".timer") else True
+            return subprocess.CompletedProcess(
+                arguments, 0 if active else 1, "active\n" if active else "inactive\n", ""
+            )
+        if arguments[0] == "show" and "SubState" in arguments:
+            return subprocess.CompletedProcess(arguments, 0, "running\n", "")
+        if arguments[0] == "show" and "Result" in arguments:
+            return subprocess.CompletedProcess(arguments, 0, "success\n", "")
+        return subprocess.CompletedProcess(arguments, 0, "", "")
+
+    monkeypatch.setattr(obsidian_install, "_run_systemctl", systemctl)
+    monkeypatch.setattr(
+        obsidian_install,
+        "_wait_for_service_inactive",
+        lambda _service: (_ for _ in ()).throw(RuntimeError("service still active")),
+    )
+
+    with pytest.raises(RuntimeError, match="service still active"):
+        obsidian_install.install(
+            home=home,
+            source_root=Path(__file__).parents[2],
+            registry_source=registry,
+        )
+
+    assert ("stop", "aegis-obsidian-reconcile.service") not in calls
+    assert ("start", "aegis-obsidian-reconcile.timer") in calls
+    assert not (home / ".local/bin/aegis-obsidian-reconcile").exists()
+
+
+@pytest.mark.parametrize(
+    ("baseline_result", "expected_service_starts", "expected_reset_count"),
+    [("success", 2, 2), ("failed", 1, 1)],
+)
+def test_install_failure_rolls_back_new_files(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    baseline_result: str,
+    expected_service_starts: int,
+    expected_reset_count: int,
 ) -> None:
     home = tmp_path / "home"
     registry = _source_registry(tmp_path, home)
@@ -247,7 +366,7 @@ def test_install_failure_rolls_back_new_files(
                 )
             return subprocess.CompletedProcess(arguments, 0, value, "")
         if arguments[0] == "show" and "Result" in arguments:
-            return subprocess.CompletedProcess(arguments, 0, "success\n", "")
+            return subprocess.CompletedProcess(arguments, 0, f"{baseline_result}\n", "")
         return subprocess.CompletedProcess(arguments, 0, "", "")
 
     monkeypatch.setattr(obsidian_install, "_run_systemctl", systemctl)
@@ -270,11 +389,22 @@ def test_install_failure_rolls_back_new_files(
     assert not (output / "transient.md").exists()
     assert not (output / "catch-up.md").exists()
     assert not (state / "catch-up.json").exists()
-    assert ("reset-failed", "aegis-obsidian-reconcile.service") in systemctl_calls
-    assert systemctl_calls.index(
-        ("start", "aegis-obsidian-reconcile.timer")
-    ) < systemctl_calls.index(("reset-failed", "aegis-obsidian-reconcile.service"))
-    assert service_starts == 2
+    assert systemctl_calls.count(
+        ("reset-failed", "aegis-obsidian-reconcile.service")
+    ) == expected_reset_count
+    timer_restore_index = max(
+        index
+        for index, call in enumerate(systemctl_calls)
+        if call == ("start", "aegis-obsidian-reconcile.timer")
+    )
+    if expected_reset_count == 2:
+        reset_restore_index = max(
+            index
+            for index, call in enumerate(systemctl_calls)
+            if call == ("reset-failed", "aegis-obsidian-reconcile.service")
+        )
+        assert timer_restore_index < reset_restore_index
+    assert service_starts == expected_service_starts
     assert timer_substate_reads >= 2
 
 
@@ -315,12 +445,29 @@ def test_install_creates_only_declared_parent_under_managed_root(
     payload["managed_output_root"] = str(managed_root)
     payload["projects"][0]["output_dir"] = str(managed_root / "gas-city" / "Aegis")
     registry.write_text(json.dumps(payload), encoding="utf-8")
+    timer_active = True
 
     def systemctl(*arguments: str) -> subprocess.CompletedProcess[str]:
+        nonlocal timer_active
+        if arguments[:2] == ("stop", "aegis-obsidian-reconcile.timer"):
+            timer_active = False
+        if arguments[:2] == ("start", "aegis-obsidian-reconcile.timer"):
+            timer_active = True
         if arguments[0] == "is-enabled":
-            return subprocess.CompletedProcess(arguments, 0, "enabled\n", "")
+            enabled = arguments[1].endswith(".timer")
+            return subprocess.CompletedProcess(
+                arguments, 0 if enabled else 1, "enabled\n" if enabled else "disabled\n", ""
+            )
         if arguments[0] == "is-active":
-            return subprocess.CompletedProcess(arguments, 0, "active\n", "")
+            active = timer_active if arguments[1].endswith(".timer") else False
+            return subprocess.CompletedProcess(
+                arguments, 0 if active else 1, "active\n" if active else "inactive\n", ""
+            )
+        if arguments[0] == "show" and "SubState" in arguments:
+            value = "waiting\n" if arguments[1].endswith(".timer") and timer_active else "dead\n"
+            return subprocess.CompletedProcess(arguments, 0, value, "")
+        if arguments[0] == "show" and "Result" in arguments:
+            return subprocess.CompletedProcess(arguments, 0, "success\n", "")
         return subprocess.CompletedProcess(arguments, 0, "", "")
 
     monkeypatch.setattr(obsidian_install, "_run_systemctl", systemctl)

@@ -111,7 +111,9 @@ authoritative and the observer is recorded as unavailable. The explicit
 can read the configured managed note.
 
 The reconciler never starts a rig or database, discovers a store, or edits a repository. It reads
-whatever the declared host command can currently prove. It uses a non-blocking lock, retains the
+whatever the declared host command can currently prove. Reconciliation and strict checks serialize
+through the same non-blocking registry-cycle lock, so a check never compares a dashboard or project
+against bytes from two different cycles. It retains the
 last valid output on failure, records last-success and last-error state with mode `0600`, and runs
 all three vault gates after every changed publication. Because publication is an atomic directory
 exchange, the hardened service grants write access to each registered output's existing parent,
@@ -209,13 +211,26 @@ Before rebuilding, Aegis requires:
 
 1. the directory is not a symlink;
 2. the manifest identifies an Aegis-owned generated root;
-3. the actual inventory exactly matches the manifest;
+3. the actual inventory exactly matches the manifest, except that a pure loss of generated owned
+   files may be repaired when every survivor still matches the old manifest, no unknown file is
+   present, and every regenerated overlapping file has the exact previously declared digest;
 4. every owned file still matches its hash;
 5. no unknown/manual file has appeared.
 
 The complete next vault is written to a sibling staging directory and self-checked. Directory
 replacement uses same-filesystem atomic renames, with the previous valid vault retained as a
-rollback target until the replacement succeeds. A byte-identical source snapshot is a no-op.
+rollback target until the replacement succeeds. The synchronous vault gate remains strict and
+reports missing files until that digest-proven atomic repair completes. A byte-identical complete
+source snapshot is a no-op.
+
+The user-level installer stops the timer first, waits for any already-activated oneshot service to
+finish, and issues a final idempotent service stop to cancel any queued activation before capturing
+rollback snapshots. It installs and validates with the timer held inactive, starts the timer after
+the strict check passes, and verifies the settled scheduler policy (`enabled/active/waiting` timer
+plus inactive service) rather than comparing transient `running/start` substates observed before
+quiescence. A rollback primes the restored runtime only when the post-quiescence baseline had a
+successful service result; a previously failed result is preserved without replaying the known-bad
+cycle.
 
 The generator never:
 

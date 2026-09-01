@@ -101,12 +101,12 @@ systemd starts and then once per minute. Its registry names every project, repos
 export command, output subtree, content policy, and freshness SLA. There is no implicit project or
 bead-store discovery.
 
-Each run takes a non-blocking per-project lock, exports a size-bounded snapshot, reads the passive
+Each run takes a non-blocking registry-cycle lock plus a per-project lock, exports a size-bounded snapshot, reads the passive
 ledger without writing it, and builds through the existing atomic vault generator. Byte-identical
 input is a no-op. A failed export, parse, limit check, or staged publication retains the previous
 valid subtree and records a bounded error in the user-private state directory. Readiness runs the
-installed `check` command, which re-derives the current source digest; an old success timestamp by
-itself can never hide stale beads.
+installed `check` command under that same registry-cycle lock, which re-derives the current source
+digest without racing the timer; an old success timestamp by itself can never hide stale beads.
 
 The passive ledger uses SQLite WAL mode while agent hooks are active. The hardened reconciler keeps
 `ProtectHome=read-only`: it never grants the timer write access to the evidence store merely so

@@ -8,3 +8,9 @@
   expected skips excluding the package-install module; the two guard modules passed 92/92 in their
   required writable context. Package-install coverage is deferred to hosted CI without weakening
   the no-package boundary.
+- 2026-09-01 14:23 CEST — Added append-forward transaction hardening: shared registry-cycle check
+  serialization, service quiescence before rollback snapshots, timer activation after validation,
+  stable semantic rollback verification, and fail-closed recovery of pure missing generated files.
+- 2026-09-01 14:57 CEST — Added queued-activation cancellation, failed-baseline rollback preservation,
+  exact installer-plan output, and regression coverage; verified 46 focused and 2,459 proportional
+  tests with 21 expected skips, plus Ruff and diff checks.

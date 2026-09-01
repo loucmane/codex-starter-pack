@@ -1198,19 +1198,63 @@ def _assert_output_safe(output: Path, repository: Path) -> None:
         raise VaultError("vault output must live outside the source repository")
 
 
-def _validate_existing_for_replacement(output: Path) -> dict[str, Any] | None:
+def _missing_owned_files_are_recoverable(
+    output: Path,
+    previous: Mapping[str, Any],
+    expected_files: Mapping[str, bytes],
+) -> bool:
+    """Accept only a pure, digest-proven loss inside an owned generated projection."""
+
+    raw_declared = previous.get("files")
+    if not isinstance(raw_declared, Mapping):
+        return False
+    declared = dict(raw_declared)
+    actual = {
+        path.relative_to(output).as_posix(): path
+        for path in output.rglob("*")
+        if path.is_file() or path.is_symlink()
+    }
+    actual.pop(MANIFEST_NAME, None)
+    if set(actual) - set(declared):
+        return False
+    missing = set(declared) - set(actual)
+    if not missing:
+        return False
+    for relative, path in actual.items():
+        if path.is_symlink() or _digest_bytes(path.read_bytes()) != declared.get(relative):
+            return False
+    for relative in missing:
+        replacement = expected_files.get(relative)
+        if replacement is not None and _digest_bytes(replacement) != declared.get(relative):
+            return False
+    return True
+
+
+def _validate_existing_for_replacement(
+    output: Path,
+    *,
+    expected_files: Mapping[str, bytes],
+) -> tuple[dict[str, Any] | None, bool]:
     if not output.exists():
-        return None
+        return None, False
     if not output.is_dir() or output.is_symlink():
         raise VaultError(f"vault output exists but is not a regular directory: {output}")
     if not any(output.iterdir()):
-        return None
+        return None, False
     result = check_vault(output)
     if not result["ok"]:
+        try:
+            previous = _read_manifest(output)
+        except VaultError:
+            previous = None
+        if previous is not None and _missing_owned_files_are_recoverable(
+            output, previous, expected_files
+        ):
+            return previous, True
         raise VaultError(
             "refusing to replace untrusted or modified vault: " + "; ".join(result["problems"])
         )
-    return _read_manifest(output)
+    return _read_manifest(output), False
 
 
 def build_vault(
@@ -1227,9 +1271,13 @@ def build_vault(
     output = requested_output.resolve()
     files = render_vault(snapshot)
     manifest = _manifest(snapshot, files)
-    previous = _validate_existing_for_replacement(output)
+    previous, repairing_missing = _validate_existing_for_replacement(
+        output,
+        expected_files=files,
+    )
     if (
         previous is not None
+        and not repairing_missing
         and previous.get("source_digest") == manifest["source_digest"]
         and previous.get("files") == manifest["files"]
     ):
@@ -1278,7 +1326,7 @@ def build_vault(
         if backup is not None and backup.exists() and output.exists():
             shutil.rmtree(backup)
     return {
-        "status": "built",
+        "status": "repaired" if repairing_missing else "built",
         "changed": True,
         "output": output.as_posix(),
         "source_digest": manifest["source_digest"],
