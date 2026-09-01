@@ -53,3 +53,11 @@
   the complete meta-workflow and Claude-adapter safety surfaces, excluding only the separately
   hosted package-install invocation module. Ruff, diff check, Aegis guard, drift check, plan sync,
   and work-tracking audit all pass.
+- 2026-09-01 — Final append-forward acceptance used the exact already-installed runtime rather than
+  repeating a byte-identical service transition. Two consecutive scheduled cycles advanced only
+  audit clocks (`14:06:28Z` to `14:07:37Z`): all five output-tree manifests, dashboard snapshot and
+  report digests stayed identical, and every live-index `refresh_attempted` value was false. The
+  serialized strict check passed all four projects and the dashboard. The timer settled
+  enabled/active/waiting, the service settled inactive/dead/success with zero restarts, WSL
+  Obsidian retained PID `3168034` and start tick `35154910`, all four rigs remained suspended, and
+  zero agents ran.
