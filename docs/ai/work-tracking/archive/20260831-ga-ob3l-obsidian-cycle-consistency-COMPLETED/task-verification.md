@@ -60,3 +60,24 @@ TMPDIR=/tmp PYTHONDONTWRITEBYTECODE=1 \
 The live report remains non-green for unrelated continuity findings; it contains zero
 Obsidian findings. No Obsidian, rig, supervisor, or project lifecycle mutation was
 performed.
+
+## Installed acceptance
+
+- Merged commit: `3199a9d82a9124195d3463e592a535cf42080b96`, tree
+  `e37f14fd6275253104f2ed3994a41dffa134dc07`, with exact parents
+  `f67eeb5209b09bfc0decbfbfadb659fda18be19b` and
+  `be3407004bac14a5c9ff767f7d16b69db030230a`; GitHub verification is valid.
+- Installed reconciler SHA-256:
+  `5310981da359450a1e15bc2e7b6849509c0a2676542a3693cc045b0f216ce392`.
+- Registry, service, and timer digests remained respectively
+  `ab3b8a76dde4fcb369ab2057ddc881991b2e881b824d2e53b7f5fd4df0db5ee0`,
+  `9e3e9df1ec28706bc52d1b53c8f91e85b747018d44a97a80921bfcf398ba4814`, and
+  `85a227e0c406eb056e3982e2112a58a32720416f7776f4079a276e140f44e6e2`.
+- The timer is enabled/active/waiting and the service completed with `Result=success`.
+- `check --require-live-index` passed for `gas-city-operations`, `gas-city`,
+  `hpfetcher`, `blog`, and `GasCity/Continuity/Status.md`; authority is
+  `host-obsidian-ipc`, status is `confirmed`, and terminal snapshot SHA-256 is
+  `e1fb4d590633591c5da4c4de2d9107b0bb794761e2ca89fc13fe2a4144cf8b41`.
+- `app-md.Obsidian-3168034.scope` remained active/running. Every non-HQ rig
+  remained suspended and the session census remained zero.
+- `ga-ob3l` is closed PASS with `gc.work_outcome=shipped`.

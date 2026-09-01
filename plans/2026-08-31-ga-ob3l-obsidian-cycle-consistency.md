@@ -5,7 +5,7 @@ handler_target: .
 bead_ids: [ga-ob3l]
 branch_policy: codex/ga-ob3l-obsidian-cycle-consistency
 evidence_summary:
-  - docs/ai/work-tracking/active/20260831-ga-ob3l-obsidian-cycle-consistency-ACTIVE
+  - docs/ai/work-tracking/archive/20260831-ga-ob3l-obsidian-cycle-consistency-COMPLETED
   - .
   - bead:ga-ob3l
   - scripts/codex-task
@@ -21,20 +21,20 @@ emergency_bypass: false
 - **Handler Target (H)**: .
 - **Bead IDs**: ga-ob3l
 - **Branch Policy**: codex/ga-ob3l-obsidian-cycle-consistency
-- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260831-ga-ob3l-obsidian-cycle-consistency-ACTIVE, ., bead:ga-ob3l, scripts/codex-task
+- **Evidence Summary (E)**: docs/ai/work-tracking/archive/20260831-ga-ob3l-obsidian-cycle-consistency-COMPLETED, ., bead:ga-ob3l, scripts/codex-task
 - **Plan Version**: v1
 - **Emergency Bypass**: false
 
 ## Plan Table
 | Step ID | Description | Evidence | Status |
 |---|---|---|---|
-| plan-step-scope | Confirm scope and authority for Make Obsidian continuity observation cycle-consistent | docs/ai/work-tracking/active/20260831-ga-ob3l-obsidian-cycle-consistency-ACTIVE/FINDINGS.md; /tmp/ga-ob3l-live-snapshot.json;systemd-user-manager:app-md.Obsidian-3168034.scope | completed |
-| plan-step-implement | Implement Make Obsidian continuity observation cycle-consistent through the reviewed helper surface | .; docs/ai/work-tracking/active/20260831-ga-ob3l-obsidian-cycle-consistency-ACTIVE/IMPLEMENTATION.md; pytest:50-pass;ruff:pass;/tmp/ga-ob3l-live-report.json | completed |
-| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/active/20260831-ga-ob3l-obsidian-cycle-consistency-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260831-ga-ob3l-obsidian-cycle-consistency-ACTIVE/TRACKER.md; docs/ai/work-tracking/active/20260831-ga-ob3l-obsidian-cycle-consistency-ACTIVE/task-verification.md;pytest:2436-pass-21-skip-2-environment-deselect;live-snapshot:822b921164b3176a29c07ee200a55c21f32c56a6ceb3558ae6703d7ec8e302f5 | completed |
+| plan-step-scope | Confirm scope and authority for Make Obsidian continuity observation cycle-consistent | docs/ai/work-tracking/archive/20260831-ga-ob3l-obsidian-cycle-consistency-COMPLETED/FINDINGS.md; /tmp/ga-ob3l-live-snapshot.json;systemd-user-manager:app-md.Obsidian-3168034.scope | completed |
+| plan-step-implement | Implement Make Obsidian continuity observation cycle-consistent through the reviewed helper surface | .; docs/ai/work-tracking/archive/20260831-ga-ob3l-obsidian-cycle-consistency-COMPLETED/IMPLEMENTATION.md; pytest:50-pass;ruff:pass;/tmp/ga-ob3l-live-report.json | completed |
+| plan-step-verify | Capture tests, review evidence, and bead readback | docs/ai/work-tracking/archive/20260831-ga-ob3l-obsidian-cycle-consistency-COMPLETED/HANDOFF.md; docs/ai/work-tracking/archive/20260831-ga-ob3l-obsidian-cycle-consistency-COMPLETED/TRACKER.md; docs/ai/work-tracking/archive/20260831-ga-ob3l-obsidian-cycle-consistency-COMPLETED/task-verification.md;pytest:2436-pass-21-skip-2-environment-deselect;live-snapshot:822b921164b3176a29c07ee200a55c21f32c56a6ceb3558ae6703d7ec8e302f5 | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
-- `docs/ai/work-tracking/active/20260831-ga-ob3l-obsidian-cycle-consistency-ACTIVE`
+- `docs/ai/work-tracking/archive/20260831-ga-ob3l-obsidian-cycle-consistency-COMPLETED`
 - `.`
 - `scripts/codex-task`
 - `scripts/codex-guard`
@@ -48,16 +48,17 @@ emergency_bypass: false
 - 2026-08-31 - Bead `ga-ob3l` kickoff created through the bead-native source workflow.
 - 2026-08-31 - `aegis log` updated `plan-step-scope` to `completed` with evidence `/tmp/ga-ob3l-live-snapshot.json;systemd-user-manager:app-md.Obsidian-3168034.scope`.
 - 2026-08-31 - `aegis log` updated `plan-step-implement` to `completed` with evidence `pytest:50-pass;ruff:pass;/tmp/ga-ob3l-live-report.json`.
-- 2026-08-31 - `aegis log` updated `plan-step-verify` to `completed` with evidence `docs/ai/work-tracking/active/20260831-ga-ob3l-obsidian-cycle-consistency-ACTIVE/task-verification.md;pytest:2436-pass-21-skip-2-environment-deselect;live-snapshot:822b921164b3176a29c07ee200a55c21f32c56a6ceb3558ae6703d7ec8e302f5`.
+- 2026-08-31 - `aegis log` updated `plan-step-verify` to `completed` with evidence `docs/ai/work-tracking/archive/20260831-ga-ob3l-obsidian-cycle-consistency-COMPLETED/task-verification.md;pytest:2436-pass-21-skip-2-environment-deselect;live-snapshot:822b921164b3176a29c07ee200a55c21f32c56a6ceb3558ae6703d7ec8e302f5`.
+- 2026-09-01 - Installed merge `3199a9d82a9124195d3463e592a535cf42080b96`, proved live-index confirmation for every registered project without changing the Obsidian application lifecycle, and closed `ga-ob3l` PASS with `gc.work_outcome=shipped`.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)
 - Context reload steps:
   1. Read `sessions/current` and this plan.
   2. Read primary bead `ga-ob3l` through the rig-scoped bead surface.
-  3. Review `docs/ai/work-tracking/active/20260831-ga-ob3l-obsidian-cycle-consistency-ACTIVE/TRACKER.md` before changing implementation.
+  3. Review `docs/ai/work-tracking/archive/20260831-ga-ob3l-obsidian-cycle-consistency-COMPLETED/TRACKER.md` before changing implementation.
   4. Run `python3 scripts/codex-task plan sync` after tracker updates.
-- Outstanding risks/todos: preserve bead authority and avoid allocating shadow Taskmaster work.
+- Outstanding risks/todos: none for `ga-ob3l`; continue the parent continuity initiative through append-forward Beads without allocating shadow Taskmaster work.
 
 ## Conflict & Scope Declaration
 - Related plans: none declared at kickoff.
