@@ -11,3 +11,4 @@
 ## Next Steps
 - Close `ga-ur1c.6.4` PASS after the signed evidence commit is merged.
 - Continue the parent `ga-ur1c.6` certification sequence without repeating this installation.
+- Archived on 2026-09-01 16:19 CEST — Folder moved to archive and tracker marked COMPLETED.

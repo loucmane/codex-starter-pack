@@ -17,3 +17,4 @@
 - 2026-09-01 16:09 CEST — Completed final live acceptance: consecutive scheduled cycles were
   byte-identical across all generated trees, strict live-index validation passed, zero reloads were
   attempted, and every service/process/rig invariant remained stable.
+- 2026-09-01 16:19 CEST — Archived active work-tracking folder.

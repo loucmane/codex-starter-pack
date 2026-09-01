@@ -21,3 +21,4 @@
   manifest checks pass. Bind the preserved merge-bound transition evidence and prove the terminal
   behavior through consecutive scheduled cycles plus the serialized strict live-index check. This
   preserves the one-transition safety boundary while still exercising the installed runtime.
+- 2026-09-01 — Archived through the supported archive helper; no evidence was deleted.

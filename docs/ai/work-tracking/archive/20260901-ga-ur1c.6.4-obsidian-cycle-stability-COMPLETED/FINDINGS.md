@@ -61,3 +61,4 @@
   enabled/active/waiting, the service settled inactive/dead/success with zero restarts, WSL
   Obsidian retained PID `3168034` and start tick `35154910`, all four rigs remained suspended, and
   zero agents ran.
+- 2026-09-01 — Archive preconditions were satisfied and the completed bundle was preserved.
