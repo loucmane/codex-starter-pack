@@ -15,3 +15,4 @@
 ## Progress Log
 
 - **2026-09-01 11:16** — [S:20260901|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:scripts/codex-task:sessions-continue|E:plans/2026-08-31-ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial.md] Resolved generated pointer drift only through the supported continuation transaction so session, plan, tracker, and sync evidence remain one atomic authority surface.
+- 2026-09-01 — Archived through the supported archive helper; no evidence was deleted.

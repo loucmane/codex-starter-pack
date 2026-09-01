@@ -1,15 +1,15 @@
 # Bead ga-ur1c.4.1 Transactionally prove managed Codex delegation denial Tracker
 
 **Started**: 2026-08-31
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-09-01
 
 ## Goals
-- [ ] Transactionally install, trust, and live-prove managed Codex delegation denial without touching project content or rig lifecycle
+- [x] Transactionally install, trust, and live-prove managed Codex delegation denial without touching project content or rig lifecycle
 
 ## Progress Log
 - **2026-08-31 19:43** — [S:20260831|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed current timestamp as `2026-08-31 19:43 CEST`
-- **2026-08-31 19:43** — [S:20260831|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260831-ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial-ACTIVE/TRACKER.md] Scaffolded the `ga-ur1c.4.1` ACTIVE work-tracking folder through the bead-native kickoff flow
+- **2026-08-31 19:43** — [S:20260831|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:scripts/codex-task|E:docs/ai/work-tracking/archive/20260831-ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial-COMPLETED/TRACKER.md] Scaffolded the `ga-ur1c.4.1` ACTIVE work-tracking folder through the bead-native kickoff flow
 - **2026-08-31 19:43** — [S:20260831|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:bd:show|E:bead:ga-ur1c.4.1] Bound this source-workflow record to primary bead `ga-ur1c.4.1` without Taskmaster mutation
 - **2026-08-31 19:43** — [S:20260831|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:sessions/current|E:sessions/current] Repointed current session, plan, and session state to `ga-ur1c.4.1`
 - **2026-08-31 19:56** — [S:20260831|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:managed-delegation-canary|E:plugins/gas-city-workflow/scripts/managed_delegation_canary.py] Implemented exact generated-hook enumeration, synthetic no-child-launch denial, byte-exact rollback, and persistent idempotent project trust
@@ -28,11 +28,13 @@
 - **2026-09-01 11:35** — [S:20260901|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:plans/current|E:plans/2026-08-31-ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial.md] Reused the existing bead `ga-ur1c.4.1` plan for continuation
 - **2026-09-01 11:35** — [S:20260901|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:sessions/state.json|E:sessions/state.json] Repointed session state to the bead `ga-ur1c.4.1` continuation session
 - **2026-09-01 11:43** — [S:20260901|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:pytest|E:full suite + tests/meta_workflow_guard/test_guard_integration.py + tests/meta_workflow_guard/test_guard_rules.py] Full suite reached 2434 passed, 21 expected skips, and 3 pre-existing environment exclusions; 11 fixture-write denials from the sandbox were retried with scoped worktree access and all 92 guard tests passed.
+- **2026-09-01 11:53** — [S:20260901|W:ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial|H:managed-delegation-canary|E:/home/loucmane/.local/state/gas-city-workflow/managed-delegation-canaries/ga-ur1c-4-1-2fd0d133-20260901-002/result.json] Live PASS on merge 2fd0d133: exact project plus seven hook hashes, no-child denial, local-read non-interference, app-server cleanup, byte-exact config rollback, and all rigs suspended; result SHA-256 52d21b56adecc9103c1fae2f303e87d9e6467dcf9b65da8c9d03e68747ad6247.
+- **2026-09-01 11:53** — [S:20260901|W:ga-ur1c.4.1|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260831-ga-ur1c.4.1-transactionally-prove-managed-codex-delegation-denial-COMPLETED/TRACKER.md] Archived the completed work-tracking bundle through the supported helper (transaction a9bed1494ba0443936f8235073b281df34d501ae3eb32a090fa7ba508999187a)
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
 - [x] plan-step-implement — Update workflow/guard/docs and capture tests
-- [ ] plan-step-verify — Evidence stored, documentation updated
+- [x] plan-step-verify — Evidence stored, documentation updated
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes
