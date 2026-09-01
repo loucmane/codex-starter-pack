@@ -15,6 +15,17 @@ managed-signing v2 receipts, structured follow-ups, and the installed Obsidian r
 contains no current-time field. Each rig appears once under `ledgers`; projects reference it by rig.
 Equal observed state therefore produces byte-identical JSON.
 
+Snapshot v2 also captures one city-global runtime parity surface. The native session side comes
+from the structured `gc session list --json` API and excludes volatile timestamps and output. The
+host side scans only same-UID procfs for stable session-leading `tmux -L city` servers, recognizing
+both bare and absolute `argv[0]`, and records PID, SID, PPID, UID, kernel start ticks, cmdline digest,
+and sorted child PIDs. Stat, cmdline, and child membership must all survive a stable reread. It never
+opens the tmux socket, reads process environments, or changes a
+process. A same-UID visibility or stable-reread failure is `unknown` and blocks acceptance; it is
+never rewritten as absence. A server without a native tmux session is runtime residue, a native
+tmux session without a server is missing runtime, and multiple servers are split-brain. Historical
+v1 snapshots remain auditable with an explicit non-blocking `city-runtime-not-captured` warning.
+
 Obsidian continuity is not one Boolean. The snapshot preserves four independent facts:
 
 - filesystem projection status and the completed reconciliation time;
@@ -72,6 +83,8 @@ is closed. Those are append-only evidence. It does flag:
   receipts whose Bead does not exist in the selected rig;
 - active trackers and open PRs bound to closed work;
 - worktrees or branches left by conclusively terminal generated work;
+- untracked, missing, split-brain, or unobservable city tmux runtime relative to the native session
+  ledger;
 - projects missing from the Obsidian registry, stale filesystem projections, or unconfirmed live
   index observations, including a registry entry whose project ID disagrees with the canonical
   project descriptor; and

@@ -1,13 +1,93 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gas-city.local/schemas/continuity-snapshot.v1.json",
+  "$id": "https://gas-city.local/schemas/continuity-snapshot.v2.json",
   "title": "Gas City continuity snapshot",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "registry_sha256", "ledgers", "projects"],
+  "required": ["schema", "registry_sha256", "runtime", "ledgers", "projects"],
   "properties": {
-    "schema": {"const": "gas-city-workflow.continuity-snapshot.v1"},
+    "schema": {"const": "gas-city-workflow.continuity-snapshot.v2"},
     "registry_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["city"],
+      "properties": {
+        "city": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["session_ledger", "tmux"],
+          "properties": {
+            "session_ledger": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["status", "authority", "sessions"],
+              "properties": {
+                "status": {"enum": ["complete", "unknown"]},
+                "authority": {"const": "gc-session-list-v1"},
+                "sessions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["id", "session_name", "state", "transport", "closed"],
+                    "properties": {
+                      "id": {"type": "string", "minLength": 1},
+                      "session_name": {"type": "string"},
+                      "state": {"type": "string"},
+                      "transport": {"type": "string"},
+                      "closed": {"type": "boolean"}
+                    }
+                  }
+                }
+              }
+            },
+            "tmux": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["status", "authority", "uid", "servers"],
+              "properties": {
+                "status": {"enum": ["complete", "unknown"]},
+                "authority": {"const": "same-uid-procfs"},
+                "uid": {"type": "integer", "minimum": 0},
+                "servers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "pid",
+                      "sid",
+                      "ppid",
+                      "uid",
+                      "start_ticks",
+                      "cmdline_sha256",
+                      "argv0",
+                      "socket_label",
+                      "child_pids"
+                    ],
+                    "properties": {
+                      "pid": {"type": "integer", "minimum": 1},
+                      "sid": {"type": "integer", "minimum": 1},
+                      "ppid": {"type": "integer", "minimum": 0},
+                      "uid": {"type": "integer", "minimum": 0},
+                      "start_ticks": {"type": "integer", "minimum": 0},
+                      "cmdline_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                      "argv0": {"const": "tmux"},
+                      "socket_label": {"const": "city"},
+                      "child_pids": {
+                        "type": "array",
+                        "items": {"type": "integer", "minimum": 1}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "ledgers": {
       "type": "array",
       "items": {
