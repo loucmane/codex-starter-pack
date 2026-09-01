@@ -21,6 +21,7 @@ from scripts._source_workflow_state import (
     derive_completed_source_work,
     derive_source_lifecycle,
     recover_source_current_work,
+    recovered_source_current_work_retirement_binding,
     retire_recovered_source_current_work,
     read_source_closeout_transaction,
 )
@@ -583,6 +584,36 @@ def test_recovered_source_current_work_retires_only_for_matching_closeout(
     assert retire_recovered_source_current_work(root, transaction) is True
     assert not current_path.exists()
     assert retire_recovered_source_current_work(root, transaction) is False
+
+
+def test_recovered_source_current_work_binds_original_session_after_continuation(
+    tmp_path: Path,
+) -> None:
+    root, _ = _init_bead_source_repo(tmp_path)
+    active = _activate_bead_source_state(root)
+    branch = "codex/ga-test1-source-closeout"
+    recovered = recover_source_current_work(root, branch, schema_version="fixture-v1")
+    prior_session = recovered["paths"]["session"]
+    continuation = _write(
+        root / "sessions" / "2030" / "01" / "2030-01-02-001-ga-test1.md",
+        "Continuation evidence\n",
+    )
+    transaction = {
+        "work": {"kind": "bead", "id": "ga-test1"},
+        "paths": {
+            "active": active.relative_to(root).as_posix(),
+            "archive": "docs/ai/work-tracking/archive/20300101-ga-test1-source-closeout-COMPLETED",
+            "plan": (root / "plans" / "current").resolve().relative_to(root).as_posix(),
+            "session": continuation.relative_to(root).as_posix(),
+        },
+    }
+
+    retirement = recovered_source_current_work_retirement_binding(root, transaction)
+
+    assert transaction["paths"]["session"] == continuation.relative_to(root).as_posix()
+    assert retirement["paths"]["session"] == prior_session
+    assert retire_recovered_source_current_work(root, retirement) is True
+    assert not (root / ".aegis" / "state" / "current-work.json").exists()
 
 
 def test_recovered_source_current_work_retirement_refuses_invalid_timestamp_progression(
