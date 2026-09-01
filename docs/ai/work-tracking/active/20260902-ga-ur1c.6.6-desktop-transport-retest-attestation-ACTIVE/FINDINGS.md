@@ -32,3 +32,22 @@
   `1a6a7bb05ee77e1f743cf63de8894c039a2b7fd6c7e2c5d6d27ded8eb4ea6dc3`.
   This entry explicitly supersedes the two full strings expanded from truncated
   prefixes above; the recorder and doctor bind only these direct disk reads.
+- **2026-09-02 00:44 CEST — Live acceptance**: the local attestation at
+  `/home/loucmane/.config/gas-city/codex-desktop-transport-retest.json` is mode
+  0600 and SHA-256
+  `b871be3659f52964b0c3b83b4b8f56c1ba9f7e59b33770bd81930314c7483722`.
+  The installed doctor is version `2026.09.02.1` and SHA-256
+  `4792405845b70df1f7d50feab22649e5312852fb9bf026a9e8711b6fb410877e`;
+  its exact recorder replay returned `changed=false`. Host evidence
+  `doctor-stable-pass.json` is SHA-256
+  `ef868e47e21cf7c5b4da86c78ed5200c79a4969442b76a8d353467895d29d67d`
+  with overall READY, pass=20, warn=0, fail=0. Desktop version and absent
+  workaround both PASS through the verified exact attestation.
+- **2026-09-02 00:44 CEST — Independent race finding**: the first host doctor
+  overlapped `aegis-obsidian-reconcile.timer` and preserved report SHA-256
+  `d161eeddece9a391d835f716af008790a8b4bf74c9d419c87c3dae781387cd7a`.
+  It had 19 PASS and one false reconciler failure (`status=already-running`).
+  The exact check passed all four projects and the dashboard after the cycle,
+  and the stable doctor then passed 20/20. Repair Bead `ga-ur1c.6.7` owns the
+  bounded check/reconciliation serialization defect; no retry or warning was
+  erased.

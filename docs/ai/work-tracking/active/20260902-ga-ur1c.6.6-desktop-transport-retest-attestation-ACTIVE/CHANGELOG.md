@@ -8,3 +8,6 @@
   writes, exact-predecessor replacement, and preserved append-forward backups.
 - 2026-09-02 00:28 CEST — Corrected the active evidence bundle append-forward
   with direct disk SHA-256 values before any user-level installation.
+- 2026-09-02 00:44 CEST — Merged PRs #364/#365, installed the exact user-level
+  doctor and private attestation, proved idempotence, and captured a READY
+  20/20 host report without changing Windows configuration or any rig lifecycle.
