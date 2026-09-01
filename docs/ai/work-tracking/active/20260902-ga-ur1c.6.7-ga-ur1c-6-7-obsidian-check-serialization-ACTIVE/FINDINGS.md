@@ -11,3 +11,9 @@
 - 2026-09-02 — Reconciliation concurrency remains unchanged: a second writer still returns the
   successful non-mutating `already-running` no-op immediately. The new wait applies only to the
   read-only check boundary.
+- 2026-09-02 — Live acceptance observed the writer lock before invoking the host doctor. The
+  doctor blocked for 25.946877379 seconds, then returned `overall=ready` with 20 pass, zero fail,
+  zero warn, and zero unknown checks. The first evidence validator expected an obsolete uppercase
+  `status=READY` shape and stopped after the successful doctor run; the preserved result was
+  validated append-forward against the actual schema (`overall=ready`, lowercase `pass`) without
+  repeating the live reconciliation cycle.
