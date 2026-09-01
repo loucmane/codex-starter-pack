@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import json
+import copy
 import hashlib
+import json
 import os
 import re
 import runpy
@@ -829,14 +830,15 @@ def recover_source_current_work(
     return expected
 
 
-def retire_recovered_source_current_work(
+def _validate_recovered_source_current_work(
     root: Path,
     transaction: Mapping[str, object],
-) -> bool:
-    """Durably retire only the recovered source envelope bound to ``transaction``.
+) -> Path | None:
+    """Validate and return the recovered envelope bound to ``transaction``.
 
     An absent envelope is an idempotent no-op. Any installed, malformed, tampered,
-    or differently scoped envelope is preserved and refused for manual review.
+    or differently scoped envelope is preserved and refused for manual review. The
+    caller decides whether a validated envelope is inspected or durably retired.
     """
 
     root = root.resolve()
@@ -847,7 +849,7 @@ def retire_recovered_source_current_work(
 
     current_path = root / CURRENT_WORK_RELATIVE
     if not current_path.exists() and not current_path.is_symlink():
-        return False
+        return None
 
     cursor = root
     for part in CURRENT_WORK_RELATIVE.parent.parts:
@@ -1020,6 +1022,73 @@ def retire_recovered_source_current_work(
     ).hexdigest()
     if fingerprint != expected_fingerprint:
         raise SourceWorkflowStateError("source current-work recovery fingerprint mismatch")
+
+    return current_path
+
+
+def recovered_source_current_work_retirement_binding(
+    root: Path,
+    transaction: Mapping[str, object],
+) -> dict[str, object]:
+    """Return the fully validated transaction binding for a recovered envelope.
+
+    Daily continuation changes ``sessions/current`` without changing the immutable
+    recovered source envelope. Closeout must therefore validate the envelope against
+    its own original session while retaining the current continuation session in the
+    closeout transaction. No file is mutated by this binding step.
+    """
+
+    root = root.resolve()
+    current_path = root / CURRENT_WORK_RELATIVE
+    if not current_path.exists() and not current_path.is_symlink():
+        return copy.deepcopy(dict(transaction))
+    if current_path.is_symlink() or not current_path.is_file():
+        raise SourceWorkflowStateError("source current-work state must be a regular file")
+    try:
+        payload = json.loads(current_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise SourceWorkflowStateError(
+            f"source current-work state is invalid JSON: {exc}"
+        ) from exc
+    current_paths = payload.get("paths") if isinstance(payload, dict) else None
+    prior_session = current_paths.get("session") if isinstance(current_paths, dict) else None
+    if not isinstance(prior_session, str) or not prior_session:
+        raise SourceWorkflowStateError("source current-work session binding is invalid")
+    relative = Path(prior_session)
+    if (
+        relative.is_absolute()
+        or relative.as_posix() != prior_session
+        or ".." in relative.parts
+        or not relative.parts
+        or relative.parts[0] != SESSIONS_RELATIVE.as_posix()
+    ):
+        raise SourceWorkflowStateError("source current-work session binding is not contained")
+    session_path = (root / relative).resolve(strict=False)
+    if (
+        not session_path.is_relative_to(root)
+        or not session_path.is_file()
+        or session_path.is_symlink()
+    ):
+        raise SourceWorkflowStateError("source current-work session must be a regular file")
+
+    retirement = copy.deepcopy(dict(transaction))
+    retirement_paths = retirement.get("paths")
+    if not isinstance(retirement_paths, dict):
+        raise SourceWorkflowStateError("source closeout retirement paths are invalid")
+    retirement_paths["session"] = prior_session
+    _validate_recovered_source_current_work(root, retirement)
+    return retirement
+
+
+def retire_recovered_source_current_work(
+    root: Path,
+    transaction: Mapping[str, object],
+) -> bool:
+    """Durably retire only the recovered source envelope bound to ``transaction``."""
+
+    current_path = _validate_recovered_source_current_work(root, transaction)
+    if current_path is None:
+        return False
 
     current_path.unlink()
     directory_descriptor = os.open(current_path.parent, os.O_RDONLY | os.O_DIRECTORY)

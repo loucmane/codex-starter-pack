@@ -1395,6 +1395,17 @@ Evidence: {archive_reference}/TRACKER.md
         return True
 
     monkeypatch.setattr(module, "_retire_recovered_source_current_work", retire)
+    monkeypatch.setattr(
+        module,
+        "_recovered_source_current_work_retirement_binding",
+        lambda transaction: {
+            **transaction,
+            "paths": {
+                **transaction["paths"],
+                "session": prior_session.relative_to(repo).as_posix(),
+            },
+        },
+    )
     transaction = {
         "schema": module.SOURCE_CLOSEOUT_JOURNAL_SCHEMA,
         "transaction_id": "a" * 64,
@@ -1428,6 +1439,195 @@ Evidence: {archive_reference}/TRACKER.md
     assert not current.exists()
     assert len(retired) == 1
     assert retired[0]["paths"]["session"] == prior_session.relative_to(repo).as_posix()
+
+
+def test_source_closeout_reconcile_repairs_continuation_session_binding(
+    monkeypatch, tmp_path
+) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    active_reference = (
+        Path("docs/ai/work-tracking/active")
+        / "20300101-ga-test1-continuation-ACTIVE"
+    ).as_posix()
+    archive = (
+        repo
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "archive"
+        / "20300101-ga-test1-continuation-COMPLETED"
+    )
+    archive.mkdir(parents=True)
+    archive_reference = archive.relative_to(repo).as_posix()
+    tracker = archive / "TRACKER.md"
+    tracker.write_text(
+        f"""# Bead ga-test1 Tracker
+
+**Status**: COMPLETED
+
+Evidence: {archive_reference}/TRACKER.md
+
+## Plan Compliance Checklist
+- [x] plan-step-scope
+- [x] plan-step-implement
+- [x] plan-step-verify
+""",
+        encoding="utf-8",
+    )
+    plan = repo / "plans" / "2030-01-01-ga-test1-continuation.md"
+    plan.parent.mkdir(parents=True)
+    plan.write_text(
+        f"""Evidence: {archive_reference}/TRACKER.md
+
+| Step ID | Description | Evidence | Status |
+|---|---|---|---|
+| plan-step-scope | Scope | {archive_reference}/TRACKER.md | completed |
+| plan-step-implement | Implement | scripts/codex-task | completed |
+| plan-step-verify | Verify | {archive_reference}/TRACKER.md | completed |
+""",
+        encoding="utf-8",
+    )
+    (plan.parent / "current").symlink_to(plan.name)
+    prior_session = repo / "sessions" / "2030" / "01" / "2030-01-01-001-ga-test1.md"
+    prior_session.parent.mkdir(parents=True)
+    prior_session.write_text(
+        f"prefix\nEvidence: {active_reference}/TRACKER.md\nsuffix\n",
+        encoding="utf-8",
+    )
+    continuation = repo / "sessions" / "2030" / "01" / "2030-01-02-001-ga-test1.md"
+    continuation.write_text(
+        f"Evidence: {archive_reference}/TRACKER.md\n",
+        encoding="utf-8",
+    )
+    session_link = repo / "sessions" / "current"
+    session_link.parent.mkdir(parents=True, exist_ok=True)
+    session_link.symlink_to(continuation.relative_to(session_link.parent))
+    plan_state = repo / ".plan_state"
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "WORK_TRACKING_BASE", repo / "docs/ai/work-tracking/active")
+    monkeypatch.setattr(module, "PLAN_STATE_DIR", plan_state)
+    monkeypatch.setattr(module, "PLAN_SYNC_LOG", plan_state / "sync.log")
+    module.handle_plan_sync(
+        argparse.Namespace(
+            plan=plan.relative_to(repo).as_posix(),
+            tracker=tracker.relative_to(repo).as_posix(),
+            dry_run=False,
+        )
+    )
+    transaction = {
+        "schema": module.SOURCE_CLOSEOUT_JOURNAL_SCHEMA,
+        "transaction_id": "b" * 64,
+        "phase": "plan_synced",
+        "work": {"kind": "bead", "id": "ga-test1"},
+        "paths": {
+            "active": active_reference,
+            "archive": archive_reference,
+            "plan": plan.relative_to(repo).as_posix(),
+            "session": continuation.relative_to(repo).as_posix(),
+        },
+        "timestamps": {
+            "created_at": "2030-01-02T12:00:00+00:00",
+            "date": "2030-01-02",
+            "display": "2030-01-02 12:00 UTC",
+            "tracker": "2030-01-02 12:00",
+        },
+    }
+    module._atomic_write_json(
+        plan_state / module.SOURCE_CLOSEOUT_JOURNAL_NAME,
+        transaction,
+    )
+    retirement = {
+        **transaction,
+        "paths": {
+            **transaction["paths"],
+            "session": prior_session.relative_to(repo).as_posix(),
+        },
+    }
+    monkeypatch.setattr(
+        module,
+        "_recovered_source_current_work_retirement_binding",
+        lambda _transaction: retirement,
+    )
+    retired: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        module,
+        "_retire_recovered_source_current_work",
+        lambda bound: retired.append(bound) or True,
+    )
+
+    module.handle_work_tracking_reconcile(argparse.Namespace(dry_run=False))
+
+    assert not (plan_state / module.SOURCE_CLOSEOUT_JOURNAL_NAME).exists()
+    assert prior_session.read_text(encoding="utf-8") == (
+        f"prefix\nEvidence: {archive_reference}/TRACKER.md\nsuffix\n"
+    )
+    assert continuation.read_text(encoding="utf-8") == (
+        f"Evidence: {archive_reference}/TRACKER.md\n"
+    )
+    assert retired == [retirement]
+
+
+def test_source_closeout_refusal_preserves_prior_session_before_rewrite(
+    monkeypatch, tmp_path
+) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    active_reference = (
+        "docs/ai/work-tracking/active/20300101-ga-test1-continuation-ACTIVE"
+    )
+    archive_reference = (
+        "docs/ai/work-tracking/archive/20300101-ga-test1-continuation-COMPLETED"
+    )
+    archive = repo / archive_reference
+    archive.mkdir(parents=True)
+    prior_session = repo / "sessions/2030/01/2030-01-01-001-ga-test1.md"
+    prior_session.parent.mkdir(parents=True)
+    prior_session.write_text(f"Evidence: {active_reference}/TRACKER.md\n", encoding="utf-8")
+    current_session = repo / "sessions/2030/01/2030-01-02-001-ga-test1.md"
+    current_session.write_text(
+        f"Evidence: {archive_reference}/TRACKER.md\n",
+        encoding="utf-8",
+    )
+    transaction = {
+        "phase": "plan_synced",
+        "paths": {
+            "active": active_reference,
+            "archive": archive_reference,
+            "plan": "plans/2030-01-01-ga-test1.md",
+            "session": current_session.relative_to(repo).as_posix(),
+        },
+    }
+    retirement = {
+        **transaction,
+        "paths": {
+            **transaction["paths"],
+            "session": prior_session.relative_to(repo).as_posix(),
+        },
+    }
+
+    def refuse_terminal(_transaction) -> None:
+        raise module.TaskError("terminal drift")
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(
+        module,
+        "_recovered_source_current_work_retirement_binding",
+        lambda _transaction: retirement,
+    )
+    monkeypatch.setattr(
+        module,
+        "_verify_source_closeout_terminal",
+        refuse_terminal,
+    )
+
+    with pytest.raises(module.TaskError, match="terminal drift"):
+        module._execute_source_closeout(transaction)
+
+    assert prior_session.read_text(encoding="utf-8") == (
+        f"Evidence: {active_reference}/TRACKER.md\n"
+    )
 
 
 def test_source_closeout_crash_after_current_work_retirement_is_idempotent(
@@ -1469,6 +1669,11 @@ def test_source_closeout_crash_after_current_work_retirement_is_idempotent(
     monkeypatch.setattr(module, "REPO_ROOT", repo)
     monkeypatch.setattr(module, "PLAN_STATE_DIR", plan_state)
     monkeypatch.setattr(module, "_verify_source_closeout_terminal", lambda _transaction: None)
+    monkeypatch.setattr(
+        module,
+        "_recovered_source_current_work_retirement_binding",
+        lambda bound: bound,
+    )
     monkeypatch.setattr(module, "_retire_recovered_source_current_work", retire)
     monkeypatch.setattr(module, "_source_closeout_checkpoint", crash_after_retirement)
 
