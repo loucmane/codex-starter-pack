@@ -23,3 +23,4 @@
 - Continue the independently tracked `ga-ur1c.6.7` repair for the discovered
   reconciler-cycle health-check race; it does not invalidate this Desktop
   transport acceptance.
+- Archived on 2026-09-02 00:52 CEST — Folder moved to archive and tracker marked COMPLETED.

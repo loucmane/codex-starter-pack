@@ -11,3 +11,4 @@
 - 2026-09-02 00:44 CEST — Merged PRs #364/#365, installed the exact user-level
   doctor and private attestation, proved idempotence, and captured a READY
   20/20 host report without changing Windows configuration or any rig lifecycle.
+- 2026-09-02 00:52 CEST — Archived active work-tracking folder.
