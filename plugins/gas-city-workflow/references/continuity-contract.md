@@ -30,6 +30,13 @@ the caller's namespace, process state is `unknown` and produces a warning; it is
 `absent`. Actual absent or inactive scope evidence remains an error. The observer never starts,
 stops, restarts, or signals Obsidian.
 
+The reconciler-owned continuity dashboard is the one bounded exception to live lock observation.
+It captures a post-release candidate with `snapshot --obsidian-cycle-status idle` only after every
+project candidate has passed its filesystem and live-index gates. The CLI accepts no other explicit
+status. This keeps the dashboard byte-identical to the immediately subsequent strict check after the
+registry lock is released, while ordinary callers that omit the option continue to observe a real
+mid-cycle `running` state and an abandoned pending candidate as `interrupted`.
+
 The JSON audit and human status view are both derived by `continuity_model.py`. `next_actions` is
 the sole source for the human `next` lines. If any Bead store contains an `initiative:active` epic,
 only that epic and its transitive `parent-child` descendants populate Current/Next/Blocked; other

@@ -80,6 +80,8 @@ def capture_report(
                 installed_registry.as_posix(),
                 "--obsidian-state",
                 state_dir.as_posix(),
+                "--obsidian-cycle-status",
+                "idle",
                 "--signing-policies",
                 config.signing_policies.as_posix(),
                 "--output",

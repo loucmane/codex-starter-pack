@@ -1984,5 +1984,29 @@
     "plan_hash": "7fdb83c71c07c7afb33fa0a91335cdac73470c950b98695b0e75da41d8778978",
     "tracker_hash": "0a2172cb6d2b138865ba86d07eca5058f1ab10a81ce3da0a91e53509f959603d",
     "synced_at": "2026-09-01T13:24:20.217107+02:00"
+  },
+  {
+    "plan": "plans/2026-09-01-ga-ur1c.6.4-obsidian-cycle-stability.md",
+    "plan_hash": "b306debe62f20ef1a37abf4cfbf428b347b867405e4d8d56800367ce969c2ed5",
+    "tracker_hash": "1da5e23788c4f799b1115e78cda55eb7474ae00f0234a452cc820165f6e432ab",
+    "synced_at": "2026-09-01T13:33:56.610959+02:00"
+  },
+  {
+    "plan": "plans/2026-09-01-ga-ur1c.6.4-obsidian-cycle-stability.md",
+    "plan_hash": "f89f62f3575eaa4e832518c2d9de18ad5d741fd8343ac727a08e3693c8079299",
+    "tracker_hash": "76974901eee5248e0a0e3af369f67c21436e6f433eb116b846a44a888e7909d5",
+    "synced_at": "2026-09-01T13:55:02.571238+02:00"
+  },
+  {
+    "plan": "plans/2026-09-01-ga-ur1c.6.4-obsidian-cycle-stability.md",
+    "plan_hash": "35802fc85db8576e9ac05480a9e4f4aeb29c84188f2a724380955b1291d03868",
+    "tracker_hash": "76974901eee5248e0a0e3af369f67c21436e6f433eb116b846a44a888e7909d5",
+    "synced_at": "2026-09-01T13:55:40.301048+02:00"
+  },
+  {
+    "plan": "plans/2026-09-01-ga-ur1c.6.4-obsidian-cycle-stability.md",
+    "plan_hash": "35802fc85db8576e9ac05480a9e4f4aeb29c84188f2a724380955b1291d03868",
+    "tracker_hash": "76974901eee5248e0a0e3af369f67c21436e6f433eb116b846a44a888e7909d5",
+    "synced_at": "2026-09-01T13:55:58.019443+02:00"
   }
 ]

@@ -355,6 +355,7 @@ def test_reconcile_publishes_and_checks_continuity_dashboard(tmp_path: Path) -> 
     ) -> subprocess.CompletedProcess[bytes]:
         output = Path(argv[argv.index("--output") + 1])
         if "snapshot" in argv:
+            assert argv[argv.index("--obsidian-cycle-status") + 1] == "idle"
             output.write_text("{}\n", encoding="utf-8")
             return subprocess.CompletedProcess(argv, 0, b"", b"")
         project_state = json.loads(

@@ -830,10 +830,43 @@ def test_live_collector_uses_registry_without_hardcoded_project_ids(tmp_path: Pa
         runner=Runner(),
     )
 
+    lock_path = obsidian_state / "registry-cycle.lock"
+    lock_path.touch()
+    with lock_path.open("a+", encoding="utf-8") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        running = capture.capture_snapshot(
+            registry,
+            extra_roots=[root],
+            obsidian_registry=obsidian_registry,
+            obsidian_state=obsidian_state,
+            signing_policies=signing,
+            runner=Runner(),
+        )
+        projected = capture.capture_snapshot(
+            registry,
+            extra_roots=[root],
+            obsidian_registry=obsidian_registry,
+            obsidian_state=obsidian_state,
+            obsidian_cycle_status="idle",
+            signing_policies=signing,
+            runner=Runner(),
+        )
+
     assert first == second
     assert first["projects"][0]["id"] == "future-project"
     assert first["projects"][0]["obsidian"]["live_index_status"] == "confirmed"
     assert [item["id"] for item in first["ledgers"][0]["beads"]] == ["fp-next"]
+    assert running["projects"][0]["obsidian"]["cycle"]["status"] == "running"
+    assert projected["projects"][0]["obsidian"]["cycle"]["status"] == "idle"
+
+
+def test_snapshot_cli_accepts_only_the_post_cycle_idle_projection() -> None:
+    cli = _load("continuity")
+
+    args = cli.parse_args(["snapshot", "--obsidian-cycle-status", "idle"])
+    assert args.obsidian_cycle_status == "idle"
+    with pytest.raises(SystemExit):
+        cli.parse_args(["snapshot", "--obsidian-cycle-status", "running"])
 
 
 def test_read_only_runner_pins_the_managed_operator_path(monkeypatch) -> None:

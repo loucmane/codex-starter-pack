@@ -654,10 +654,15 @@ def capture_snapshot(
     extra_roots: Sequence[Path] = (),
     obsidian_registry: Path = OBSIDIAN_REGISTRY,
     obsidian_state: Path = OBSIDIAN_STATE,
+    obsidian_cycle_status: str | None = None,
     signing_policies: Path = SIGNING_POLICIES,
     residue_dispositions: Path | None = None,
     runner: ReadOnlyRunner | None = None,
 ) -> dict[str, Any]:
+    if obsidian_cycle_status not in {None, "idle"}:
+        raise ContinuityError(
+            "Obsidian cycle projection must be idle when explicitly provided"
+        )
     runner = runner or ReadOnlyRunner()
     registry_bytes = registry_path.read_bytes()
     projects = _load_registry(registry_path)
@@ -686,12 +691,16 @@ def capture_snapshot(
         registered_roots.add(canonical_root)
         registered_ids.add(project_id)
     obsidian_process = _obsidian_process(runner)
-    obsidian_cycle_status = _obsidian_cycle_status(obsidian_state)
+    observed_obsidian_cycle_status = (
+        obsidian_cycle_status
+        if obsidian_cycle_status is not None
+        else _obsidian_cycle_status(obsidian_state)
+    )
     obsidian = _obsidian_index(
         obsidian_registry,
         obsidian_state,
         process=obsidian_process,
-        registry_cycle_status=obsidian_cycle_status,
+        registry_cycle_status=observed_obsidian_cycle_status,
     )
     receipts = _receipt_index(signing_policies)
     dispositions = _load_residue_dispositions(residue_dispositions, projects, runner)
@@ -838,7 +847,7 @@ def capture_snapshot(
                             "observed_at": None,
                         },
                         "cycle": {
-                            "status": obsidian_cycle_status,
+                            "status": observed_obsidian_cycle_status,
                             "attempted_at": None,
                             "pending_candidate": False,
                         },
