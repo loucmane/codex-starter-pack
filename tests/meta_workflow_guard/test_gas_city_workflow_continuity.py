@@ -685,6 +685,27 @@ def test_confirmed_obsidian_index_requires_host_authority_and_observation_time()
     ]
 
 
+def test_post_cycle_projection_keeps_authority_without_volatile_observation_time() -> None:
+    model = _load("continuity_model")
+    project = _project("gas-city-operations", [])
+    project["obsidian"]["cycle"] = {
+        "status": "idle",
+        "attempted_at": None,
+        "pending_candidate": False,
+        "projection": "post-cycle",
+    }
+    project["obsidian"]["live_index"] = {
+        "status": "confirmed",
+        "authority": "host-obsidian-ipc",
+        "observed_at": None,
+    }
+
+    report = model.build_report(_snapshot([project]))
+
+    assert report["ok"] is True
+    assert report["findings"] == []
+
+
 def test_human_status_is_derived_from_the_json_report() -> None:
     model = _load("continuity_model")
     project = _project("gas-city", [_bead("ga-next", "open", title="Do the next thing")])
@@ -1005,6 +1026,80 @@ def test_obsidian_index_keeps_confirmed_success_during_cycle_and_detects_interru
     }
     assert running["cycle"]["status"] == "running"
     assert interrupted["cycle"]["status"] == "interrupted"
+
+
+def test_post_cycle_projection_is_stable_across_success_timestamps(tmp_path: Path) -> None:
+    capture = _load("continuity_capture")
+    root = tmp_path / "project"
+    root.mkdir()
+    registry = tmp_path / "registry.json"
+    registry.write_text(
+        json.dumps({"projects": [{"id": "project", "target_dir": str(root)}]}),
+        encoding="utf-8",
+    )
+    state_root = tmp_path / "state"
+    state_root.mkdir()
+    state_path = state_root / "project.json"
+    process = {
+        "status": "active",
+        "authority": "systemd-user-manager",
+        "units": [],
+    }
+
+    def write_state(moment: str) -> None:
+        state_path.write_text(
+            json.dumps(
+                {
+                    "last_attempt_at": moment,
+                    "last_success": {
+                        "completed_at": moment,
+                        "vault_status": "current",
+                        "live_index": {
+                            "status": "confirmed",
+                            "authority": "host-obsidian-ipc",
+                            "observed_at": moment,
+                        },
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+
+    write_state("2026-09-01T13:00:00Z")
+    ordinary = capture._obsidian_index(
+        registry,
+        state_root,
+        process=process,
+        registry_cycle_status="idle",
+    )[root.resolve().as_posix()]
+    first = capture._obsidian_index(
+        registry,
+        state_root,
+        process=process,
+        registry_cycle_status="idle",
+        post_cycle_projection=True,
+    )[root.resolve().as_posix()]
+
+    write_state("2026-09-01T13:01:00Z")
+    second = capture._obsidian_index(
+        registry,
+        state_root,
+        process=process,
+        registry_cycle_status="idle",
+        post_cycle_projection=True,
+    )[root.resolve().as_posix()]
+
+    assert ordinary["filesystem"]["completed_at"] == "2026-09-01T13:00:00Z"
+    assert ordinary["live_index"]["observed_at"] == "2026-09-01T13:00:00Z"
+    assert first == second
+    assert first["filesystem"]["completed_at"] is None
+    assert first["live_index"]["observed_at"] is None
+    assert first["cycle"] == {
+        "status": "idle",
+        "attempted_at": None,
+        "pending_candidate": False,
+        "projection": "post-cycle",
+    }
 
 
 def test_unknown_managed_branch_still_exposes_its_native_bead_candidate() -> None:

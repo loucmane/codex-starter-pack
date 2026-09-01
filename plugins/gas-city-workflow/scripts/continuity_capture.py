@@ -408,6 +408,7 @@ def _obsidian_index(
     *,
     process: Mapping[str, Any],
     registry_cycle_status: str,
+    post_cycle_projection: bool = False,
 ) -> dict[str, dict[str, Any]]:
     if not registry_path.exists():
         return {}
@@ -435,6 +436,22 @@ def _obsidian_index(
             project_cycle_status = registry_cycle_status
         completed_at = success.get("completed_at")
         observed_at = live.get("observed_at") or completed_at
+        attempted_at = state.get("last_attempt_at")
+        if post_cycle_projection:
+            # A reconciler-owned dashboard is a semantic post-cycle view.  The
+            # underlying state keeps its exact audit timestamps, but hashing
+            # them into that view would guarantee a rebuild after every
+            # successful cycle even when no project fact changed.
+            completed_at = None
+            observed_at = None
+            attempted_at = None
+        cycle = {
+            "status": project_cycle_status,
+            "attempted_at": attempted_at,
+            "pending_candidate": pending,
+        }
+        if post_cycle_projection:
+            cycle["projection"] = "post-cycle"
         result[Path(target).resolve().as_posix()] = {
             "registered": True,
             "registry_project_id": project_id,
@@ -449,11 +466,7 @@ def _obsidian_index(
                 "authority": live.get("authority"),
                 "observed_at": observed_at,
             },
-            "cycle": {
-                "status": project_cycle_status,
-                "attempted_at": state.get("last_attempt_at"),
-                "pending_candidate": pending,
-            },
+            "cycle": cycle,
             "process": dict(process),
             "state_path": state_path.as_posix(),
         }
@@ -701,6 +714,7 @@ def capture_snapshot(
         obsidian_state,
         process=obsidian_process,
         registry_cycle_status=observed_obsidian_cycle_status,
+        post_cycle_projection=obsidian_cycle_status is not None,
     )
     receipts = _receipt_index(signing_policies)
     dispositions = _load_residue_dispositions(residue_dispositions, projects, runner)

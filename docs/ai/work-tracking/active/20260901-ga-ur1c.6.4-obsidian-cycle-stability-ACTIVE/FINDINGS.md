@@ -38,3 +38,18 @@
   a second run still disagreed with Python's Windows-inherited temp root. Pinning `TMPDIR`, `TMP`,
   and `TEMP` consistently to WSL `/tmp` made the complete affected corpus pass 682/682 with 9
   expected skips. No product failure remained.
+- 2026-09-01 — The first successful repaired install exposed one deeper semantic loop during live
+  acceptance: the dashboard correctly projected `cycle.status=idle`, but still digest-bound every
+  project's `last_attempt_at`, `completed_at`, and live-index `observed_at`. Each successful cycle
+  advanced those audit clocks after its dashboard capture, guaranteeing the following cycle would
+  rebuild. Two host-context snapshots with no intervening cycle were byte-identical, isolating the
+  mutation to reconciler state advancement rather than Beads, Git, process, or vault drift.
+- 2026-09-01 — Append-forward GREEN evidence adds a semantic post-cycle projection that omits only
+  the three volatile audit timestamps while retaining their exact values in ordinary diagnostic
+  snapshots. Host authority and confirmed live-index status remain required. The affected
+  continuity/installer/reconciler/vault suite passes 73/73, including distinct-success-timestamp
+  equality and missing-time refusal outside the explicit projection.
+- 2026-09-01 — Broad append-forward verification passes 2,260 tests with 21 expected skips across
+  the complete meta-workflow and Claude-adapter safety surfaces, excluding only the separately
+  hosted package-install invocation module. Ruff, diff check, Aegis guard, drift check, plan sync,
+  and work-tracking audit all pass.

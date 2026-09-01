@@ -13,3 +13,7 @@
   is inactive. A timer may not be started until the installed reconciliation and strict check pass.
   Rollback restores stable scheduler semantics; transient `running/start` observations are evidence
   of an in-flight cycle, not a state to recreate.
+- 2026-09-01 — Treat per-cycle audit clocks as diagnostic evidence, not continuity identity. The
+  explicit post-cycle dashboard projection names and removes only those clocks; it does not weaken
+  live-index authority, process observation, pending-candidate detection, or direct live snapshots.
+  Hashing exact audit clocks was rejected because it makes a no-op cycle impossible by design.
