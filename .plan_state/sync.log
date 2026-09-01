@@ -2008,5 +2008,17 @@
     "plan_hash": "35802fc85db8576e9ac05480a9e4f4aeb29c84188f2a724380955b1291d03868",
     "tracker_hash": "76974901eee5248e0a0e3af369f67c21436e6f433eb116b846a44a888e7909d5",
     "synced_at": "2026-09-01T13:55:58.019443+02:00"
+  },
+  {
+    "plan": "plans/2026-09-01-ga-ur1c.6.4-obsidian-cycle-stability.md",
+    "plan_hash": "513e81b93b0eee1aa6a8f74aaf3d400b9d1bf42c7cf8b50d54144b0bb04d52c2",
+    "tracker_hash": "a9cd6311f5cc278728395127d400f7cf1bf326f68d967d580b6e547360de41ef",
+    "synced_at": "2026-09-01T14:24:54.270646+02:00"
+  },
+  {
+    "plan": "plans/2026-09-01-ga-ur1c.6.4-obsidian-cycle-stability.md",
+    "plan_hash": "47918f0eac94b7aa6b49ba95c47cf62796ca132114c22a91a7f859e6b4a1cde5",
+    "tracker_hash": "3a28f6ac26a47726cb253f2b4eb116b67971c6e0315dec26a360897d7b51d280",
+    "synced_at": "2026-09-01T14:58:30.851719+02:00"
   }
 ]

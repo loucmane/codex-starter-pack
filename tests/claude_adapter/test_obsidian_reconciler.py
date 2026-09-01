@@ -602,6 +602,34 @@ def test_registry_cycle_lock_makes_concurrent_invocation_a_noop(tmp_path: Path) 
     assert not (state_dir / "gas-city.json").exists()
 
 
+def test_registry_check_refuses_while_reconciliation_holds_cycle_lock(
+    tmp_path: Path,
+) -> None:
+    root = _repo(tmp_path)
+    registry = load_registry(_registry(tmp_path, root, tmp_path / "vault"))
+    state_dir = tmp_path / "state"
+    state_dir.mkdir()
+    lock_path = state_dir / "registry-cycle.lock"
+    with lock_path.open("a+", encoding="utf-8") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        result = obsidian_reconciler.check_registry(
+            registry,
+            state_dir=state_dir,
+            bead_exporter=lambda _argv, _timeout: pytest.fail("export must not run"),
+            event_reader=lambda _target: pytest.fail("ledger read must not run"),
+        )
+
+    assert result == {
+        "schema_version": "1",
+        "ok": False,
+        "status": "already-running",
+        "registry_digest": registry.digest,
+        "live_index_required": False,
+        "projects": [],
+        "continuity_dashboard": None,
+    }
+
+
 def test_changed_multi_project_cycle_reloads_shared_obsidian_endpoint_once(
     tmp_path: Path,
 ) -> None:

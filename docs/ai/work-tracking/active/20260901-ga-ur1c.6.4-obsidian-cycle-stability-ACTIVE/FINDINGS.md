@@ -19,3 +19,22 @@
   boundary correctly refused to escalate. Eleven later failures were only attempts by legacy guard
   tests to create fixtures inside the externally rooted isolated worktree; both affected modules
   passed 92/92 in the writable execution context. Hosted CI remains the package-install authority.
+- 2026-09-01 — The first merge-bound install stopped safely after proving a second race. The
+  installer captured timer/service state before stopping the timer, then re-enabled the one-minute
+  timer before its strict check. A queued cycle could therefore start while rollback snapshots or
+  check snapshots were being read. The observed rollback snapshot retained exact manifests but
+  omitted 6 Operations and 17 Blog generated `Legacy/` files; directory timestamps and unit timing
+  bind the omissions to the raced restore, not source deletion or human-authored vault content.
+- 2026-09-01 — The rollback bytes were restored, but the verifier compared transient timer/service
+  substates (`running/start`) with the correct settled scheduler state (`waiting/dead`). The durable
+  contract is timer enablement/activation plus its settled waiting state and the post-quiescence
+  service result—not the state sampled before quiescence.
+- 2026-09-01 — Append-forward RED evidence failed in four exact places: checks ignored the held
+  registry lock, missing generated files blocked deterministic repair, the timer used `enable
+  --now` before validation, and no semantic rollback comparator existed. The corresponding focused
+  regressions now pass; the adjacent installer/reconciler/vault/continuity suite passes 46/46.
+- 2026-09-01 — Proportional verification is 2,459 passed with 21 expected skips. An initial broad
+  run deliberately surfaced 77 environment-only refusals because its fixture root was inside Git;
+  a second run still disagreed with Python's Windows-inherited temp root. Pinning `TMPDIR`, `TMP`,
+  and `TEMP` consistently to WSL `/tmp` made the complete affected corpus pass 682/682 with 9
+  expected skips. No product failure remained.

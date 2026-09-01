@@ -578,7 +578,7 @@ def reconcile_registry(
         lock_handle.close()
 
 
-def check_registry(
+def _check_registry_unlocked(
     registry: Registry,
     *,
     state_dir: str | Path,
@@ -747,6 +747,50 @@ def check_registry(
         "projects": checked,
         "continuity_dashboard": dashboard_check,
     }
+
+
+def check_registry(
+    registry: Registry,
+    *,
+    state_dir: str | Path,
+    bead_exporter: BeadExporter = export_beads,
+    event_reader: EventReader = read_events,
+    live_index_runner: LiveIndexRunner = obsidian_live_index.run_command,
+    dashboard_runner: DashboardRunner = obsidian_continuity.run_command,
+    clock: Clock = _now,
+    require_live_index: bool = False,
+) -> dict[str, Any]:
+    """Check one coherent registry snapshot or refuse while a cycle is active."""
+
+    state = Path(state_dir).expanduser().resolve()
+    state.mkdir(parents=True, exist_ok=True, mode=0o700)
+    os.chmod(state, 0o700)
+    lock_handle, acquired = _lock(state, "registry-cycle")
+    if not acquired:
+        lock_handle.close()
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "ok": False,
+            "status": "already-running",
+            "registry_digest": registry.digest,
+            "live_index_required": require_live_index,
+            "projects": [],
+            "continuity_dashboard": None,
+        }
+    try:
+        return _check_registry_unlocked(
+            registry,
+            state_dir=state,
+            bead_exporter=bead_exporter,
+            event_reader=event_reader,
+            live_index_runner=live_index_runner,
+            dashboard_runner=dashboard_runner,
+            clock=clock,
+            require_live_index=require_live_index,
+        )
+    finally:
+        fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
+        lock_handle.close()
 
 
 __all__ = [

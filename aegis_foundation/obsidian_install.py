@@ -281,6 +281,52 @@ def _wait_for_timer_waiting(
     return timer_state
 
 
+def _wait_for_service_inactive(
+    service: str,
+    *,
+    timeout_seconds: float = 360,
+    poll_seconds: float = 0.25,
+) -> dict[str, object]:
+    deadline = time.monotonic() + timeout_seconds
+    state = _unit_state(service)
+    while state["active"]:
+        if time.monotonic() >= deadline:
+            raise RuntimeError(f"reconciler service did not quiesce before snapshot: {state}")
+        time.sleep(poll_seconds)
+        state = _unit_state(service)
+    return state
+
+
+def _rollback_unit_policy_errors(
+    *,
+    before_timer: dict[str, object],
+    baseline_service: dict[str, object],
+    restored_timer: dict[str, object],
+    restored_service: dict[str, object],
+) -> list[str]:
+    """Compare stable scheduler intent, never transient timer/service substates."""
+
+    errors: list[str] = []
+    for key in ("enabled", "active"):
+        if before_timer.get(key) != restored_timer.get(key):
+            errors.append(
+                f"timer {key} restore drift: expected={before_timer.get(key)!r} "
+                f"observed={restored_timer.get(key)!r}"
+            )
+    if before_timer.get("active") and restored_timer.get("substate") != "waiting":
+        errors.append(
+            "timer stable substate restore drift: expected='waiting' "
+            f"observed={restored_timer.get('substate')!r}"
+        )
+    for key in ("enabled", "active", "substate", "result"):
+        if baseline_service.get(key) != restored_service.get(key):
+            errors.append(
+                f"service {key} restore drift: expected={baseline_service.get(key)!r} "
+                f"observed={restored_service.get(key)!r}"
+            )
+    return errors
+
+
 def _expected_files(
     *,
     home: Path,
@@ -384,6 +430,7 @@ def install(
     service = "aegis-obsidian-reconcile.service"
     before_timer = _unit_state(timer)
     before_service = _unit_state(service)
+    baseline_service = before_service
     state_dir = manifest_path.parent
     initially_missing_directories = _missing_directories(
         {state_dir, *output_parents, *(path.parent for path in files)}
@@ -396,10 +443,32 @@ def install(
             stopped = _run_systemctl("stop", timer)
             if stopped.returncode != 0:
                 raise RuntimeError(f"timer stop failed: {stopped.stderr.strip()}")
-        if before_service["active"]:
-            stopped = _run_systemctl("stop", service)
-            if stopped.returncode != 0:
-                raise RuntimeError(f"service stop failed: {stopped.stderr.strip()}")
+        baseline_service = _wait_for_service_inactive(service)
+        stopped = _run_systemctl("stop", service)
+        if stopped.returncode != 0:
+            raise RuntimeError(f"service stabilization stop failed: {stopped.stderr.strip()}")
+        baseline_service = _wait_for_service_inactive(service)
+    except Exception as exc:
+        rollback_errors: list[str] = []
+        if before_timer["enabled"]:
+            enabled = _run_systemctl("enable", timer)
+            if enabled.returncode != 0:
+                rollback_errors.append(f"timer enable restore failed: {enabled.stderr.strip()}")
+        if before_timer["active"]:
+            started = _run_systemctl("start", timer)
+            if started.returncode != 0:
+                rollback_errors.append(f"timer active restore failed: {started.stderr.strip()}")
+        restored_timer = _unit_state(timer)
+        for key in ("enabled", "active"):
+            if before_timer[key] != restored_timer[key]:
+                rollback_errors.append(
+                    f"timer {key} restore drift: expected={before_timer[key]!r} "
+                    f"observed={restored_timer[key]!r}"
+                )
+        if rollback_errors:
+            raise RuntimeError(f"{exc}; rollback failed: {'; '.join(rollback_errors)}") from exc
+        raise
+    try:
         state_snapshot = _snapshot_tree(state_dir)
         output_snapshots = {path: _snapshot_tree(path) for path in output_dirs}
         snapshots_captured = True
@@ -416,15 +485,18 @@ def install(
         reload_result = _run_systemctl("daemon-reload")
         if reload_result.returncode != 0:
             raise RuntimeError(f"systemd user daemon-reload failed: {reload_result.stderr.strip()}")
-        enabled = _run_systemctl("enable", "--now", timer)
+        enabled = _run_systemctl("enable", timer)
         if enabled.returncode != 0:
             raise RuntimeError(f"timer enable failed: {enabled.stderr.strip()}")
+        reset = _run_systemctl("reset-failed", service)
+        if reset.returncode != 0:
+            raise RuntimeError(f"service reset-failed failed: {reset.stderr.strip()}")
         started = _run_systemctl("start", "aegis-obsidian-reconcile.service")
         if started.returncode != 0:
             raise RuntimeError(f"initial reconciliation failed: {started.stderr.strip()}")
         state = _unit_state(timer)
-        if not state["enabled"] or not state["active"]:
-            raise RuntimeError(f"timer did not become enabled and active: {state}")
+        if not state["enabled"] or state["active"]:
+            raise RuntimeError(f"timer was not held enabled and inactive for validation: {state}")
         runtime_check = subprocess.run(
             [
                 str(home / ".local/bin/aegis-obsidian-reconcile"),
@@ -441,6 +513,15 @@ def install(
         )
         if runtime_check.returncode != 0:
             raise RuntimeError(f"installed reconciler check failed: {runtime_check.stdout.strip()}")
+        started = _run_systemctl("start", timer)
+        if started.returncode != 0:
+            raise RuntimeError(f"timer start failed: {started.stderr.strip()}")
+        state = _wait_for_timer_waiting(timer, service)
+        settled_service = _unit_state(service)
+        if settled_service["result"] != "success":
+            raise RuntimeError(
+                f"initial reconciliation did not leave a successful service: {settled_service}"
+            )
         manifest = {
             "schema_version": "1",
             "registry_digest": registry.digest,
@@ -481,7 +562,7 @@ def install(
                     _restore_tree(path, snapshot)
             except (OSError, RuntimeError) as rollback_exc:
                 rollback_errors.append(f"managed tree restore failed: {rollback_exc}")
-        if before_timer["active"] and before_timer["substate"] == "waiting":
+        if before_timer["active"] and baseline_service.get("result") == "success":
             primed = _run_systemctl("start", service)
             if primed.returncode != 0:
                 rollback_errors.append(
@@ -519,7 +600,7 @@ def install(
             started = _run_systemctl("start", timer)
             if started.returncode != 0:
                 rollback_errors.append(f"timer active restore failed: {started.stderr.strip()}")
-            elif before_timer["substate"] == "waiting":
+            else:
                 try:
                     _wait_for_timer_waiting(timer, service)
                     if snapshots_captured:
@@ -530,27 +611,20 @@ def install(
                     rollback_errors.append(
                         f"timer catch-up restore failed: {rollback_exc}"
                     )
-        if before_service["active"]:
-            started = _run_systemctl("start", service)
-            if started.returncode != 0:
-                rollback_errors.append(f"service active restore failed: {started.stderr.strip()}")
-        reset = _run_systemctl("reset-failed", service)
-        if reset.returncode != 0:
-            rollback_errors.append(f"service reset-failed failed: {reset.stderr.strip()}")
+        if baseline_service.get("result") == "success":
+            reset = _run_systemctl("reset-failed", service)
+            if reset.returncode != 0:
+                rollback_errors.append(f"service reset-failed failed: {reset.stderr.strip()}")
         restored_timer = _unit_state(timer)
-        for key in ("enabled", "active", "substate"):
-            if before_timer[key] != restored_timer[key]:
-                rollback_errors.append(
-                    f"timer {key} restore drift: expected={before_timer[key]!r} "
-                    f"observed={restored_timer[key]!r}"
-                )
         restored_service = _unit_state(service)
-        for key in ("enabled", "active", "substate", "result"):
-            if before_service[key] != restored_service[key]:
-                rollback_errors.append(
-                    f"service {key} restore drift: expected={before_service[key]!r} "
-                    f"observed={restored_service[key]!r}"
-                )
+        rollback_errors.extend(
+            _rollback_unit_policy_errors(
+                before_timer=before_timer,
+                baseline_service=baseline_service,
+                restored_timer=restored_timer,
+                restored_service=restored_service,
+            )
+        )
         if rollback_errors:
             raise RuntimeError(f"{exc}; rollback failed: {'; '.join(rollback_errors)}") from exc
         raise
@@ -591,9 +665,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "registry_digest": registry.digest,
                     "expected": expected,
                     "service_transition": [
+                        "stop aegis-obsidian-reconcile.timer",
+                        "wait for aegis-obsidian-reconcile.service to become inactive",
                         "systemctl --user daemon-reload",
-                        "enable --now aegis-obsidian-reconcile.timer",
+                        "enable aegis-obsidian-reconcile.timer",
                         "start aegis-obsidian-reconcile.service",
+                        "check installed reconciliation while timer remains inactive",
+                        "start aegis-obsidian-reconcile.timer",
                     ],
                 },
                 indent=2,
