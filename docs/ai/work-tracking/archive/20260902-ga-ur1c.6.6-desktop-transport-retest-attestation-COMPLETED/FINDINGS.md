@@ -51,3 +51,4 @@
   and the stable doctor then passed 20/20. Repair Bead `ga-ur1c.6.7` owns the
   bounded check/reconciliation serialization defect; no retry or warning was
   erased.
+- 2026-09-02 — Archive preconditions were satisfied and the completed bundle was preserved.
