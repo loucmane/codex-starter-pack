@@ -7,10 +7,12 @@ from datetime import datetime, timezone
 import fcntl
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import subprocess
 import tempfile
+import time
 from typing import Any
 
 from aegis_foundation import obsidian_continuity, obsidian_live_index, obsidian_vault
@@ -24,6 +26,8 @@ from aegis_foundation.obsidian_registry import (
 
 SCHEMA_VERSION = "1"
 MAX_EXPORT_BYTES = 8 * 1024 * 1024
+CHECK_LOCK_TIMEOUT_SECONDS = 60.0
+LOCK_POLL_SECONDS = 0.05
 BeadExporter = Callable[[tuple[str, ...], int], bytes]
 EventReader = Callable[[Path], list[dict[str, Any]]]
 Clock = Callable[[], datetime]
@@ -158,15 +162,26 @@ def _snapshot(
     return snapshot, exported
 
 
-def _lock(state_dir: Path, project_id: str) -> tuple[Any, bool]:
+def _lock(
+    state_dir: Path,
+    project_id: str,
+    *,
+    timeout_seconds: float = 0.0,
+) -> tuple[Any, bool]:
     path = state_dir / f"{project_id}.lock"
     handle = path.open("a+", encoding="utf-8")
     os.chmod(path, 0o600)
-    try:
-        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except BlockingIOError:
-        return handle, False
-    return handle, True
+    deadline = time.monotonic() + timeout_seconds
+    while True:
+        try:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return handle, False
+            time.sleep(min(LOCK_POLL_SECONDS, remaining))
+        else:
+            return handle, True
 
 
 def _attempt_state(
@@ -759,19 +774,28 @@ def check_registry(
     dashboard_runner: DashboardRunner = obsidian_continuity.run_command,
     clock: Clock = _now,
     require_live_index: bool = False,
+    lock_timeout_seconds: float = CHECK_LOCK_TIMEOUT_SECONDS,
 ) -> dict[str, Any]:
-    """Check one coherent registry snapshot or refuse while a cycle is active."""
+    """Wait boundedly for the writer, then check one coherent registry snapshot."""
+
+    if not math.isfinite(lock_timeout_seconds) or lock_timeout_seconds < 0:
+        raise ValueError("lock timeout must be a finite non-negative number")
 
     state = Path(state_dir).expanduser().resolve()
     state.mkdir(parents=True, exist_ok=True, mode=0o700)
     os.chmod(state, 0o700)
-    lock_handle, acquired = _lock(state, "registry-cycle")
+    lock_handle, acquired = _lock(
+        state,
+        "registry-cycle",
+        timeout_seconds=lock_timeout_seconds,
+    )
     if not acquired:
         lock_handle.close()
         return {
             "schema_version": SCHEMA_VERSION,
             "ok": False,
-            "status": "already-running",
+            "status": "lock-timeout",
+            "lock_timeout_seconds": lock_timeout_seconds,
             "registry_digest": registry.digest,
             "live_index_required": require_live_index,
             "projects": [],
@@ -794,6 +818,7 @@ def check_registry(
 
 
 __all__ = [
+    "CHECK_LOCK_TIMEOUT_SECONDS",
     "MAX_EXPORT_BYTES",
     "ReconcileError",
     "check_registry",

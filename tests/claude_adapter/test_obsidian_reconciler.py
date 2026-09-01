@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 import sqlite3
 import subprocess
+import threading
+import time
 
 import pytest
 
@@ -602,7 +604,53 @@ def test_registry_cycle_lock_makes_concurrent_invocation_a_noop(tmp_path: Path) 
     assert not (state_dir / "gas-city.json").exists()
 
 
-def test_registry_check_refuses_while_reconciliation_holds_cycle_lock(
+def test_registry_check_waits_for_reconciliation_then_checks_stable_snapshot(
+    tmp_path: Path,
+) -> None:
+    root = _repo(tmp_path)
+    output = tmp_path / "vault"
+    registry = load_registry(_registry(tmp_path, root, output))
+    state_dir = tmp_path / "state"
+    now = datetime(2026, 8, 28, 20, 0, tzinfo=timezone.utc)
+    obsidian_reconciler.reconcile_registry(
+        registry,
+        state_dir=state_dir,
+        bead_exporter=lambda _argv, _timeout: _beads(),
+        event_reader=lambda _target: [],
+        clock=lambda: now,
+        force=True,
+    )
+    lock_path = state_dir / "registry-cycle.lock"
+    released = threading.Event()
+    with lock_path.open("a+", encoding="utf-8") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+        def release_after_overlap() -> None:
+            time.sleep(0.05)
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            released.set()
+
+        release = threading.Thread(target=release_after_overlap)
+        release.start()
+        try:
+            result = obsidian_reconciler.check_registry(
+                registry,
+                state_dir=state_dir,
+                bead_exporter=lambda _argv, _timeout: _beads(),
+                event_reader=lambda _target: [],
+                clock=lambda: now,
+                lock_timeout_seconds=1.0,
+            )
+        finally:
+            release.join(timeout=1.0)
+
+    assert released.is_set()
+    assert result["ok"] is True
+    assert result["projects"][0]["source_digest"]
+    assert result["projects"][0]["problems"] == []
+
+
+def test_registry_check_times_out_fail_closed_while_cycle_lock_is_held(
     tmp_path: Path,
 ) -> None:
     root = _repo(tmp_path)
@@ -617,12 +665,14 @@ def test_registry_check_refuses_while_reconciliation_holds_cycle_lock(
             state_dir=state_dir,
             bead_exporter=lambda _argv, _timeout: pytest.fail("export must not run"),
             event_reader=lambda _target: pytest.fail("ledger read must not run"),
+            lock_timeout_seconds=0.01,
         )
 
     assert result == {
         "schema_version": "1",
         "ok": False,
-        "status": "already-running",
+        "status": "lock-timeout",
+        "lock_timeout_seconds": 0.01,
         "registry_digest": registry.digest,
         "live_index_required": False,
         "projects": [],
@@ -848,6 +898,17 @@ def test_cli_has_explicit_live_index_gate_only_on_check() -> None:
         ]
     )
     assert check.require_live_index is True
+    assert check.lock_timeout_seconds == obsidian_reconciler.CHECK_LOCK_TIMEOUT_SECONDS
+    bounded = parser.parse_args(
+        [
+            "check",
+            "--registry",
+            "/tmp/registry.json",
+            "--lock-timeout-seconds",
+            "2.5",
+        ]
+    )
+    assert bounded.lock_timeout_seconds == 2.5
     with pytest.raises(SystemExit):
         parser.parse_args(
             [

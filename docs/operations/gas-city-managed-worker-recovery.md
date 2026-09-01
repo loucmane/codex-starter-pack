@@ -52,6 +52,10 @@ The automatic Obsidian freshness and live-index authority is:
   --require-live-index
 ```
 
+This health check waits up to 60 seconds for an in-progress timer reconciliation and then reads
+one coherent post-cycle snapshot. A `lock-timeout` result means the writer did not quiesce within
+that bound; inspect the user service instead of retrying the doctor or weakening freshness.
+
 The installed registry is a generated projection of the canonical workflow project registry. It
 must contain Gas City Operations, Gas City, HPFetcher, and Blog, plus any later validated project;
 do not add projects by hand to the installed JSON. Every host registry entry declares the exact

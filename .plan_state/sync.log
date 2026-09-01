@@ -2200,5 +2200,17 @@
     "plan_hash": "b115625d7ab5e09d019d7c41a45015e85c93a966de7c065f559ebc3bdbdccaa6",
     "tracker_hash": "6d8dc9eaeda5081bacf6ff0bb6ab4a011de7b802a57d8b59baf5c13a476dd29c",
     "synced_at": "2026-09-02T00:52:45.115584+02:00"
+  },
+  {
+    "plan": "plans/2026-09-02-ga-ur1c.6.7-ga-ur1c-6-7-obsidian-check-serialization.md",
+    "plan_hash": "7d7f6dd11d94812c8c68608a3c14c9f4c2184d493ecb605bbddaefe729b19980",
+    "tracker_hash": "3386042922bbf9b61f91ec83d324b4fa14d6e4f965f7cde8a4caa241b18d44a3",
+    "synced_at": "2026-09-02T01:00:26.116951+02:00"
+  },
+  {
+    "plan": "plans/2026-09-02-ga-ur1c.6.7-ga-ur1c-6-7-obsidian-check-serialization.md",
+    "plan_hash": "c640678e88ed9534939379dcce90a0713eb59b7f83e82a7b5e51addb73786971",
+    "tracker_hash": "16f3e6f5142f58e835152534b2e592b4931ad0d0f9579553d01c6ce5965855b6",
+    "synced_at": "2026-09-02T01:11:19.796840+02:00"
   }
 ]

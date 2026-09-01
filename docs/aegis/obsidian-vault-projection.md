@@ -53,6 +53,7 @@ aegis vault build --target-dir . --output /safe/path/project-aegis-vault
 aegis-obsidian-reconcile run --registry ~/.config/aegis/obsidian-projects.json
 aegis-obsidian-reconcile check --registry ~/.config/aegis/obsidian-projects.json
 aegis-obsidian-reconcile check --registry ~/.config/aegis/obsidian-projects.json --require-live-index
+aegis-obsidian-reconcile check --registry ~/.config/aegis/obsidian-projects.json --lock-timeout-seconds 60
 ```
 
 The bead snapshot may be a JSON array, a `beads`/`issues`/`records` envelope, or a Beads JSONL
@@ -89,6 +90,12 @@ declares each enabled project with:
 - an exact absolute-argv read-only bead export;
 - an explicit human-content policy;
 - freshness, debounce, and export-timeout bounds.
+
+The registry cycle has one cross-process writer lock. A second reconciliation remains a
+nonblocking, successful no-op. A read-only `check` instead waits up to 60 seconds by default for
+the active writer, then evaluates one coherent post-cycle snapshot. Operators may reduce that
+bound with `--lock-timeout-seconds`; expiry fails closed as `lock-timeout` and never reads a
+partially published cycle.
 
 An enabled project may also declare one strict `live_index` observer:
 
