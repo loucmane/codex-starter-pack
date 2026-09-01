@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import importlib.util
 import json
@@ -1403,11 +1404,14 @@ def _build_bead_continuation_session_lines(
     work_context: str,
     tracker_relative: str,
     plan_relative: str,
+    completed_source: bool = False,
 ) -> List[str]:
     date_iso = now.strftime("%Y-%m-%d")
     time_label = now.strftime("%H:%M %Z")
     timestamp_full = now.strftime("%Y-%m-%d %H:%M:%S %Z %z")
     session_value = now.strftime("%Y%m%d")
+    work_state = "completed source archive" if completed_source else "active work tracking"
+    activity = "publication and terminal verification" if completed_source else "implementation and verification"
     return [
         "---",
         f"session_id: {session_id}",
@@ -1420,28 +1424,28 @@ def _build_bead_continuation_session_lines(
         "**AI Assistant**: Codex",
         "**Developer**: loucmane",
         f"**Bead**: `{bead_id}`",
-        f"**Work**: Continue bead {bead_id} using the existing bead-scoped plan and active work tracking for {title}.",
+        f"**Work**: Continue bead {bead_id} using the existing bead-scoped plan and {work_state} for {title}.",
         f"**Work Source**: {source}",
         "",
         "### Session Validation",
         f"- [x] Date confirmed (`date '+%Y-%m-%d %H:%M:%S %Z %z'` -> `{timestamp_full}`)",
         f"- [x] Git branch checked (`{branch}`)",
         f"- [x] Bead identity recorded (`{bead_id}`)",
-        f"- [x] Reused active bead work tracking (`{tracker_relative}`)",
+        f"- [x] Reused bead {work_state} (`{tracker_relative}`)",
         f"- [x] Reused bead plan (`{plan_relative}`)",
         "",
         "### Session Goals",
         f"- [x] Start a fresh daily session for existing bead `{bead_id}` work.",
-        f"- [x] Reuse the existing `{bead_id}` work tracking instead of allocating shadow work.",
+        f"- [x] Reuse the existing `{bead_id}` {work_state} instead of allocating shadow work.",
         f"- [x] Repoint `{SESSIONS_CURRENT_REL}` and `{PLANS_CURRENT_REL}` to the continuation state.",
-        "- [ ] Continue implementation and verification with S:W:H:E evidence.",
+        f"- [ ] Continue {activity} with S:W:H:E evidence.",
         "",
         "### Starting Context",
-        f"Bead `{bead_id}` continuation was created via `python3 scripts/codex-task sessions continue --bead {bead_id}`, preserving the existing bead-scoped plan and work tracking without Taskmaster mutation.",
+        f"Bead `{bead_id}` continuation was created via `python3 scripts/codex-task sessions continue --bead {bead_id}`, preserving the existing bead-scoped plan and {work_state} without Taskmaster mutation.",
         "",
         "### 📝 Progress Log",
         f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:shell:date|E:cmd`date \"+%Y-%m-%d %H:%M:%S %Z %z\"`] Confirmed current timestamp as `{timestamp_full}`",
-        f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:scripts/codex-task:sessions-continue|E:{tracker_relative}] Reused the existing bead `{bead_id}` ACTIVE work-tracking folder for a new daily session",
+        f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:scripts/codex-task:sessions-continue|E:{tracker_relative}] Reused the existing bead `{bead_id}` {work_state} for a new daily session",
         f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:{PLANS_CURRENT_REL}|E:{plan_relative}] Reused the bead `{bead_id}` plan for continuation",
         f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:{SESSIONS_CURRENT_REL}|E:{SESSIONS_CURRENT_REL}] Repointed `{SESSIONS_CURRENT_REL}`, `{PLANS_CURRENT_REL}`, and `{SESSION_STATE_REL}` to the bead `{bead_id}` continuation session",
     ]
@@ -1453,12 +1457,14 @@ def _build_bead_continuation_tracker_entries(
     work_context: str,
     session_relative: str,
     plan_relative: str,
+    completed_source: bool = False,
 ) -> List[str]:
     session_value = now.strftime("%Y%m%d")
     timestamp = now.strftime("%Y-%m-%d %H:%M")
+    work_state = "completed source archive" if completed_source else "ACTIVE work-tracking folder"
     return [
         f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:shell:date|E:cmd`date \"+%Y-%m-%d %H:%M %Z\"`] Confirmed current timestamp as `{now.strftime('%Y-%m-%d %H:%M %Z')}`",
-        f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:scripts/codex-task:sessions-continue|E:{session_relative}] Created a fresh daily bead `{bead_id}` continuation session while reusing the existing ACTIVE work-tracking folder",
+        f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:scripts/codex-task:sessions-continue|E:{session_relative}] Created a fresh daily bead `{bead_id}` continuation session while reusing the existing {work_state}",
         f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:{PLANS_CURRENT_REL}|E:{plan_relative}] Reused the existing bead `{bead_id}` plan for continuation",
         f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:{SESSION_STATE_REL}|E:{SESSION_STATE_REL}] Repointed session state to the bead `{bead_id}` continuation session",
     ]
@@ -1981,6 +1987,14 @@ def _resolve_bead_work_tracking(bead_id: str, explicit: Optional[str] = None) ->
         and _work_tracking_folder_matches_bead(path, bead_id)
     ]
     if not candidates:
+        completed_work = _derive_current_completed_source_work()
+        if completed_work is not None:
+            if completed_work.work_kind != "bead" or completed_work.work_id != bead_id:
+                raise TaskError(
+                    "Completed source archive resolves "
+                    f"{completed_work.work_kind} {completed_work.work_id}, expected bead {bead_id}."
+                )
+            return Path(completed_work.archive_folder)
         raise TaskError(
             f"No ACTIVE work-tracking folder found for bead {bead_id}; use `wizard kickoff` "
             "for new beads or restore the bead folder before continuing."
@@ -2068,6 +2082,7 @@ def _handle_bead_sessions_continue(args: argparse.Namespace) -> None:
     bead_id = args.bead
     _validate_bead_id(bead_id)
     work_folder = _resolve_bead_work_tracking(bead_id, args.folder)
+    completed_source = work_folder.name.endswith("-COMPLETED")
     tracker_path = work_folder / "TRACKER.md"
     if not tracker_path.exists():
         raise TaskError(f"Tracker file missing at {tracker_path}")
@@ -2095,6 +2110,7 @@ def _handle_bead_sessions_continue(args: argparse.Namespace) -> None:
         work_context=work_context,
         tracker_relative=tracker_relative,
         plan_relative=plan_relative,
+        completed_source=completed_source,
     )
     if args.dry_run:
         print(f"Would create continuation session {session_relative}")
@@ -2114,6 +2130,7 @@ def _handle_bead_sessions_continue(args: argparse.Namespace) -> None:
         work_context=work_context,
         session_relative=session_relative,
         plan_relative=plan_relative,
+        completed_source=completed_source,
     ):
         tracker_lines = _insert_progress_entry(
             tracker_lines, PROGRESS_HEADING_TRACKER, entry
@@ -2127,7 +2144,8 @@ def _handle_bead_sessions_continue(args: argparse.Namespace) -> None:
         )
     )
     print(f"Created continuation session: {session_relative}")
-    print(f"Reused work-tracking folder: {work_folder.relative_to(REPO_ROOT).as_posix()}")
+    state_label = "completed source archive" if completed_source else "work-tracking folder"
+    print(f"Reused {state_label}: {work_folder.relative_to(REPO_ROOT).as_posix()}")
     print(f"Reused plan: {plan_relative}")
     print(f"Repointed {SESSIONS_CURRENT_REL}, {PLANS_CURRENT_REL}, and {SESSION_STATE_REL}")
 
@@ -3030,12 +3048,90 @@ def _verify_source_closeout_terminal(transaction: Mapping[str, object]) -> None:
         raise TaskError("Source closeout terminal plan sync evidence is missing")
 
 
+def _remove_empty_directory_tree(root: Path) -> bool:
+    """Remove root only when its entire descendant tree contains directories."""
+
+    if not root.is_dir() or root.is_symlink():
+        return False
+    descendants = list(root.rglob("*"))
+    if any(not path.is_dir() or path.is_symlink() for path in descendants):
+        return False
+    for directory in sorted(descendants, key=lambda path: len(path.parts), reverse=True):
+        directory.rmdir()
+    root.rmdir()
+    return True
+
+
+def _completed_source_retirement_binding(
+    transaction: Mapping[str, object],
+) -> Mapping[str, object]:
+    """Bind retirement to a stale envelope's own already-archived session."""
+
+    current_path = REPO_ROOT / ".aegis/state/current-work.json"
+    if not current_path.is_file() or current_path.is_symlink():
+        return transaction
+    try:
+        current = json.loads(current_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return transaction
+    current_paths = current.get("paths") if isinstance(current, dict) else None
+    previous_session = (
+        current_paths.get("session") if isinstance(current_paths, dict) else None
+    )
+    paths = transaction.get("paths")
+    if (
+        not isinstance(previous_session, str)
+        or not previous_session
+        or not isinstance(paths, dict)
+        or previous_session == paths.get("session")
+    ):
+        return transaction
+    retirement = copy.deepcopy(transaction)
+    retirement_paths = retirement.get("paths")
+    assert isinstance(retirement_paths, dict)
+    retirement_paths["session"] = previous_session
+    _verify_source_closeout_terminal(retirement)
+    return retirement
+
+
 def _execute_source_closeout(transaction: Dict[str, object]) -> Path:
     paths = transaction["paths"]
     assert isinstance(paths, dict)
     active = _contained_source_closeout_path(paths["active"], "active")
     archive = _contained_source_closeout_path(paths["archive"], "archive")
     phase = str(transaction["phase"])
+
+    # A byte-for-byte Git transfer can reproduce every archived file while
+    # leaving behind an empty ACTIVE directory tree, because Git does not track
+    # directories.  A prepared transaction may adopt that already-completed
+    # terminal state only when the archive is an ordinary directory and the
+    # old ACTIVE path is absent or provably empty.  Nonempty source state
+    # remains ambiguous and fails through the normal annotation guard below.
+    if (
+        phase == "prepared"
+        and archive.is_dir()
+        and not archive.is_symlink()
+        and (
+            not active.exists()
+            or (
+                active.is_dir()
+                and not active.is_symlink()
+                and all(
+                    path.is_dir() and not path.is_symlink()
+                    for path in active.rglob("*")
+                )
+            )
+        )
+    ):
+        if active.exists() and not _remove_empty_directory_tree(active):
+            raise TaskError("Source closeout ACTIVE shell is not empty")
+        _verify_source_closeout_terminal(transaction)
+        retirement = _completed_source_retirement_binding(transaction)
+        _retire_recovered_source_current_work(retirement)
+        _source_closeout_checkpoint("current_work_retired")
+        _source_closeout_checkpoint("terminal_verified")
+        _durable_unlink(_source_closeout_journal_path())
+        return archive
 
     if SOURCE_CLOSEOUT_PHASES.index(phase) < SOURCE_CLOSEOUT_PHASES.index("bundle_annotated"):
         if not active.is_dir() or active.is_symlink() or archive.exists():
@@ -3409,7 +3505,15 @@ def _ensure_progress_heading(lines: List[str]) -> List[str]:
 
 
 def handle_work_tracking_update(args: argparse.Namespace) -> None:
-    work_folder = _resolve_active_work_tracking(args.folder)
+    try:
+        work_folder = _resolve_active_work_tracking(args.folder)
+    except TaskError as active_error:
+        if args.folder:
+            raise
+        completed_work = _derive_current_completed_source_work()
+        if completed_work is None:
+            raise active_error
+        work_folder = Path(completed_work.archive_folder)
 
     preset = getattr(args, "preset", None)
     handler_value = args.handler

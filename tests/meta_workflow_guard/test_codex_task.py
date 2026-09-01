@@ -1303,6 +1303,133 @@ bead_ids: [ga-test1]
     assert len(json.loads((plan_state / "sync.log").read_text(encoding="utf-8"))) == 1
 
 
+def test_source_archive_adopts_completed_bundle_with_empty_active_shell(
+    monkeypatch, tmp_path
+) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    active_root = repo / "docs" / "ai" / "work-tracking" / "active"
+    active = active_root / "20300101-ga-test1-recovery-ACTIVE"
+    archive = (
+        repo
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "archive"
+        / "20300101-ga-test1-recovery-COMPLETED"
+    )
+    active.mkdir(parents=True)
+    (active / "reports" / "empty-evidence-root").mkdir(parents=True)
+    (active / "designs").mkdir()
+    archive.mkdir(parents=True)
+    tracker = archive / "TRACKER.md"
+    archive_reference = archive.relative_to(repo).as_posix()
+    active_reference = active.relative_to(repo).as_posix()
+    tracker.write_text(
+        f"""# Bead ga-test1 Tracker
+
+**Status**: COMPLETED
+
+## Progress Log
+- [S:test|W:ga-test1|H:test|E:{archive_reference}/evidence.md] Verified evidence.
+
+## Plan Compliance Checklist
+- [x] plan-step-scope - Scope
+- [x] plan-step-implement - Implement
+- [x] plan-step-verify - Verify
+""",
+        encoding="utf-8",
+    )
+
+    plan = repo / "plans" / "2030-01-01-ga-test1-recovery.md"
+    plan.parent.mkdir(parents=True)
+    plan.write_text(
+        f"""# Bead ga-test1 Plan
+
+Evidence: {archive_reference}/TRACKER.md
+
+| Step ID | Description | Evidence | Status |
+|---|---|---|---|
+| plan-step-scope | Scope | {archive_reference}/TRACKER.md | completed |
+| plan-step-implement | Implement | scripts/codex-task | completed |
+| plan-step-verify | Verify | {archive_reference}/TRACKER.md | completed |
+""",
+        encoding="utf-8",
+    )
+    (plan.parent / "current").symlink_to(plan.name)
+    prior_session = repo / "sessions" / "2030" / "01" / "2030-01-01-001-ga-test1.md"
+    prior_session.parent.mkdir(parents=True)
+    prior_session.write_text(
+        f"Evidence: {archive_reference}/TRACKER.md\n", encoding="utf-8"
+    )
+    session = repo / "sessions" / "2030" / "01" / "2030-01-02-001-ga-test1.md"
+    session.write_text(f"Evidence: {archive_reference}/TRACKER.md\n", encoding="utf-8")
+    session_link = repo / "sessions" / "current"
+    session_link.parent.mkdir(parents=True, exist_ok=True)
+    session_link.symlink_to(session.relative_to(session_link.parent))
+
+    plan_state = repo / ".plan_state"
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "WORK_TRACKING_BASE", active_root)
+    monkeypatch.setattr(module, "PLAN_STATE_DIR", plan_state)
+    monkeypatch.setattr(module, "PLAN_SYNC_LOG", plan_state / "sync.log")
+    module.handle_plan_sync(
+        argparse.Namespace(
+            plan=plan.relative_to(repo).as_posix(),
+            tracker=tracker.relative_to(repo).as_posix(),
+            dry_run=False,
+        )
+    )
+
+    current = repo / ".aegis" / "state" / "current-work.json"
+    current.parent.mkdir(parents=True)
+    current.write_text(
+        json.dumps({"paths": {"session": prior_session.relative_to(repo).as_posix()}}),
+        encoding="utf-8",
+    )
+    retired = []
+
+    def retire(transaction) -> bool:
+        retired.append(transaction)
+        current.unlink()
+        return True
+
+    monkeypatch.setattr(module, "_retire_recovered_source_current_work", retire)
+    transaction = {
+        "schema": module.SOURCE_CLOSEOUT_JOURNAL_SCHEMA,
+        "transaction_id": "a" * 64,
+        "phase": "prepared",
+        "work": {"kind": "bead", "id": "ga-test1"},
+        "paths": {
+            "active": active_reference,
+            "archive": archive_reference,
+            "plan": plan.relative_to(repo).as_posix(),
+            "session": session.relative_to(repo).as_posix(),
+        },
+        "timestamps": {
+            "created_at": "2030-01-01T12:00:00+00:00",
+            "date": "2030-01-01",
+            "display": "2030-01-01 12:00 UTC",
+            "tracker": "2030-01-01 12:00",
+        },
+    }
+    module._atomic_write_json(
+        plan_state / module.SOURCE_CLOSEOUT_JOURNAL_NAME,
+        transaction,
+    )
+
+    tracker_before = tracker.read_bytes()
+    module.handle_work_tracking_reconcile(argparse.Namespace(dry_run=False))
+
+    assert not active.exists()
+    assert archive.is_dir()
+    assert tracker.read_bytes() == tracker_before
+    assert not (plan_state / module.SOURCE_CLOSEOUT_JOURNAL_NAME).exists()
+    assert not current.exists()
+    assert len(retired) == 1
+    assert retired[0]["paths"]["session"] == prior_session.relative_to(repo).as_posix()
+
+
 def test_source_closeout_crash_after_current_work_retirement_is_idempotent(
     monkeypatch, tmp_path
 ) -> None:
@@ -1795,6 +1922,155 @@ def test_handle_sessions_continue_reuses_completed_source_archive(monkeypatch, t
     module.handle_plan_sync(argparse.Namespace(plan=None, tracker=None, dry_run=False))
     sync_entries = json.loads((plan_state_dir / "sync.log").read_text(encoding="utf-8"))
     assert sync_entries[-1]["tracker_hash"] == module._compute_sha256(tracker)
+
+
+def test_handle_bead_sessions_continue_reuses_completed_source_archive(
+    monkeypatch, tmp_path
+) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    sessions_dir = repo / "sessions"
+    plans_dir = repo / "plans"
+    active_dir = repo / "docs" / "ai" / "work-tracking" / "active"
+    archive_dir = repo / "docs" / "ai" / "work-tracking" / "archive"
+    plan_state_dir = repo / ".plan_state"
+    sessions_dir.mkdir(parents=True)
+    plans_dir.mkdir(parents=True)
+    active_dir.mkdir(parents=True)
+
+    old_session = sessions_dir / "2026" / "04" / "2026-04-23-001-ga-ob3l-cycle-consistency.md"
+    old_session.parent.mkdir(parents=True)
+    old_session.write_text("---\nsession_id: 2026-04-23-001\n---\n", encoding="utf-8")
+    (sessions_dir / "current").symlink_to(
+        Path("2026/04/2026-04-23-001-ga-ob3l-cycle-consistency.md")
+    )
+    (sessions_dir / "state.json").write_text(
+        '{"current":"2026-04-23-001-ga-ob3l-cycle-consistency.md","paused":[],"updated_at":"2026-04-23T23:59:00+02:00"}\n',
+        encoding="utf-8",
+    )
+
+    plan_file = plans_dir / "2026-04-23-ga-ob3l-cycle-consistency.md"
+    plan_file.write_text(
+        "\n".join(
+            [
+                "# Plan - Bead ga-ob3l",
+                "",
+                "| Step ID | Description | Evidence | Status |",
+                "| --- | --- | --- | --- |",
+                "| plan-step-scope | Scope | evidence | completed |",
+                "| plan-step-implement | Implement | evidence | completed |",
+                "| plan-step-verify | Verify | evidence | completed |",
+                "| plan-step-emergency | Optional | evidence | n/a |",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (plans_dir / "current").symlink_to(plan_file.name)
+
+    archive_folder = archive_dir / "20260423-ga-ob3l-cycle-consistency-COMPLETED"
+    archive_folder.mkdir(parents=True)
+    tracker = archive_folder / "TRACKER.md"
+    tracker.write_text(
+        "\n".join(
+            [
+                "# Bead ga-ob3l Cycle Consistency Tracker",
+                "",
+                "**Status**: COMPLETED",
+                "",
+                "## Progress Log",
+                "",
+                "## Plan Compliance Checklist",
+                "- [x] plan-step-scope",
+                "- [x] plan-step-implement",
+                "- [x] plan-step-verify",
+                "- [ ] plan-step-emergency",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    class SourceModule:
+        @staticmethod
+        def is_uninstalled_aegis_source_checkout(_root):
+            return True
+
+        @staticmethod
+        def derive_completed_source_work(_root, _branch):
+            return type(
+                "CompletedWork",
+                (),
+                {
+                    "work_kind": "bead",
+                    "work_id": "ga-ob3l",
+                    "archive_folder": archive_folder,
+                },
+            )()
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "SESSIONS_DIR", sessions_dir)
+    monkeypatch.setattr(module, "PLANS_DIR", plans_dir)
+    monkeypatch.setattr(module, "WORK_TRACKING_BASE", active_dir)
+    monkeypatch.setattr(module, "WORK_TRACKING_ACTIVE_REL", "docs/ai/work-tracking/active")
+    monkeypatch.setattr(module, "PLAN_CURRENT", plans_dir / "current")
+    monkeypatch.setattr(module, "PLAN_STATE_DIR", plan_state_dir)
+    monkeypatch.setattr(module, "PLAN_SYNC_LOG", plan_state_dir / "sync.log")
+    monkeypatch.setattr(module, "SESSION_STATE_PATH", sessions_dir / "state.json")
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    monkeypatch.setattr(module, "_load_source_workflow_state_module", lambda: SourceModule)
+    monkeypatch.setattr(
+        module, "_source_checkout_branch", lambda: "codex/ga-ob3l-cycle-consistency"
+    )
+
+    module.handle_sessions_continue(
+        argparse.Namespace(
+            task=None,
+            bead="ga-ob3l",
+            slug="cycle-consistency-publication",
+            title="Cycle Consistency",
+            work=None,
+            folder=None,
+            plan=None,
+            task_source="Completed source publication",
+            dry_run=False,
+        )
+    )
+
+    new_session = (
+        sessions_dir
+        / "2026"
+        / "04"
+        / "2026-04-24-001-ga-ob3l-cycle-consistency-publication.md"
+    )
+    assert new_session.exists()
+    assert (sessions_dir / "current").resolve() == new_session
+    assert archive_folder.is_dir()
+    assert not list(active_dir.iterdir())
+    assert not (repo / ".taskmaster").exists()
+    session_text = new_session.read_text(encoding="utf-8")
+    assert "completed source archive" in session_text
+    assert "publication and terminal verification" in session_text
+    assert "without Taskmaster mutation" in session_text
+    assert "completed source archive" in tracker.read_text(encoding="utf-8")
+
+    module.handle_work_tracking_update(
+        argparse.Namespace(
+            work="ga-ob3l-cycle-consistency-publication",
+            handler="closeout:verification",
+            evidence="pytest:pass",
+            note="Recorded terminal publication evidence.",
+            document="TRACKER",
+            folder=None,
+            preset=None,
+            session=None,
+            session_file=None,
+            time=None,
+            dry_run=False,
+        )
+    )
+    assert "Recorded terminal publication evidence." in tracker.read_text(encoding="utf-8")
+    assert (plan_state_dir / "sync.log").exists()
 
 
 def test_source_checkout_branch_prefers_attached_git_branch(monkeypatch) -> None:
