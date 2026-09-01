@@ -17,3 +17,4 @@
   `status=READY` shape and stopped after the successful doctor run; the preserved result was
   validated append-forward against the actual schema (`overall=ready`, lowercase `pass`) without
   repeating the live reconciliation cycle.
+- 2026-09-02 — Archive preconditions were satisfied and the completed bundle was preserved.

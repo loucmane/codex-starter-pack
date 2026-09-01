@@ -6,3 +6,4 @@
 - 2026-09-02 — Keep the writer path nonblocking and expose the read bound as
   `--lock-timeout-seconds`, defaulting to 60 seconds so the installed 120-second doctor command
   retains time to evaluate the completed snapshot.
+- 2026-09-02 — Archived through the supported archive helper; no evidence was deleted.
