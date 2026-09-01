@@ -16,7 +16,7 @@ title: Bead ga-35mj - Continue ga-35mj audited continuity residue reconciliation
 - [x] Date confirmed (`date '+%Y-%m-%d %H:%M:%S %Z %z'` -> `2026-09-01 12:06:15 CEST +0200`)
 - [x] Git branch checked (`codex/ga-35mj-exclude-closed-work-from-continuity-current-view`)
 - [x] Bead identity recorded (`ga-35mj`)
-- [x] Reused bead active work tracking (`docs/ai/work-tracking/active/20260831-ga-35mj-exclude-closed-work-from-continuity-current-view-ACTIVE/TRACKER.md`)
+- [x] Reused bead active work tracking (`docs/ai/work-tracking/archive/20260831-ga-35mj-exclude-closed-work-from-continuity-current-view-COMPLETED/TRACKER.md`)
 - [x] Reused bead plan (`plans/2026-08-31-ga-35mj-exclude-closed-work-from-continuity-current-view.md`)
 
 ### Session Goals
@@ -30,8 +30,9 @@ Bead `ga-35mj` continuation was created via `python3 scripts/codex-task sessions
 
 ### 📝 Progress Log
 - **[12:06]** — [S:20260901|W:ga-35mj-exclude-closed-work-from-continuity-current-view|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M:%S %Z %z"`] Confirmed current timestamp as `2026-09-01 12:06:15 CEST +0200`
-- **[12:06]** — [S:20260901|W:ga-35mj-exclude-closed-work-from-continuity-current-view|H:scripts/codex-task:sessions-continue|E:docs/ai/work-tracking/active/20260831-ga-35mj-exclude-closed-work-from-continuity-current-view-ACTIVE/TRACKER.md] Reused the existing bead `ga-35mj` active work tracking for a new daily session
+- **[12:06]** — [S:20260901|W:ga-35mj-exclude-closed-work-from-continuity-current-view|H:scripts/codex-task:sessions-continue|E:docs/ai/work-tracking/archive/20260831-ga-35mj-exclude-closed-work-from-continuity-current-view-COMPLETED/TRACKER.md] Reused the existing bead `ga-35mj` active work tracking for a new daily session
 - **[12:06]** — [S:20260901|W:ga-35mj-exclude-closed-work-from-continuity-current-view|H:plans/current|E:plans/2026-08-31-ga-35mj-exclude-closed-work-from-continuity-current-view.md] Reused the bead `ga-35mj` plan for continuation
 - **[12:06]** — [S:20260901|W:ga-35mj-exclude-closed-work-from-continuity-current-view|H:sessions/current|E:sessions/current] Repointed `sessions/current`, `plans/current`, and `sessions/state.json` to the bead `ga-35mj` continuation session
 - **[12:10]** — [S:20260901|W:ga-35mj-exclude-closed-work-from-continuity-current-view|H:git:rebase|E:commit:c60025bc495b601940323733c60b7584c7098b57] Reconciled PR #347 onto verified current main without dropping either implementation path or either sync-log history.
 - **[12:10]** — [S:20260901|W:ga-35mj-exclude-closed-work-from-continuity-current-view|H:pytest|E:tests/meta_workflow_guard] Reconciled-tree verification passed: 29 focused continuity tests plus 1543 meta-workflow tests, 21 expected skips, Ruff, and `git diff --check`.
+- **[12:34]** — [S:20260901|W:ga-35mj-exclude-closed-work-from-continuity-current-view|H:plugins/gas-city-workflow/scripts/continuity.py|E:commit:adb23aa7048610fc61511786ac73bd1796695baf;/tmp/ga35-idle-audit-1.json;bead:ga-35mj;bead:ga-ur1c.6.1] Verified replacement PR #351 merged with byte-identical tree; after one clean no-op reconciler cycle, two idle continuity captures are byte-identical (snapshot d6a73e01fedf6c674aa1676ab5a14341332fd6de0e2b4adca3f57fbd6662b2d0; audit 3eb1d16fa02abe233099e9a89d3c4213b193f3170f6afa89a05cdb4cc56925c1), ok=true, errors=0, orphaned=0. Closed ga-ur1c.6.1 and ga-35mj PASS with full commit/branch/outcome provenance.
