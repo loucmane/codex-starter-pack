@@ -1,7 +1,7 @@
 # Bead ga-ur1c.6.7 Serialize Obsidian health checks with active reconciliation Tracker
 
 **Started**: 2026-09-02
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-09-02
 
 ## Goals
@@ -12,7 +12,7 @@
 
 ## Progress Log
 - **2026-09-02 01:00** — [S:20260902|W:ga-ur1c.6.7-ga-ur1c-6-7-obsidian-check-serialization|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed current timestamp as `2026-09-02 01:00 CEST`
-- **2026-09-02 01:00** — [S:20260902|W:ga-ur1c.6.7-ga-ur1c-6-7-obsidian-check-serialization|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260902-ga-ur1c.6.7-ga-ur1c-6-7-obsidian-check-serialization-ACTIVE/TRACKER.md] Scaffolded the `ga-ur1c.6.7` ACTIVE work-tracking folder through the bead-native kickoff flow
+- **2026-09-02 01:00** — [S:20260902|W:ga-ur1c.6.7-ga-ur1c-6-7-obsidian-check-serialization|H:scripts/codex-task|E:docs/ai/work-tracking/archive/20260902-ga-ur1c.6.7-ga-ur1c-6-7-obsidian-check-serialization-COMPLETED/TRACKER.md] Scaffolded the `ga-ur1c.6.7` ACTIVE work-tracking folder through the bead-native kickoff flow
 - **2026-09-02 01:00** — [S:20260902|W:ga-ur1c.6.7-ga-ur1c-6-7-obsidian-check-serialization|H:bd:show|E:bead:ga-ur1c.6.7] Bound this source-workflow record to primary bead `ga-ur1c.6.7` without Taskmaster mutation
 - **2026-09-02 01:00** — [S:20260902|W:ga-ur1c.6.7-ga-ur1c-6-7-obsidian-check-serialization|H:sessions/current|E:sessions/current] Repointed current session, plan, and session state to `ga-ur1c.6.7`
 - **2026-09-02 01:02** — [S:20260902|W:ga-ur1c.6.7-ga-ur1c-6-7-obsidian-check-serialization|H:pytest:red|E:tests/claude_adapter/test_obsidian_reconciler.py] Deterministic RED proved the check API could not wait behind the active registry-cycle lock; the desired bounded overlap test failed before source implementation
@@ -22,6 +22,8 @@
 - **2026-09-02 01:20** — [S:20260902|W:ga-ur1c.6.7-ga-ur1c-6-7-obsidian-check-serialization|H:scripts/install-aegis-obsidian-reconciler|E:sha256:20770b09cbc03993739d6ee01b46af895e3c70a0f4d4d29d4fd94f6f315c9bea] Transactional merge-bound reinstall PASS; registry, service unit, and timer unit remained byte-identical
 - **2026-09-02 01:20** — [S:20260902|W:ga-ur1c.6.7-ga-ur1c-6-7-obsidian-check-serialization|H:codex-wsl-readiness:overlap|E:sha256:a2b3543539930729c92e2299672d9c9dfa529c1dbae3170992790a93e4cdd33e] Observed the active writer lock, then obtained one ready doctor with 20/20 passing checks after a 25.946877379-second bounded wait; evidence directory mode 0700 and files mode 0600
 - **2026-09-02 01:20** — [S:20260902|W:ga-ur1c.6.7-ga-ur1c-6-7-obsidian-check-serialization|H:systemd+gc+proc|E:runtime-postflight] Timer active/waiting, service successful/inactive with zero restarts, supervisor PID 813835 stable, all four project rigs suspended, and WSL Obsidian PID 3168034/start tick 35154910 unchanged
+- **2026-09-02 01:27** — [S:20260902|W:ga-ur1c.6.7-ga-ur1c-6-7-obsidian-check-serialization|H:github:pr-369|E:commit:f1a8bd12b653422b126b507c29aee800f47bd46c] Terminal evidence PR #369 merged with exact source head/base/tree, all required hosted checks green, CLEAN/MERGEABLE state, zero unresolved review threads, and valid GitHub signature
+- **2026-09-02 01:29** — [S:20260902|W:ga-ur1c.6.7|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260902-ga-ur1c.6.7-ga-ur1c-6-7-obsidian-check-serialization-COMPLETED/TRACKER.md] Archived the completed work-tracking bundle through the supported helper (transaction 68bd7fab73c7c95cee826140865a2b02fe35bb5299be3adbd6512c2601ad3330)
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
