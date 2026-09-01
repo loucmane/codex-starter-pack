@@ -2212,5 +2212,11 @@
     "plan_hash": "c640678e88ed9534939379dcce90a0713eb59b7f83e82a7b5e51addb73786971",
     "tracker_hash": "16f3e6f5142f58e835152534b2e592b4931ad0d0f9579553d01c6ce5965855b6",
     "synced_at": "2026-09-02T01:11:19.796840+02:00"
+  },
+  {
+    "plan": "plans/2026-09-02-ga-ur1c.6.7-ga-ur1c-6-7-obsidian-check-serialization.md",
+    "plan_hash": "6efe4d10f6ae430c40bb2127413567d49f6bd6276cca4699d4e35f6242618fdf",
+    "tracker_hash": "72565efd6369d11a404dbaa5495c99ed1fe12484e65c0f02251cd45e9be74366",
+    "synced_at": "2026-09-02T01:22:23.160245+02:00"
   }
 ]
