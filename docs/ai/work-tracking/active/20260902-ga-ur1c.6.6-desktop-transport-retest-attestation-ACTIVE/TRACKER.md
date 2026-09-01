@@ -18,6 +18,7 @@
 - **2026-09-02 00:04** — [S:20260902|W:ga-ur1c.6.6-desktop-transport-retest-attestation|H:aegis:scope|E:docs/ai/work-tracking/active/20260902-ga-ur1c.6.6-desktop-transport-retest-attestation-ACTIVE/FINDINGS.md] Bound the repair to a strict local version/config/rollback attestation, with known affected builds remaining fail-closed and no live configuration mutation in scope
 - **2026-09-02 00:21** — [S:20260902|W:ga-ur1c.6.6-desktop-transport-retest-attestation|H:aegis_foundation/reboot_readiness.py|E:tests/reboot_readiness/] Implemented strict attestation verification and the private atomic recorder; focused and related regression PASS: 85 tests with Ruff and diff checks clean
 - **2026-09-02 00:21** — [S:20260902|W:ga-ur1c.6.6-desktop-transport-retest-attestation|H:pytest:full|E:tests/] Full repository suite PASS: 2482 passed, 21 expected skips; the prior 73-failure run was classified and re-proven as the existing temp-root harness mismatch without a source change
+- **2026-09-02 00:28** — [S:20260902|W:ga-ur1c.6.6-desktop-transport-retest-attestation|H:sha256sum:live-preflight|E:/mnt/c/Users/smoki/.codex/config.toml;/mnt/c/Users/smoki/.codex/config.toml.bak-pre-codex-app-transport-test-20260829] Corrected two non-authoritative full digests previously expanded from truncated relay prefixes; direct disk SHA-256 values are recorded append-forward in FINDINGS.md and no live mutation occurred
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
