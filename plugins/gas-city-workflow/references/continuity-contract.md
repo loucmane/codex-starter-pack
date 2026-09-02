@@ -15,6 +15,15 @@ managed-signing v2 receipts, structured follow-ups, and the installed Obsidian r
 contains no current-time field. Each rig appears once under `ledgers`; projects reference it by rig.
 Equal observed state therefore produces byte-identical JSON.
 
+Each project Git surface includes one canonical-root observation derived without a fetch: exact
+path and HEAD, branch or detached state, the descriptor's `base_ref` (or the local
+`refs/remotes/origin/HEAD`, falling back to local `refs/remotes/origin/main`), resolved target
+commit, ahead/behind counts, and tracked cleanliness. A missing target is unobservable and blocks.
+A checkout currently on the target branch blocks when ahead or behind; a deliberate non-target
+branch and tracked dirt remain bounded warnings so operator-owned HPFetcher and Blog workspaces are
+visible but never rewritten. Omitting this record also blocks, preventing older or hand-built
+snapshots from silently claiming canonical-root coverage.
+
 Snapshot v2 also captures one city-global runtime parity surface. The native session side comes
 from the structured `gc session list --json` API and excludes volatile timestamps and output. The
 host side scans only same-UID procfs for stable session-leading `tmux -L city` servers, recognizing
@@ -85,6 +94,8 @@ is closed. Those are append-only evidence. It does flag:
 - worktrees or branches left by conclusively terminal generated work;
 - untracked, missing, split-brain, or unobservable city tmux runtime relative to the native session
   ledger;
+- missing or unresolved canonical-root observations, and a target-branch checkout that is ahead of
+  or behind its existing local target ref;
 - projects missing from the Obsidian registry, stale filesystem projections, or unconfirmed live
   index observations, including a registry entry whose project ID disagrees with the canonical
   project descriptor; and

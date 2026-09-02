@@ -116,7 +116,48 @@
           "obsidian",
           "followups",
           "residue_dispositions"
-        ]
+        ],
+        "properties": {
+          "git": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["canonical", "branches", "worktrees", "open_prs"],
+            "properties": {
+              "canonical": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path",
+                  "head",
+                  "branch",
+                  "detached",
+                  "target_ref",
+                  "target_head",
+                  "ahead",
+                  "behind",
+                  "tracked_clean"
+                ],
+                "properties": {
+                  "path": {"type": "string", "pattern": "^/"},
+                  "head": {"type": "string", "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$"},
+                  "branch": {"type": ["string", "null"]},
+                  "detached": {"type": "boolean"},
+                  "target_ref": {"type": "string", "minLength": 1},
+                  "target_head": {
+                    "type": ["string", "null"],
+                    "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$"
+                  },
+                  "ahead": {"type": ["integer", "null"], "minimum": 0},
+                  "behind": {"type": ["integer", "null"], "minimum": 0},
+                  "tracked_clean": {"type": "boolean"}
+                }
+              },
+              "branches": {"type": "array"},
+              "worktrees": {"type": "array"},
+              "open_prs": {"type": "array"}
+            }
+          }
+        }
       }
     }
   }

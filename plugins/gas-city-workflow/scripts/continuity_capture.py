@@ -232,6 +232,90 @@ def _capture_worktree_cleanliness(
     return captured
 
 
+def _optional_git_value(
+    runner: ReadOnlyRunner,
+    root: Path,
+    *args: str,
+) -> str | None:
+    try:
+        value = runner.run(["git", "-C", str(root), *args]).stdout.strip()
+    except ContinuityError:
+        return None
+    return value or None
+
+
+def _capture_canonical_git(
+    root: Path,
+    project: Mapping[str, Any],
+    runner: ReadOnlyRunner,
+) -> dict[str, Any]:
+    head = runner.run(["git", "-C", str(root), "rev-parse", "HEAD"]).stdout.strip()
+    if not GIT_COMMIT_PATTERN.fullmatch(head):
+        raise ContinuityError(f"canonical root HEAD is invalid: {root}")
+
+    branch = _optional_git_value(runner, root, "symbolic-ref", "--quiet", "--short", "HEAD")
+    configured_ref = project.get("base_ref")
+    if isinstance(configured_ref, str):
+        target_ref = configured_ref
+    else:
+        target_ref = _optional_git_value(
+            runner,
+            root,
+            "symbolic-ref",
+            "--quiet",
+            "refs/remotes/origin/HEAD",
+        ) or "refs/remotes/origin/main"
+    target_head = _optional_git_value(
+        runner,
+        root,
+        "rev-parse",
+        "--verify",
+        f"{target_ref}^{{commit}}",
+    )
+    if target_head is not None and not GIT_COMMIT_PATTERN.fullmatch(target_head):
+        raise ContinuityError(f"canonical root target HEAD is invalid: {root}")
+
+    ahead: int | None = None
+    behind: int | None = None
+    if target_head is not None:
+        counts = runner.run(
+            [
+                "git",
+                "-C",
+                str(root),
+                "rev-list",
+                "--left-right",
+                "--count",
+                f"{head}...{target_head}",
+            ]
+        ).stdout.split()
+        if len(counts) != 2 or not all(value.isdigit() for value in counts):
+            raise ContinuityError(f"canonical root ahead/behind output is invalid: {root}")
+        ahead, behind = (int(value) for value in counts)
+
+    tracked_status = runner.run(
+        [
+            "git",
+            "-C",
+            str(root),
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=no",
+        ]
+    ).stdout
+    return {
+        "path": root.as_posix(),
+        "head": head,
+        "branch": branch,
+        "detached": branch is None,
+        "target_ref": target_ref,
+        "target_head": target_head,
+        "ahead": ahead,
+        "behind": behind,
+        "tracked_clean": not bool(tracked_status.strip()),
+    }
+
+
 def _active_trackers(root: Path) -> list[dict[str, Any]]:
     active = root / "docs" / "ai" / "work-tracking" / "active"
     if not active.is_dir():
@@ -1034,6 +1118,7 @@ def capture_snapshot(
                 "workflow_profile": project["workflow_profile"],
                 "aegis": {"active_trackers": _active_trackers(root)},
                 "git": {
+                    "canonical": _capture_canonical_git(root, project, runner),
                     "branches": branches,
                     "worktrees": worktrees,
                     "open_prs": sorted(open_prs, key=lambda item: int(item["number"])),

@@ -65,7 +65,22 @@ def _project(project_id: str, beads: list[dict[str, object]]) -> dict[str, objec
         "workflow_profile": "beads-with-aegis-evidence",
         "beads": beads,
         "aegis": {"active_trackers": []},
-        "git": {"branches": [], "worktrees": [], "open_prs": []},
+        "git": {
+            "canonical": {
+                "path": f"/workspace/{project_id}",
+                "head": "b" * 40,
+                "branch": "main",
+                "detached": False,
+                "target_ref": "refs/remotes/origin/main",
+                "target_head": "b" * 40,
+                "ahead": 0,
+                "behind": 0,
+                "tracked_clean": True,
+            },
+            "branches": [],
+            "worktrees": [],
+            "open_prs": [],
+        },
         "runtime": {"transactions": [], "receipts": []},
         "obsidian": {
             "registered": True,
@@ -187,6 +202,62 @@ def test_report_classifies_all_work_states_and_uses_one_next_action_source() -> 
     ]
 
 
+def test_report_blocks_a_stale_canonical_project_root_once() -> None:
+    model = _load("continuity_model")
+    project = _project("gas-city-operations", [])
+    project["git"]["canonical"].update(
+        {
+            "head": "a" * 40,
+            "target_head": "b" * 40,
+            "behind": 23,
+            "tracked_clean": False,
+        }
+    )
+
+    report = model.build_report(_snapshot([project]))
+
+    assert report["ok"] is False
+    assert [finding["code"] for finding in report["findings"]] == [
+        "canonical-root-behind-base",
+        "canonical-root-dirty",
+    ]
+    assert report["findings"][0]["identity"] == "/workspace/gas-city-operations"
+    assert report["findings"][1]["severity"] == "warning"
+
+
+def test_missing_canonical_observation_blocks_legacy_snapshot_claims() -> None:
+    model = _load("continuity_model")
+    project = _project("gas-city-operations", [])
+    del project["git"]["canonical"]
+
+    report = model.build_report(_snapshot([project]))
+
+    assert report["ok"] is False
+    assert report["findings"][0]["code"] == "canonical-root-observation-missing"
+
+
+def test_nonbase_canonical_branch_is_visible_without_blocking() -> None:
+    model = _load("continuity_model")
+    project = _project("hpfetcher", [])
+    project["git"]["canonical"].update(
+        {"branch": "p5/batch", "head": "a" * 40, "ahead": 6, "behind": 10}
+    )
+
+    report = model.build_report(_snapshot([project]))
+
+    assert report["ok"] is True
+    assert report["findings"] == [
+        {
+            "code": "canonical-root-nonbase-branch",
+            "project_id": "hpfetcher",
+            "surface": "canonical-root",
+            "identity": "/workspace/hpfetcher",
+            "bead_id": None,
+            "severity": "warning",
+        }
+    ]
+
+
 def test_report_detects_unbound_surfaces_and_terminal_generated_residue() -> None:
     model = _load("continuity_model")
     project = _project(
@@ -207,6 +278,7 @@ def test_report_detects_unbound_surfaces_and_terminal_generated_residue() -> Non
         ]
     }
     project["git"] = {
+        "canonical": project["git"]["canonical"],
         "branches": [],
         "worktrees": [
             {
@@ -274,6 +346,7 @@ def test_exact_residue_dispositions_remain_visible_without_blocking() -> None:
     project = _project("gas-city", [])
     branch_head = "d" * 40
     project["git"] = {
+        "canonical": project["git"]["canonical"],
         "branches": [
             {
                 "bead_id": "ga-missing",
@@ -515,6 +588,72 @@ def test_collector_checks_cleanliness_only_for_disposition_bound_worktrees(
 
     assert result[0]["clean"] is True
     assert "clean" not in result[1]
+
+
+def test_collector_captures_canonical_root_drift_from_local_refs(tmp_path: Path) -> None:
+    capture = _load("continuity_capture")
+    root = tmp_path / "canonical"
+    root.mkdir()
+    subprocess.run(["git", "init", "-b", "main"], cwd=root, check=True, capture_output=True)
+    tracked = root / "tracked.txt"
+    tracked.write_text("first\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=root, check=True, capture_output=True)
+    commit = [
+        "git",
+        "-c",
+        "user.name=Fixture",
+        "-c",
+        "user.email=fixture@example.test",
+        "-c",
+        "commit.gpgsign=false",
+        "commit",
+    ]
+    subprocess.run([*commit, "-m", "first"], cwd=root, check=True, capture_output=True)
+    first = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    tracked.write_text("second\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=root, check=True, capture_output=True)
+    subprocess.run([*commit, "-m", "second"], cwd=root, check=True, capture_output=True)
+    second = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    subprocess.run(
+        ["git", "update-ref", "refs/remotes/origin/main", second],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "reset", "--hard", first], cwd=root, check=True, capture_output=True
+    )
+    tracked.write_text("local evidence\n", encoding="utf-8")
+
+    state = capture._capture_canonical_git(
+        root,
+        {"base_ref": "refs/remotes/origin/main"},
+        capture.ReadOnlyRunner(),
+    )
+
+    assert state == {
+        "path": root.as_posix(),
+        "head": first,
+        "branch": "main",
+        "detached": False,
+        "target_ref": "refs/remotes/origin/main",
+        "target_head": second,
+        "ahead": 0,
+        "behind": 1,
+        "tracked_clean": False,
+    }
 
 
 def test_followups_require_a_real_bead_or_explicit_disposition() -> None:

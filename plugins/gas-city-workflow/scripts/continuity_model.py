@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 SNAPSHOT_SCHEMA = "gas-city-workflow.continuity-snapshot.v2"
@@ -824,6 +825,142 @@ def _classify_project(
     return work, findings
 
 
+def _canonical_git_findings(project: Mapping[str, Any]) -> list[dict[str, Any]]:
+    project_id = _string(project.get("id"), "project id", pattern=PROJECT_ID_PATTERN)
+    root = _string(project.get("root"), f"project {project_id} root")
+    git = _mapping(project.get("git"), f"project {project_id} git")
+    raw = git.get("canonical")
+    if raw is None:
+        return [
+            _finding(
+                code="canonical-root-observation-missing",
+                project_id=project_id,
+                surface="canonical-root",
+                identity=root,
+                bead_id=None,
+            )
+        ]
+    canonical = _mapping(raw, f"project {project_id} canonical Git state")
+    expected_fields = {
+        "path",
+        "head",
+        "branch",
+        "detached",
+        "target_ref",
+        "target_head",
+        "ahead",
+        "behind",
+        "tracked_clean",
+    }
+    if set(canonical) != expected_fields:
+        raise ContinuityError(f"project {project_id} canonical Git fields are invalid")
+    path = _string(canonical.get("path"), f"project {project_id} canonical path")
+    if not Path(path).is_absolute() or path != root:
+        raise ContinuityError(f"project {project_id} canonical path does not match its root")
+    _string(
+        canonical.get("head"),
+        f"project {project_id} canonical HEAD",
+        pattern=GIT_COMMIT_PATTERN,
+    )
+    branch = canonical.get("branch")
+    detached = canonical.get("detached")
+    if (branch is not None and (not isinstance(branch, str) or not branch)) or not isinstance(
+        detached, bool
+    ):
+        raise ContinuityError(f"project {project_id} canonical branch state is invalid")
+    if detached is not (branch is None):
+        raise ContinuityError(f"project {project_id} canonical detached state is inconsistent")
+    target_ref = _string(
+        canonical.get("target_ref"), f"project {project_id} canonical target ref"
+    )
+    target_head = canonical.get("target_head")
+    ahead = canonical.get("ahead")
+    behind = canonical.get("behind")
+    if target_head is None:
+        if ahead is not None or behind is not None:
+            raise ContinuityError(
+                f"project {project_id} unresolved canonical target has comparison counts"
+            )
+    else:
+        _string(
+            target_head,
+            f"project {project_id} canonical target HEAD",
+            pattern=GIT_COMMIT_PATTERN,
+        )
+        ahead = _nonnegative_integer(ahead, f"project {project_id} canonical ahead count")
+        behind = _nonnegative_integer(behind, f"project {project_id} canonical behind count")
+    tracked_clean = canonical.get("tracked_clean")
+    if not isinstance(tracked_clean, bool):
+        raise ContinuityError(f"project {project_id} canonical cleanliness is invalid")
+
+    findings: list[dict[str, Any]] = []
+    if target_head is None:
+        findings.append(
+            _finding(
+                code="canonical-root-base-unresolved",
+                project_id=project_id,
+                surface="canonical-root",
+                identity=path,
+                bead_id=None,
+            )
+        )
+    elif branch == target_ref.rsplit("/", 1)[-1]:
+        if behind:
+            findings.append(
+                _finding(
+                    code="canonical-root-behind-base",
+                    project_id=project_id,
+                    surface="canonical-root",
+                    identity=path,
+                    bead_id=None,
+                )
+            )
+        if ahead:
+            findings.append(
+                _finding(
+                    code="canonical-root-ahead-of-base",
+                    project_id=project_id,
+                    surface="canonical-root",
+                    identity=path,
+                    bead_id=None,
+                )
+            )
+    elif detached:
+        findings.append(
+            _finding(
+                code="canonical-root-detached",
+                project_id=project_id,
+                surface="canonical-root",
+                identity=path,
+                bead_id=None,
+                severity="warning",
+            )
+        )
+    elif ahead or behind:
+        findings.append(
+            _finding(
+                code="canonical-root-nonbase-branch",
+                project_id=project_id,
+                surface="canonical-root",
+                identity=path,
+                bead_id=None,
+                severity="warning",
+            )
+        )
+    if not tracked_clean:
+        findings.append(
+            _finding(
+                code="canonical-root-dirty",
+                project_id=project_id,
+                surface="canonical-root",
+                identity=path,
+                bead_id=None,
+                severity="warning",
+            )
+        )
+    return findings
+
+
 def _initiative_scope(beads: list[Mapping[str, Any]]) -> set[str] | None:
     roots = {
         str(bead["id"])
@@ -1107,6 +1244,7 @@ def build_report(snapshot: Mapping[str, Any]) -> dict[str, Any]:
             work[category].extend(project_work[category])
         findings.extend(project_findings)
     for project in sorted(projects, key=lambda value: str(value["id"])):
+        findings.extend(_canonical_git_findings(project))
         findings.extend(_obsidian_findings(project))
         project_summaries.append(
             {
