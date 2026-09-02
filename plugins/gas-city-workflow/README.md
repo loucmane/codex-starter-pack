@@ -72,6 +72,14 @@ the capture never reads process environments or opens the tmux socket. A future 
 included with a validated local descriptor through repeatable `snapshot --project-root`; the
 auditor never scans arbitrary directories. See `references/continuity-contract.md`.
 
+Every captured project also carries an offline canonical-root observation: exact path and HEAD,
+branch or detached state, configured/local `origin` target ref and commit, ahead/behind counts, and
+tracked cleanliness. A canonical checkout on the target branch blocks when it is ahead of or behind
+that target; an unresolved target blocks because freshness cannot be established. A deliberate
+feature-branch checkout and tracked dirt remain visible as one bounded warning each, so the audit
+does not rewrite or interrupt an operator's HPFetcher or Blog workspace. The collector consults only
+existing local refs and never fetches or mutates Git state.
+
 The Obsidian registry is generated from that same project registry; it is never maintained as a
 second hand-written project list. Each registered project owns only
 `GasCity/<project-id>/Aegis`, and the global `GasCity/Continuity` dashboard is derived from the
