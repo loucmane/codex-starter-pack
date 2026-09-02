@@ -2248,5 +2248,17 @@
     "plan_hash": "569aa8520d737085da57fd3e5178bb23252e57111b7f5bbaf81912628931dfd4",
     "tracker_hash": "ac1c3279a4e16d69586bf5d8f05f0dce42b96bad9610718c0961766f187621eb",
     "synced_at": "2026-09-02T10:37:36.882605+02:00"
+  },
+  {
+    "plan": "plans/2026-09-02-ga-ur1c.7-canonical-root-audit.md",
+    "plan_hash": "f2dfce9ab7bae47660f7cf72b13d50dd616aa149308926b09b64e534475bc6ff",
+    "tracker_hash": "8ba56251ef629c5f3504c29f9e56bf322c67ef5ba4bcebb412eb2b06ba88badd",
+    "synced_at": "2026-09-02T10:48:18.265137+02:00"
+  },
+  {
+    "plan": "plans/2026-09-02-ga-ur1c.7-canonical-root-audit.md",
+    "plan_hash": "b1c0dd37e02ee7e6a3ef71115bef2fe87cbba5b4e426619b8982c29ea8b67448",
+    "tracker_hash": "eb83f803b7a9c79c555048c5efc88c0d88209d40933072f124b3aa94fdb11ab8",
+    "synced_at": "2026-09-02T10:48:31.590639+02:00"
   }
 ]
