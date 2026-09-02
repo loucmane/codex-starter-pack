@@ -5,3 +5,4 @@
 - 2026-09-02 — Registered HPFetcher, Blog, and Gas City canonical roots intentionally have non-base branches checked out. Their exact divergence must remain visible without treating operator workspaces as stale `main` checkouts or mutating them.
 - 2026-09-02 — RED proof: `test_report_blocks_a_stale_canonical_project_root_once` failed because the pre-repair report returned `ok=true`.
 - 2026-09-02 — Live repaired-source proof: snapshot SHA-256 `b13998ba3144e258ed5348a0ad658df58a281ed3cbe5e9eddd5fa16f0968618d` produced report SHA-256 `8f565a59394617310a6112a10c74449541e5600a2f627749b948d22ca7f07f52`, with one blocking `canonical-root-behind-base` finding for Operations and bounded warnings for deliberate feature branches or tracked dirt.
+- 2026-09-02 — Archive preconditions were satisfied and the completed bundle was preserved.
