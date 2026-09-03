@@ -25,14 +25,22 @@ This prevents cross-store reads and accidental creation in another configured re
 
 ## Essential Commands
 
-Use the deterministic operator PATH when commands must reach the managed `gc`, `bd`,
-and `dolt` binaries:
+Use the deterministic operator PATH and GC_HOME when commands must reach the managed
+`gc`, `bd`, and `dolt` binaries and the controller's existing import cache:
 
 ```bash
-/usr/bin/env PATH=/home/loucmane/gascity/bin:/usr/local/bin:/usr/bin:/bin \
+/usr/bin/env GC_HOME=/home/loucmane/gascity/home \
+  PATH=/home/loucmane/gascity/bin:/usr/local/bin:/usr/bin:/bin \
   /home/loucmane/gascity/bin/gc --city /home/loucmane/gascity/city \
   --rig gascity bd ready
 ```
+
+Use this same environment for the commands below. A cache refusal without this
+GC_HOME is not proof that the live import cache needs repair. In Claude's pre-kickoff
+gate, only these exact environment assignments (and optional `env -u BEADS_DIR
+-u BEADS_DB`) are recognized; arbitrary variables, PATH values, and shell wrappers
+are not inspection exemptions. Direct `bd` reads belong only in a verified rig
+store; from this Operations checkout use the explicitly scoped `gc ... bd` form.
 
 ### Find and inspect work
 
@@ -56,6 +64,18 @@ and `dolt` binaries:
 After creation, read the bead back from the same explicitly selected rig store.
 
 ### Claim and update work
+
+External source coordinators use the plugin's `workflow.py begin/resume/attach` ownership
+contract, not `--claim` as an OS user. Their Bead stays unassigned and in progress with a
+journal-bound `workflow.external_owner` record. Native workers retain their reviewed real
+session claim protocol. Neither representation grants routing or lifecycle authority.
+Do not copy the native claim example below into an external coordinator kickoff.
+
+Only one external coordinator may mutate a given source Bead at a time. Do not
+concurrently route, close, or change that Bead's ownership from another controller.
+The per-repository lock and fresh readbacks detect observed drift; they are not a
+distributed reservation. The installed Beads API lacks an atomic expected-digest
+status/metadata update. Revisit this boundary before concurrent scheduling.
 
 ```bash
 /home/loucmane/gascity/bin/gc --city /home/loucmane/gascity/city --rig gascity bd update ga-xxxx --claim
@@ -144,6 +164,10 @@ That audit trail complements the bead; it does not replace or duplicate the work
 - Use native file/edit/test/Git tools for implementation.
 - Preserve S:W:H:E evidence where the active Aegis profile requires it.
 - Run focused tests, `git diff --check`, and the applicable Aegis/guard checks before handoff.
+- For gate, parser, installer, or managed-asset changes, focused tests are intermediate
+  evidence only. Before publication, run the full `tests/claude_adapter` and
+  `tests/meta_workflow_guard` suites on the final candidate, including packaged-script
+  parity and generated consumer plans. See `docs/aegis/gate-change-verification.md`.
 - Do not claim a live check passed from a sandbox that cannot observe the relevant namespace.
 
 ## Taskmaster Transition Policy

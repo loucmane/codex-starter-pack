@@ -22,6 +22,39 @@ python3 -m aegis_foundation.cli gate readiness --target-dir .
 
 `BLOCKED` means no file edits, Bash mutations, work-ledger mutations, memory writes, Git writes, GitHub writes, or MCP mutations. Fix the workflow state first by using the kickoff/session/plan/work-tracking flow. Read-only inspection is allowed. Taskmaster MCP is intentionally not registered in this beads-first repository; historical Taskmaster files may be inspected read-only only for legacy evidence.
 
+### Pre-kickoff orchestration
+
+Readiness does not need to be READY to inspect the explicitly scoped managed Beads
+`show <id>`, `list`, or `ready` commands. The classifier accepts only the reviewed
+managed executable paths and closed flag set (`--json`, `--readonly`; additionally
+`list --all --limit <integer> --no-pager`). It does not authorize mutations or prove
+the selected store, executable installation, sandbox connectivity, or operator scope.
+Use the exact environment and city/rig selection in `AGENTS.md`.
+
+For new work, the primary supported entrypoint is the transactional workflow:
+
+```bash
+python3 plugins/gas-city-workflow/scripts/workflow.py begin \
+  --root . --bead <bead-id> --goal '<authorized outcome>'
+```
+
+This is a **trusted bootstrap mutation**, not read-only inspection. It keeps the
+workflow's Bead, project registration, worktree placement, journal, ownership, and
+readiness checks. The gate requires the current project as the target and rejects
+alternate registries, repeated identity flags, shell composition, and force options.
+The existing `scripts/codex-task wizard kickoff` compatibility path is limited to
+Bead-native invocations with explicit Bead, slug and title; a shared-source invocation
+must also explicitly target the current project. Do not hand-assemble the scaffold.
+
+Pre-kickoff Write/Edit (including plan files) remain blocked. A completed historical
+plan is not permission to rewrite archives: inspect the supported recovery preview,
+and apply only a reviewed bounded recovery. If no safe repair is offered, preserve
+the record and use the authorized workflow transition or report the contradiction.
+
+Strict readiness denials record a reason and payload digest in the existing decision
+ledger; raw commands/content and free-form readiness output are not copied into the
+new denial records. Failure to record a denial never makes the operation permissible.
+
 The PreToolUse dispatcher in `.claude/scripts/pretooluse-gate.sh` enforces this for hookable Claude file tools and tested Bash mutation patterns. After a successful mutation, `.claude/scripts/posttooluse-tracking.sh` records pending S:W:H:E tracking and `.claude/scripts/tracking-stop-gate.sh` blocks session stop until `aegis log` has updated the session, tracker, implementation log, changelog, handoff, and plan evidence.
 
 In Gas City managed projects, the same PreToolUse dispatcher blocks Claude `Agent` and `Task`
@@ -83,7 +116,8 @@ Claude project commands live under `.claude/commands/`.
 
 Core runtime commands:
 - `/readiness` -> canonical `aegis gate readiness` evaluation
-- `/kickoff` -> `python3 scripts/codex-task wizard kickoff`
+- New managed work -> transactional `workflow.py begin` above; `/kickoff` retains
+  the bounded Bead-native `scripts/codex-task wizard kickoff` compatibility path.
 - `/guard` -> `python3 scripts/codex-guard validate --include-untracked`
 - `/plan-sync` -> `python3 scripts/codex-task plan sync`
 - `/work-tracking-audit` -> `python3 scripts/codex-task work-tracking audit`

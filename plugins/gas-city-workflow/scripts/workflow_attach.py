@@ -13,14 +13,18 @@ from workflow_common import (
     CommandRunner,
     WorkflowError,
     active_bead_id,
+    atomic_write_json,
     is_blocking_dependency,
     load_bead,
-    managed_environment,
+    journal_path,
+    load_journal,
     plan_bead_ids,
     record_lifecycle_event,
+    require_bead_ready,
     result_payload,
     run_readiness,
 )
+from workflow_ownership import check_active_ownership, ensure_external_owner
 
 
 def _dependency_ids(bead: Mapping[str, Any]) -> set[str]:
@@ -100,10 +104,7 @@ def _attach_to_plan(plan: Path, primary_bead: str, bead_id: str) -> list[str]:
     attached = _attached_bead_ids(text)
     if bead_id not in attached:
         attached.append(bead_id)
-    replacement = (
-        f"bead_ids: [{primary_bead}]\n"
-        f"attached_bead_ids: [{', '.join(attached)}]"
-    )
+    replacement = f"bead_ids: [{primary_bead}]\n" f"attached_bead_ids: [{', '.join(attached)}]"
     if re.search(r"^attached_bead_ids:", text, re.MULTILINE):
         text = re.sub(r"^attached_bead_ids:\s*\[[^\]]*\]\s*\n?", "", text, flags=re.MULTILINE)
         matches = list(re.finditer(r"^bead_ids:\s*\[([^\]]+)\]\s*$", text, re.MULTILINE))
@@ -134,36 +135,18 @@ def attach(
     primary_id = active_bead_id(root)
     if bead_id == primary_id:
         raise WorkflowError("the requested bead is already the primary active bead")
+    spec = check_active_ownership(runner, root, registry=registry, attaching=bead_id)
     primary = load_bead(runner, context, primary_id)
     if bead_id not in _dependency_ids(primary):
-        raise WorkflowError(
-            f"{bead_id} is not a declared dependency of active bead {primary_id}"
-        )
-    attached = load_bead(runner, context, bead_id)
-    status = str(attached.get("status") or "")
-    if status == "open":
-        workflow = context["workflow"]
-        runner.run(
-            [
-                str(workflow["gc"]),
-                "--city",
-                str(workflow["city"]),
-                "--rig",
-                str(workflow["rig"]),
-                "bd",
-                "update",
-                bead_id,
-                "--claim",
-            ],
-            env=managed_environment(),
-        )
-        attached = load_bead(runner, context, bead_id)
-        status = str(attached.get("status") or "")
-    if status != "in_progress":
-        raise WorkflowError(f"attached bead is not in progress: status={status or 'unknown'}")
-
+        raise WorkflowError(f"{bead_id} is not a declared dependency of active bead {primary_id}")
     plan = _current_plan(root)
     tracker = _active_tracker(root, primary_id)
+    require_bead_ready(load_bead(runner, context, bead_id))
+    path = journal_path(runner, spec)
+    state = load_journal(path)
+    if state is None:
+        raise WorkflowError("active ownership journal is missing")
+    attached = ensure_external_owner(runner, spec, context, state, path, bead_id=bead_id)
     attached_beads = _attach_to_plan(plan, primary_id, bead_id)
     _attach_to_tracker(tracker, bead_id, str(attached.get("title") or bead_id))
     if plan_bead_ids(root) != [primary_id]:
@@ -173,6 +156,9 @@ def attach(
     readiness = run_readiness(runner, root)
     if "STATE: READY" not in readiness:
         raise WorkflowError("readiness succeeded without a READY state")
+    state["attached_bead_ids"] = attached_beads
+    atomic_write_json(path, state)
+    check_active_ownership(runner, root, registry=registry)
     journal = record_lifecycle_event(
         runner,
         root,

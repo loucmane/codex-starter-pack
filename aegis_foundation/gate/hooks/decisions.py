@@ -255,6 +255,18 @@ def gate_block_or_record(
         )
         advisory_message("pretooluse", reason)
         return 0
+    try:
+        append_gate_decision(
+            root,
+            hook="pretooluse",
+            payload=payload,
+            verdict="block",
+            reason=reason,
+            # The payload is digest-only. Do not copy free-form readiness output
+            # (which may quote user content) into the durable denial record.
+        )
+    except Exception:  # noqa: BLE001 - failed audit must never turn denial into allow.
+        pass
     return block(message + "\n" + recovery_block_suffix(reason))
 
 

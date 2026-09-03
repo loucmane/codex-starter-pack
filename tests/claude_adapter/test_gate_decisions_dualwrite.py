@@ -156,7 +156,7 @@ def test_jsonl_survives_when_ledger_unavailable(tmp_path: Path) -> None:
     assert read_ledger_events(tmp_path / "state") == []
 
 
-def test_strict_mode_still_blocks_and_records_nothing(tmp_path: Path) -> None:
+def test_strict_mode_blocks_and_records_digest_only_parity(tmp_path: Path) -> None:
     repo = make_advisory_repo(tmp_path)
     (repo / ".aegis" / "state" / "enforcement.json").write_text(
         json.dumps({"mode": "strict"}), encoding="utf-8"
@@ -168,5 +168,12 @@ def test_strict_mode_still_blocks_and_records_nothing(tmp_path: Path) -> None:
         {"tool_name": "Bash", "tool_input": {"command": "git checkout -b nope"}},
     )
     assert result.returncode == 2
-    assert read_jsonl(repo) == []
-    assert read_ledger_events(state) == []
+    records = read_jsonl(repo)
+    events = read_ledger_events(state)
+    assert len(records) == len(events) == 1
+    assert records[0]["verdict"] == events[0]["extra"]["verdict"] == "block"
+    assert records[0]["mode"] == events[0]["extra"]["mode"] == "strict"
+    assert records[0]["reason"] == "readiness_blocked"
+    assert records[0]["payload_digest"] == events[0]["payload_digest"]
+    assert "git checkout" not in json.dumps(records)
+    assert records[0]["readiness_state"] is None

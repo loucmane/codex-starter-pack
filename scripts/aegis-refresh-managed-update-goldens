@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+"""Re-derive consumer fixtures via the real installer, only in temporary projects.
+
+Print the generated JSON for a reviewed fixture update, or use --check to prove
+parity. Expected non-skip classifications are never automatically broadened.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+import sys
+from tempfile import TemporaryDirectory
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from scripts import _aegis_installer as installer  # noqa: E402
+from tests.meta_workflow_guard.test_aegis_managed_update import (  # noqa: E402
+    GOLDEN_PATH,
+    _operations_digest,
+    _seed_known_stale_update,
+    _seed_project_owned_files,
+    _snapshot,
+)
+
+
+def regenerate():
+    fixture = json.loads(GOLDEN_PATH.read_text())
+    for name, case in fixture["cases"].items():
+        with TemporaryDirectory(prefix="aegis-golden-") as temporary:
+            target = Path(temporary) / name
+            target.mkdir()
+            _seed_project_owned_files(target, name)
+            options = {
+                "source_root": ROOT,
+                "primary_agent": case["primary_agent"],
+                "agents": case["agents"],
+            }
+            if case["kind"] == "known_stale_update":
+                if installer.install(target, apply=True, **options)["status"] != "applied":
+                    raise RuntimeError(f"{name}: fixture install failed")
+                _seed_known_stale_update(target, case)
+            before = _snapshot(target)
+            plan = installer.plan_install(target, **options)
+            if _snapshot(target) != before:
+                raise RuntimeError(f"{name}: planning mutated the fixture")
+            modified = {
+                op["path"]: op["classification"]
+                for op in plan["operations"]
+                if op["classification"] == "modify"
+            }
+            if modified != case["expected_non_skip"]:
+                raise RuntimeError(f"{name}: non-skip scope changed; manual review required")
+            if not all(op["safe_to_apply"] for op in plan["operations"]):
+                raise RuntimeError(f"{name}: unsafe operation; refusing to bless fixture")
+            case["expected_summary"] = plan["summary"]
+            case["operations_sha256"] = _operations_digest(plan["operations"])
+    return fixture
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--check", action="store_true")
+    args = parser.parse_args()
+    fixture = regenerate()
+    if args.check:
+        if fixture != json.loads(GOLDEN_PATH.read_text()):
+            parser.exit(1, "managed-update goldens differ; regenerate and review the diff\n")
+        print("managed-update golden parity PASS")
+    else:
+        print(json.dumps(fixture, indent=2, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

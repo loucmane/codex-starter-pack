@@ -51,6 +51,7 @@ def test_modular_gate_inventory_and_size_budget() -> None:
         "hard_policy.py",
         "lifecycle.py",
         "loaders.py",
+        "orchestrator.py",
         "payloads.py",
         "pretool.py",
         "runtime_state.py",

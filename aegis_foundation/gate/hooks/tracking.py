@@ -123,7 +123,13 @@ def load_brief(root: Path) -> dict[str, Any]:
 
 
 def _normalize_command_text(text: str) -> str:
-    tokens = strip_shell_prefixes(shlex_tokens(text))
+    tokens = shlex_tokens(text)
+    # Preserve the historical post-execution evidence label for this harmless
+    # cache-suppression prefix. This matcher does not authorize execution; the
+    # pre-kickoff classifier still rejects the non-operator environment setting.
+    if tokens[:1] == ["PYTHONDONTWRITEBYTECODE=1"]:
+        tokens = tokens[1:]
+    tokens = strip_shell_prefixes(tokens)
     kept: list[str] = []
     skip_next = False
     for token in tokens:

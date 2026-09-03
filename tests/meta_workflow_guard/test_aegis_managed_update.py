@@ -6,6 +6,7 @@ import hashlib
 import importlib.util
 import json
 import sys
+import subprocess
 from pathlib import Path
 from types import ModuleType
 
@@ -107,6 +108,18 @@ def _stable_plan(plan: dict[str, object]) -> dict[str, object]:
 
 def test_installer_exports_the_authoritative_managed_update_asset_type() -> None:
     assert installer.Asset is managed_update.Asset
+
+
+def test_golden_refresh_command_reproduces_reviewed_fixtures() -> None:
+    result = subprocess.run(
+        [sys.executable, "scripts/aegis-refresh-managed-update-goldens", "--check"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "golden parity PASS" in result.stdout
 
 
 def test_source_and_packaged_installer_render_identical_assets_and_plans(

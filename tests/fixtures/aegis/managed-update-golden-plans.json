@@ -9,7 +9,7 @@
       ],
       "expected_summary": {
         "conflicts": 0,
-        "creates": 61,
+        "creates": 62,
         "manual_reviews": 0,
         "modifies": 2,
         "skips": 0
@@ -18,7 +18,7 @@
         "CODEX.md": "modify",
         ".codex/hooks.json": "modify"
       },
-      "operations_sha256": "ca5d680bfb3c7977e0de54dca8fb88cd4552d0e89a4235dd572b7540418244ba"
+      "operations_sha256": "2f9bcf29afc2e8b6ecee869fad6f7e7408f33ca04b5f8cc88513ec7c4ad40215"
     },
     "hp-fetcher": {
       "kind": "known_stale_update",
@@ -33,13 +33,13 @@
         "creates": 0,
         "manual_reviews": 0,
         "modifies": 2,
-        "skips": 53
+        "skips": 54
       },
       "expected_non_skip": {
         ".aegis/foundation-manifest.json": "modify",
         ".claude/scripts/gate_lib.py": "modify"
       },
-      "operations_sha256": "c1a187c115b6c7ea7763137a98a69d0c1648271bfdef319fb4d8ff9802ea11ab"
+      "operations_sha256": "1ba803e8b75840fb556bbb4285d497c58e036a391c211644dadab859bf44789b"
     },
     "blog": {
       "kind": "known_stale_update",
@@ -55,13 +55,13 @@
         "creates": 0,
         "manual_reviews": 0,
         "modifies": 2,
-        "skips": 63
+        "skips": 64
       },
       "expected_non_skip": {
         ".aegis/foundation-manifest.json": "modify",
         ".claude/scripts/ledger_lib.py": "modify"
       },
-      "operations_sha256": "3053359a2541b8dfc13d28eb31f6e6a9e900f931ca9b533f961c06c254267227"
+      "operations_sha256": "f2304b66b9d8b00a7b5d3a7e819ba6484ea0e750d8eeedf11b73fce910547bf5"
     }
   }
 }

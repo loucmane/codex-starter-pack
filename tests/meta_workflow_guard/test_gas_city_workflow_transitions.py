@@ -51,6 +51,11 @@ class FixtureRunner(CommandRunner):
                 self.bead["status"] = "in_progress"
                 self.bead["assignee"] = "fixture"
                 return subprocess.CompletedProcess(args, 0, "claimed\n", "")
+            if "update" in args and "--set-metadata" in args:
+                self.bead["status"] = args[args.index("--status") + 1]
+                key, value = args[args.index("--set-metadata") + 1].split("=", 1)
+                self.bead.setdefault("metadata", {})[key] = value
+                return subprocess.CompletedProcess(args, 0, "updated\n", "")
         if "aegis" in args and "verify" in args and "--strict" in args:
             return subprocess.CompletedProcess(args, 0, '{"status":"passed"}\n', "")
         if "plan" in args and "sync" in args:
@@ -80,6 +85,13 @@ class MultiBeadRunner(FixtureRunner):
                 self.beads[bead_id]["status"] = "in_progress"
                 self.beads[bead_id]["assignee"] = "fixture"
                 return subprocess.CompletedProcess(args, 0, "claimed\n", "")
+            if "update" in args and "--set-metadata" in args:
+                bead_id = args[args.index("update") + 1]
+                self.calls.append(args)
+                self.beads[bead_id]["status"] = args[args.index("--status") + 1]
+                key, value = args[args.index("--set-metadata") + 1].split("=", 1)
+                self.beads[bead_id].setdefault("metadata", {})[key] = value
+                return subprocess.CompletedProcess(args, 0, "updated\n", "")
         return super().run(args, cwd=cwd, env=env, check=check)
 
 
@@ -746,6 +758,7 @@ def test_lightweight_sync_and_finish_select_only_the_bead_folder(
 
     monkeypatch.setattr(workflow_module, "build_context", lambda *_args: context)
     monkeypatch.setattr(workflow_module, "_run_profile_readiness", lambda *_args: "READY")
+    monkeypatch.setattr(workflow_module, "check_active_ownership", lambda *_args, **_kw: None)
     monkeypatch.setattr(
         workflow_module,
         "record_lifecycle_event",
