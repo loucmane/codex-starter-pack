@@ -31,6 +31,7 @@ if _REPO_ROOT.as_posix() not in sys.path:
     sys.path.insert(0, _REPO_ROOT.as_posix())
 
 from aegis_foundation import managed_update as _managed_update  # noqa: E402
+from aegis_foundation import observation_audit as _observation_audit  # noqa: E402
 from aegis_foundation.gate.hooks.contracts import (  # noqa: E402
     CLAUDE_PRETOOLUSE_MATCHER,
     CODEX_PRETOOLUSE_MATCHER,
@@ -101,9 +102,7 @@ AEGIS_WORKFLOW_TEMPLATE_NAMES = (
     "implementation.md",
     "changelog.md",
 )
-BEAD_ID_PATTERN = re.compile(
-    r"^[a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*(?:\.[1-9][0-9]*)*$"
-)
+BEAD_ID_PATTERN = re.compile(r"^[a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*(?:\.[1-9][0-9]*)*$")
 AEGIS_LOG_SURFACES = {
     "implementation": "IMPLEMENTATION.md",
     "changelog": "CHANGELOG.md",
@@ -3115,9 +3114,7 @@ def _expected_manifest_summary(primary_agent: str, enabled_agents: Sequence[str]
                 "gate_ids": list(
                     CLAUDE_GATE_IDS
                     if agent == "claude"
-                    else CODEX_GATE_IDS
-                    if agent == "codex"
-                    else ()
+                    else CODEX_GATE_IDS if agent == "codex" else ()
                 ),
             }
             for agent in ("claude", "codex", "gemini")
@@ -4455,9 +4452,7 @@ def next_action(
         marker_agent = (
             normalized_invoker
             if normalized_invoker in marker_agents
-            else marker_agents[0]
-            if marker_agents
-            else "unknown"
+            else marker_agents[0] if marker_agents else "unknown"
         )
         if marker_agent == "codex":
             reload_action = (
@@ -6532,9 +6527,7 @@ def reconcile(
     status_value = (
         "drift"
         if severity_counts["error"]
-        else "needs_review"
-        if severity_counts["warning"]
-        else "clean"
+        else "needs_review" if severity_counts["warning"] else "clean"
     )
     report = {
         "schema_version": SCHEMA_VERSION,
@@ -7128,6 +7121,8 @@ def _load_observation_baseline(target_root: Path, current_work: MutableMapping[s
         observation["baseline_git_fingerprints"] = {
             str(key): str(value) for key, value in fingerprints.items()
         }
+    if "gate_audit" in baseline:
+        observation["gate_audit"] = baseline["gate_audit"]
 
 
 def _observation_status_delta_lines(
@@ -7941,6 +7936,10 @@ def start_observation(
     observation_budget = _observation_budget_config(target_root)
     baseline_status = _git_status_snapshot(target_root)
     baseline_fingerprints = _git_status_fingerprints(target_root, baseline_status)
+    try:
+        gate_audit_baseline = _observation_audit.capture(target_root)
+    except (OSError, ValueError) as exc:
+        raise AegisError("cannot bind observation gate audit safely") from exc
     selected_goals = list(
         goals
         or [
@@ -8087,6 +8086,7 @@ def start_observation(
                 "captured_at": _iso_now(),
                 "baseline_git_status": baseline_status,
                 "baseline_git_fingerprints": baseline_fingerprints,
+                "gate_audit": gate_audit_baseline,
             }
         ),
     )
@@ -8219,6 +8219,19 @@ def stop_observation(
     artifact_root_rel = _observation_artifact_root_rel(current_work)
     status_deltas = _observation_status_delta_lines(current_work, current_status)
     fingerprint_deltas = _observation_fingerprint_delta_lines(current_work, current_fingerprints)
+    gate_audit = _observation_audit.verify(
+        target_root, current_work.get("observation", {}).get("gate_audit")
+    )
+    audit_deltas = []
+    if gate_audit["status"] == "verified":
+        audit_deltas = [
+            line for line in status_deltas if _git_status_rel_path(line) == AEGIS_GATE_DECISIONS_REL
+        ]
+        audit_deltas += [
+            line
+            for line in fingerprint_deltas
+            if _observation_fingerprint_delta_rel(line) == AEGIS_GATE_DECISIONS_REL
+        ]
     cleanable_artifacts = _observation_cleanable_artifact_rels(
         target_root,
         status_deltas,
@@ -8230,7 +8243,7 @@ def stop_observation(
         current_work,
         fingerprint_deltas,
     )
-    runtime_delta_set = {*runtime_status_deltas, *runtime_fingerprint_deltas}
+    runtime_delta_set = {*runtime_status_deltas, *runtime_fingerprint_deltas, *audit_deltas}
     unsafe_status_deltas = [
         line
         for line in status_deltas
@@ -8261,7 +8274,7 @@ def stop_observation(
             current_work,
             fingerprint_deltas,
         )
-        runtime_delta_set = {*runtime_status_deltas, *runtime_fingerprint_deltas}
+        runtime_delta_set = {*runtime_status_deltas, *runtime_fingerprint_deltas, *audit_deltas}
         unexpected = [
             *[line for line in status_deltas if line not in runtime_delta_set],
             *[line for line in fingerprint_deltas if line not in runtime_delta_set],
@@ -8272,7 +8285,9 @@ def stop_observation(
             *[line for line in status_deltas if line not in runtime_delta_set],
             *[line for line in fingerprint_deltas if line not in runtime_delta_set],
         ]
-    allowed_runtime_changes = [*runtime_status_deltas, *runtime_fingerprint_deltas]
+    allowed_runtime_changes = [*runtime_status_deltas, *runtime_fingerprint_deltas, *audit_deltas]
+    if gate_audit["status"] == "invalid":
+        unexpected.append(gate_audit["error"])
     blocked = bool(unexpected and not allow_dirty)
     # TM #197: guidance payloads carry capped summaries with truncation markers; the
     # full enumerations live in the linked detail artifact. Unexpected deltas keep a
@@ -8309,6 +8324,7 @@ def stop_observation(
         "cleanable_artifacts": cleanable_artifacts,
         "collected_artifacts": collected_artifacts,
         "allowed_runtime_changes_summary": allowed_summary,
+        "gate_audit": gate_audit,
         "unexpected_changes": unexpected_sample,
         "unexpected_changes_total": len(unexpected),
         "unexpected_changes_truncated": unexpected_truncated,

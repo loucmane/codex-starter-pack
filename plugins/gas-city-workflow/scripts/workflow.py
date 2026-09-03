@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from contextlib import nullcontext
 from pathlib import Path
 from typing import Any
 
@@ -23,17 +24,14 @@ from workflow_common import (
     run_readiness,
     workflow_runtime_root,
 )
+from workflow_ownership import check_active_ownership
+from workflow_lock import workflow_lock
 
 
 def _is_lightweight_legacy(context: dict[str, Any]) -> bool:
     return (
-        context["project"]["workflow_profile"]
-        == "beads-with-frozen-legacy-evidence"
-        and not (
-            Path(context["project"]["root"])
-            / ".aegis"
-            / "foundation-manifest.json"
-        ).is_file()
+        context["project"]["workflow_profile"] == "beads-with-frozen-legacy-evidence"
+        and not (Path(context["project"]["root"]) / ".aegis" / "foundation-manifest.json").is_file()
     )
 
 
@@ -45,9 +43,7 @@ def _active_folder_name(root: Path, bead_id: str) -> str:
         if path.is_dir() and not path.is_symlink() and f"-{bead_id}-" in path.name
     )
     if len(matches) != 1:
-        raise WorkflowError(
-            f"expected exactly one ACTIVE folder for {bead_id}; found {matches}"
-        )
+        raise WorkflowError(f"expected exactly one ACTIVE folder for {bead_id}; found {matches}")
     return matches[0]
 
 
@@ -93,8 +89,10 @@ def _run_profile_readiness(
 def _checkpoint(root: Path, runner: CommandRunner) -> dict[str, Any]:
     context = build_context(root, DEFAULT_REGISTRY)
     root = Path(context["project"]["root"])
+    check_active_ownership(runner, root)
     _sync_plan(root, context, runner)
     _run_profile_readiness(root, context, runner)
+    check_active_ownership(runner, root)
     journal = record_lifecycle_event(runner, root, "checkpoint", "ready")
     return result_payload(
         "checkpoint",
@@ -112,7 +110,8 @@ def _verify(
 ) -> dict[str, Any]:
     context = build_context(root, DEFAULT_REGISTRY)
     root = Path(context["project"]["root"])
-    checks: list[str] = []
+    check_active_ownership(runner, root)
+    checks: list[str] = ["live-bead-ownership"]
     if synchronize and _sync_plan(root, context, runner):
         checks.append("plan-sync")
     _run_profile_readiness(root, context, runner)
@@ -148,6 +147,7 @@ def _verify(
             cwd=runtime,
         )
         checks.append("aegis-strict")
+    check_active_ownership(runner, root)
     journal = record_lifecycle_event(runner, root, "verify", "passed", checks=checks)
     return result_payload("verify", "passed", checks=checks, journal=journal.as_posix())
 
@@ -155,6 +155,7 @@ def _verify(
 def _publish(root: Path, runner: CommandRunner) -> dict[str, Any]:
     context = build_context(root, DEFAULT_REGISTRY)
     root = Path(context["project"]["root"])
+    check_active_ownership(runner, root, dependencies_complete=True)
     _verify(root, runner, synchronize=False)
     status = git_value(runner, root, "status", "--porcelain=v1")
     if status:
@@ -163,6 +164,7 @@ def _publish(root: Path, runner: CommandRunner) -> dict[str, Any]:
     tree = git_value(runner, root, "rev-parse", "HEAD^{tree}")
     branch = git_value(runner, root, "branch", "--show-current")
     runner.run(["git", "-C", str(root), "verify-commit", head])
+    check_active_ownership(runner, root)
     journal = record_lifecycle_event(
         runner,
         root,
@@ -190,6 +192,7 @@ def _finish(root: Path, runner: CommandRunner, *, apply: bool) -> dict[str, Any]
     context = build_context(root, DEFAULT_REGISTRY)
     root = Path(context["project"]["root"])
     bead_id = active_bead_id(root)
+    bound_spec = check_active_ownership(runner, root, allow_closed=True, dependencies_complete=True)
     _run_profile_readiness(root, context, runner)
     source_task = root / "scripts" / "codex-task"
     if source_task.is_file():
@@ -244,6 +247,9 @@ def _finish(root: Path, runner: CommandRunner, *, apply: bool) -> dict[str, Any]
             next_action="Run finish --apply only after implementation publication evidence is recorded.",
         )
     result = runner.run(argv, cwd=root)
+    check_active_ownership(
+        runner, root, allow_closed=True, spec=bound_spec, dependencies_complete=True
+    )
     journal = record_lifecycle_event(
         runner,
         root,
@@ -286,7 +292,52 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     finish = subparsers.add_parser("finish")
     finish.add_argument("--root", default=".")
     finish.add_argument("--apply", action="store_true")
+    adopt = subparsers.add_parser("adopt-external")
+    adopt.add_argument("--root", required=True)
+    adopt.add_argument("--expect-bead-sha256", required=True)
+    adopt.add_argument("--repair-legacy-wire", action="store_true")
     return parser.parse_args(argv)
+
+
+def _dispatch(args, runner: CommandRunner, root: Path) -> dict[str, Any]:
+    if args.command == "begin":
+        payload = begin(
+            root,
+            args.bead,
+            slug=args.slug,
+            goals=args.goal,
+            registry=Path(args.registry),
+            dry_run=args.dry_run,
+            runner=runner,
+        )
+    elif args.command in {"resume", "recover"}:
+        bead_id = args.bead or active_bead_id(root)
+        payload = resume(
+            root,
+            bead_id,
+            slug=args.slug,
+            goals=args.goal,
+            registry=Path(args.registry),
+            runner=runner,
+        )
+        payload["action"] = args.command
+    elif args.command == "attach":
+        payload = attach(root, args.bead, runner)
+    elif args.command == "checkpoint":
+        payload = _checkpoint(root, runner)
+    elif args.command == "verify":
+        payload = _verify(root, runner)
+    elif args.command == "publish":
+        payload = _publish(root, runner)
+    elif args.command == "adopt-external":
+        from workflow_ownership_reconcile import adopt_external
+
+        payload = adopt_external(
+            root, args.expect_bead_sha256, runner, repair_legacy_wire=args.repair_legacy_wire
+        )
+    else:
+        payload = _finish(root, runner, apply=args.apply)
+    return payload
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -294,37 +345,14 @@ def main(argv: list[str] | None = None) -> int:
     runner = CommandRunner()
     root = Path(args.root).expanduser().resolve()
     try:
-        if args.command == "begin":
-            payload = begin(
-                root,
-                args.bead,
-                slug=args.slug,
-                goals=args.goal,
-                registry=Path(args.registry),
-                dry_run=args.dry_run,
-                runner=runner,
-            )
-        elif args.command in {"resume", "recover"}:
-            bead_id = args.bead or active_bead_id(root)
-            payload = resume(
-                root,
-                bead_id,
-                slug=args.slug,
-                goals=args.goal,
-                registry=Path(args.registry),
-                runner=runner,
-            )
-            payload["action"] = args.command
-        elif args.command == "attach":
-            payload = attach(root, args.bead, runner)
-        elif args.command == "checkpoint":
-            payload = _checkpoint(root, runner)
-        elif args.command == "verify":
-            payload = _verify(root, runner)
-        elif args.command == "publish":
-            payload = _publish(root, runner)
-        else:
-            payload = _finish(root, runner, apply=args.apply)
+        dry = args.command == "begin" and args.dry_run
+        lock = (
+            nullcontext()
+            if dry
+            else workflow_lock(runner, root, Path(getattr(args, "registry", DEFAULT_REGISTRY)))
+        )
+        with lock:
+            payload = _dispatch(args, runner, root)
     except Exception as exc:  # noqa: BLE001 - stable fail-closed CLI boundary.
         print(f"gas-city-workflow: BLOCKED: {exc}", file=sys.stderr)
         return 2

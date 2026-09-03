@@ -397,7 +397,7 @@ def test_pretooluse_hard_policy_preserves_normal_delivery_and_inspection(
         "task-master show 138",
         "./.aegis/bin/aegis reconcile --target-dir .",
         "npm run verify",
-        "PYTHONDONTWRITEBYTECODE=1 uv run python -m pytest tests/foo.py",
+        "uv run python -m pytest tests/foo.py",
         "npm run verify 2>&1 | tail -15",
     ],
 )

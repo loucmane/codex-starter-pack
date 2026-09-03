@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import shlex
+import shutil
 import sys
 from hashlib import sha256
 from pathlib import Path
@@ -20,6 +21,8 @@ from .contracts import (
     HOOKABLE_TOOLS,
     MCP_MUTATION_TOOL_RE,
     MCP_READ_ONLY_TOOL_RE,
+    ORCHESTRATOR_ENVIRONMENT,
+    ORCHESTRATOR_ENV_UNSET,
     PATH_FIELD_NAMES,
     PROTECTED_EXACT,
     PROTECTED_NAME_PREFIXES,
@@ -471,14 +474,46 @@ def command_name(token: str) -> str:
 
 
 def strip_shell_prefixes(tokens: list[str]) -> list[str]:
+    """Strip only reviewed literal environment setup, never arbitrary injection.
+
+    An invalid prefix retains an unrecognized sentinel so it cannot accidentally
+    basename to an allowlisted executable. Hard-policy parsing remains separate.
+    """
     stripped = list(tokens)
-    while stripped and is_shell_assignment(stripped[0]):
-        stripped = stripped[1:]
-    if stripped and stripped[0] == "env":
-        stripped = stripped[1:]
-        while stripped and (is_shell_assignment(stripped[0]) or stripped[0] in {"-i", "-u"}):
-            if stripped[0] == "-u" and len(stripped) >= 2:
-                stripped = stripped[2:]
-            else:
-                stripped = stripped[1:]
+    invalid = ["__aegis_untrusted_environment__", *tokens]
+    seen: set[str] = set()
+
+    def assignments() -> bool:
+        while stripped and is_shell_assignment(stripped[0]):
+            key, value = stripped.pop(0).split("=", 1)
+            if key in seen or ORCHESTRATOR_ENVIRONMENT.get(key) != value:
+                return False
+            seen.add(key)
+        return True
+
+    if not assignments():
+        return invalid
+    if stripped and command_name(stripped[0]) == "env":
+        executable = stripped.pop(0)
+        if executable == "env":
+            path = ORCHESTRATOR_ENVIRONMENT["PATH"] if "PATH" in seen else None
+            executable = shutil.which(executable, path=path) or ""
+        if executable not in {"/usr/bin/env", "/bin/env"}:
+            return invalid
+        unset: set[str] = set()
+        while stripped and stripped[0] == "-u":
+            if len(stripped) < 2 or stripped[1] not in ORCHESTRATOR_ENV_UNSET:
+                return invalid
+            if stripped[1] in unset:
+                return invalid
+            unset.add(stripped[1])
+            del stripped[:2]
+        if not assignments() or (stripped and stripped[0].startswith("-")):
+            return invalid
+    if seen and not stripped:
+        return invalid  # a standalone assignment mutates the shell environment
+    if "PATH" in seen and stripped and "/" not in stripped[0]:
+        resolved = shutil.which(stripped[0], path=ORCHESTRATOR_ENVIRONMENT["PATH"])
+        if resolved:
+            stripped[0] = resolved
     return stripped

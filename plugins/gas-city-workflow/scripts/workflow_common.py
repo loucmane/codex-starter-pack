@@ -18,13 +18,9 @@ from project_context import DEFAULT_REGISTRY, build_context
 WORKFLOW_SCHEMA = "gas-city-workflow.transition.v1"
 RESULT_SCHEMA = "gas-city-workflow.result.v1"
 PHASES = ("planned", "worktree-created", "scaffolded", "claimed", "ready")
-BEAD_PATTERN = re.compile(
-    r"^[a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*(?:\.[1-9][0-9]*)*$"
-)
+BEAD_PATTERN = re.compile(r"^[a-z][a-z0-9]*-[a-z0-9][a-z0-9-]*(?:\.[1-9][0-9]*)*$")
 SLUG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-NONBLOCKING_RELATIONSHIP_TYPES = frozenset(
-    {"parent-child", "relates-to", "tracks"}
-)
+NONBLOCKING_RELATIONSHIP_TYPES = frozenset({"parent-child", "relates-to", "tracks"})
 
 PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 SOURCE_ROOT = PLUGIN_ROOT.parent.parent
@@ -107,7 +103,12 @@ def git_value(runner: CommandRunner, root: Path, *args: str) -> str:
 
 
 def managed_environment() -> dict[str, str]:
-    return {**os.environ, "PATH": OPERATOR_PATH}
+    env = {
+        key: value
+        for key, value in os.environ.items()
+        if key not in {"BEADS_DIR", "BEADS_DB"} and not key.startswith("BEADS_DOLT_SERVER_")
+    }
+    return {**env, "PATH": OPERATOR_PATH, "GC_HOME": "/home/loucmane/gascity/home"}
 
 
 def workflow_runtime_root(registry: Path = DEFAULT_REGISTRY) -> Path:
@@ -175,9 +176,7 @@ def is_blocking_dependency(item: Mapping[str, Any]) -> bool:
     silently make real prerequisites startable.
     """
 
-    relationship_type = str(
-        item.get("dependency_type") or item.get("type") or ""
-    ).strip()
+    relationship_type = str(item.get("dependency_type") or item.get("type") or "").strip()
     return relationship_type not in NONBLOCKING_RELATIONSHIP_TYPES
 
 

@@ -22,11 +22,16 @@ from workflow_common import (
     journal_path,
     load_bead,
     load_journal,
-    managed_environment,
     require_journal_spec,
     result_payload,
     run_readiness,
     workflow_runtime_root,
+)
+from workflow_ownership import (
+    ensure_external_owner,
+    require_binding,
+    require_external_candidate,
+    owner_binding,
 )
 
 
@@ -195,9 +200,7 @@ def _scaffold_state(runner: CommandRunner, root: Path, spec: BeginSpec) -> str:
     active = _active_dirs(root)
     matching = [item for item in active if f"-{spec.bead_id}-" in item.name]
     unrelated = [item for item in active if item not in matching]
-    preserved = all(
-        _preserved_legacy_tracker(runner, root, spec, item) for item in unrelated
-    )
+    preserved = all(_preserved_legacy_tracker(runner, root, spec, item) for item in unrelated)
     session_state = root / "sessions" / "state.json"
     session_bead = None
     if session_state.is_file():
@@ -233,7 +236,12 @@ def _scaffold_state(runner: CommandRunner, root: Path, spec: BeginSpec) -> str:
     )
     if exact:
         return "exact"
-    if matching or not preserved or session_bead == spec.bead_id or f"bead_ids: [{spec.bead_id}]" in plan_text:
+    if (
+        matching
+        or not preserved
+        or session_bead == spec.bead_id
+        or f"bead_ids: [{spec.bead_id}]" in plan_text
+    ):
         raise WorkflowError("partial or mismatched workflow scaffold requires explicit diagnosis")
     return "absent"
 
@@ -242,13 +250,9 @@ def run_profile_readiness(runner: CommandRunner, spec: BeginSpec) -> str:
     root = Path(spec.worktree)
     if spec.workflow_profile != "beads-with-frozen-legacy-evidence":
         return run_readiness(runner, root)
-    branch = runner.run(
-        ["git", "-C", str(root), "branch", "--show-current"]
-    ).stdout.strip()
+    branch = runner.run(["git", "-C", str(root), "branch", "--show-current"]).stdout.strip()
     if branch != spec.branch:
-        raise WorkflowError(
-            f"active branch is {branch or '<detached>'}, expected {spec.branch}"
-        )
+        raise WorkflowError(f"active branch is {branch or '<detached>'}, expected {spec.branch}")
     ancestor = runner.run(
         ["git", "-C", str(root), "merge-base", "--is-ancestor", spec.base_commit, "HEAD"],
         check=False,
@@ -273,8 +277,7 @@ def _kickoff_command(
     if not foundation.is_file():
         force_args = (
             ["--force"]
-            if spec.workflow_profile == "beads-with-frozen-legacy-evidence"
-            and _active_dirs(target)
+            if spec.workflow_profile == "beads-with-frozen-legacy-evidence" and _active_dirs(target)
             else []
         )
         return (
@@ -340,7 +343,7 @@ def _ensure_scaffold(
         atomic_write_json(path, journal)
 
 
-def _ensure_claim(
+def _ensure_ownership(
     runner: CommandRunner,
     spec: BeginSpec,
     journal: dict[str, Any],
@@ -348,26 +351,7 @@ def _ensure_claim(
     registry: Path,
 ) -> dict[str, Any]:
     context = build_context(Path(spec.worktree), registry)
-    bead = load_bead(runner, context, spec.bead_id)
-    if bead.get("status") == "open":
-        workflow = context["workflow"]
-        runner.run(
-            [
-                str(workflow["gc"]),
-                "--city",
-                str(workflow["city"]),
-                "--rig",
-                str(workflow["rig"]),
-                "bd",
-                "update",
-                spec.bead_id,
-                "--claim",
-            ],
-            env=managed_environment(),
-        )
-        bead = load_bead(runner, context, spec.bead_id)
-    if bead.get("status") != "in_progress":
-        raise WorkflowError("bead claim did not produce in_progress state")
+    bead = ensure_external_owner(runner, spec, context, journal, path)
     if not _phase_at_least(journal, "claimed"):
         advance_journal(journal, "claimed")
         atomic_write_json(path, journal)
@@ -385,7 +369,8 @@ def begin(
     runner: CommandRunner | None = None,
 ) -> dict[str, Any]:
     runner = runner or CommandRunner()
-    spec, _, bead = derive_begin_spec(runner, root, bead_id, slug=slug, registry=registry)
+    spec, context, bead = derive_begin_spec(runner, root, bead_id, slug=slug, registry=registry)
+    require_external_candidate(bead)
     path = journal_path(runner, spec)
     journal = load_journal(path)
     if journal is None:
@@ -396,6 +381,13 @@ def begin(
             raise WorkflowError("transition journal base commit is invalid")
         spec = replace(spec, base_commit=stored_base)
         require_journal_spec(journal, spec)
+    ownership = journal.get("external_ownership", {}).get(bead_id)
+    if ownership and ownership.get("state") == "verified":
+        require_binding(bead, owner_binding(spec, context))
+    elif journal["phase"] in {"claimed", "ready"} and not ownership:
+        raise WorkflowError("legacy ownership requires explicit exact-digest reconciliation")
+    elif bead.get("status") != "open" and not ownership:
+        raise WorkflowError("in_progress work without external ownership cannot be adopted")
     if dry_run:
         return result_payload(
             "begin",
@@ -409,7 +401,7 @@ def begin(
     atomic_write_json(path, journal)
     _ensure_worktree(runner, spec, journal, path)
     _ensure_scaffold(runner, spec, journal, path, goals, registry)
-    bead = _ensure_claim(runner, spec, journal, path, registry)
+    bead = _ensure_ownership(runner, spec, journal, path, registry)
     readiness = run_profile_readiness(runner, spec)
     if "STATE: READY" not in readiness:
         raise WorkflowError("readiness command succeeded without a READY state")
@@ -417,6 +409,7 @@ def begin(
         advance_journal(journal, "ready")
         atomic_write_json(path, journal)
     context = build_context(Path(spec.worktree), registry)
+    require_binding(load_bead(runner, context, bead_id), owner_binding(spec, context))
     return result_payload(
         "begin",
         "ready",

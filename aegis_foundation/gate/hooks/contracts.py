@@ -310,6 +310,14 @@ READ_ONLY_SIMPLE_COMMANDS = {
 }
 
 
+# The reviewed Gas City operator environment, not a generic shell-prefix bypass.
+ORCHESTRATOR_ENVIRONMENT = {
+    "PATH": "/home/loucmane/gascity/bin:/usr/local/bin:/usr/bin:/bin",
+    "GC_HOME": "/home/loucmane/gascity/home",
+}
+ORCHESTRATOR_ENV_UNSET = frozenset({"BEADS_DIR", "BEADS_DB"})
+
+
 READ_ONLY_WRITE_FLAG_GUARDS = {
     "sed": ("-i", "--in-place"),
     "yq": ("-i", "--inplace"),
@@ -483,8 +491,8 @@ OVERRIDE_ELIGIBLE_REASONS = {"readiness_blocked", "pending_tracking"}
 RECOVERY_CONTRACT: dict[str, dict[str, str]] = {
     "readiness_blocked": {
         "tier": "b",
-        "repair": "./.aegis/bin/aegis repair --target-dir . --apply",
-        "alt_repair": "python3 scripts/codex-task wizard kickoff --task <id> --slug <slug> --title '<title>'",
+        "repair": "Inspect workflow state first; apply only the reviewed, bounded repair (preserve completed archives).",
+        "alt_repair": "python3 plugins/gas-city-workflow/scripts/workflow.py begin --root . --bead <bead-id> --goal '<goal>' (authorized bootstrap mutation, not read-only)",
         "audit": ".aegis/reports/gate-decisions.jsonl + ledger",
         "escalation": 'If repair/kickoff cannot resolve it, break glass: aegis override --reason "<why>" (workflow-state only).',
         "override_eligible": "true",

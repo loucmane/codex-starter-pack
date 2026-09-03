@@ -39,6 +39,7 @@ from .payloads import (
     target_dir_confinement_violation,
 )
 from .hard_policy import has_read_only_test_output_option
+from .orchestrator import read_only_beads, read_only_context, read_only_utility, trusted_bootstrap
 
 
 def redirect_targets(command: str) -> list[str]:
@@ -228,6 +229,8 @@ def bash_segment_is_read_only(segment: str) -> bool:
     tokens = strip_shell_prefixes(shlex_tokens(segment))
     if not tokens:
         return True
+    if read_only_beads(tokens) or read_only_utility(tokens) or read_only_context(tokens, project_root()):
+        return True
     name = command_name(tokens[0])
     tokens[0] = name
     if name == "cd":
@@ -392,7 +395,7 @@ def degraded_payload_is_non_destructive(payload: Payload) -> bool:
 
 
 def bash_is_aegis_bootstrap(command: str) -> bool:
-    return bash_has_trusted_aegis_subcommand(
+    return trusted_bootstrap(command, project_root()) or bash_has_trusted_aegis_subcommand(
         command, {"start", "kickoff"}
     ) or bash_is_aegis_observe_start(command)
 

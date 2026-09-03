@@ -30,7 +30,7 @@ task states use the same identity contract and remain valid.
 ## Lifecycle transitions
 
 Run `workflow.py begin --root <canonical-root> --bead <id>` instead of remembering the
-worktree/kickoff/claim/readiness sequence. The transition journal lives under the repository's Git
+worktree/kickoff/ownership/readiness sequence. The transition journal lives under the repository's Git
 common directory at `.git/gas-city-workflow/transactions/<bead>.json`, outside individual linked
 worktrees. It binds the exact project, rig, branch, worktree, and starting commit and advances only
 through `planned → worktree-created → scaffolded → claimed → ready`.
@@ -43,7 +43,7 @@ through `planned → worktree-created → scaffolded → claimed → ready`.
 - `attach` adds one already-declared blocking dependency to the current source-work context. It
   keeps the primary Aegis session, tracker, and branch, records the dependency separately under
   `attached_bead_ids` while preserving the one-item authoritative `bead_ids` field,
-  claims the dependency idempotently, and journals the attachment. It refuses unrelated beads;
+  binds external source-work ownership idempotently, and journals the attachment. It refuses unrelated beads;
   do not open a second Aegis context while the parent source change is still active.
 - `checkpoint`, `verify`, `publish`, and `finish` run their bounded checks and append results to
   the same transition journal.
@@ -52,6 +52,47 @@ The journal is evidence, not authority. A partial or contradictory filesystem, G
 scaffold state blocks instead of being guessed away. Existing unscaffolded worktrees can only be
 fast-forwarded when clean and ancestor-related; once scaffolded, their task branch is never moved
 by lifecycle replay.
+
+### External coordination versus native claims
+
+`workflow.py` is the source coordinator's lifecycle, not a managed worker's claim protocol.
+It records external activity as **in_progress with no assignee**, with the single metadata key
+`workflow.external_owner` containing `external-coordinator.v1:<sha256>` of the exact project,
+city, rig, canonical repository, branch, worktree and primary transaction digest. The expanded
+binding is derived from the preserved journal; the CLI receives no nested JSON quoting.
+Attached blocking Beads share that binding. It never
+uses an OS username, `human`, or a fabricated session as a worker claim. Native workers retain
+their real session-bound claim and existing orphan cleanup, unchanged. Assigned work, native
+control metadata, route labels, and managed-session callers are refused by this source path.
+
+The historical journal phase `claimed` is retained for format compatibility; new journals also
+require a verified `external_ownership` record before READY. Every continuation validates fresh
+ledger status and binding plus Git/project identity; local Aegis READY alone is insufficient.
+Closed attached blockers remain evidence, not work to reopen. No periodic re-claim is permitted.
+
+The CLI serializes its source transitions in the repository's Git common directory. Before/after
+Bead snapshots and pending intent are recorded around one supported status/metadata patch,
+preserving every unrelated field. Exact completed writes can be reconciled after interrupted
+readback; unexplained deltas stop without guessing a rollback. **This is not a distributed lock
+or a scheduler reservation:** the installed Beads CLI has no status/metadata compare-and-swap.
+Do not concurrently route, close, or mutate ownership of the same Bead from another controller;
+fresh readback detects observed races but does not eliminate that API limitation.
+Upstream atomic expected-digest updates are tracked in `ga-gurw`. Until that contract
+is implemented and proven, this must not be presented as concurrent scheduler ownership.
+
+A legacy `claimed`/`ready` journal without the new binding does not silently migrate. After
+diagnosis and scoped authorization, `workflow.py adopt-external --root <exact-worktree>
+--expect-bead-sha256 <digest>` checks the exact fresh Bead snapshot (SHA-256 of sorted compact
+UTF-8 JSON), preserved local scaffold and journal, then binds only an unassigned, unrouted open
+or in-progress Bead. It cannot clear any assignee or overwrite an existing ownership binding.
+It does not assert dependency readiness, grant dispatch authority, or alter historical evidence.
+Attach the declared repair Bead through `workflow.py attach` after this explicit migration.
+
+The separately opt-in `--repair-legacy-wire` recognizes only the preserved pending intent
+whose actual delta is exactly the old one-extra-JSON-encoding bug. It requires the exact fresh
+Bead digest, saves the old intent and full readback append-forward, and replaces only that
+binding with the typed digest token. Any additional delta or unknown binding still refuses.
+It is not an automatic retry, generic metadata repair, or permission to take over native work.
 
 Projects whose canonical checkout is deliberately dirty or parked on a long-lived branch may
 declare a validated `base_ref` in the registry or local descriptor. `begin` resolves the immutable
