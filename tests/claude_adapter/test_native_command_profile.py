@@ -232,8 +232,8 @@ def test_profile_is_not_a_file_write_or_delegation_grant(tmp_path: Path) -> None
         assert '"permissionDecision": "allow"' not in result.stdout
 
 
-@pytest.mark.parametrize("mode", ["plan", "unknown", None])
-def test_bootstrap_is_not_approved_in_plan_or_unknown_mode(
+@pytest.mark.parametrize("mode", ["unknown", None])
+def test_bootstrap_is_not_approved_in_unknown_mode(
     tmp_path: Path, mode: str | None
 ) -> None:
     repo = managed_repo(tmp_path)

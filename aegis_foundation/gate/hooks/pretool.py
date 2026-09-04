@@ -49,6 +49,7 @@ from .runtime_state import (
     write_degraded_event,
 )
 from .delegation import DelegationPolicyError, evaluate_native_delegation
+from .permission_modes import deny_plan_mode_mutation
 from .hard_policy import hard_policy_violations, raw_hard_policy_families
 from .shell_policy import (
     aegis_cli_target_dir_violations,
@@ -84,6 +85,9 @@ def degraded_pretooluse_fallback(raw_payload: str, exc: BaseException) -> int:
             loaded.raw_preview,
         )
     root = project_root()
+    plan_denial = deny_plan_mode_mutation(root, loaded)
+    if plan_denial is not None:
+        return plan_denial
     if degraded_payload_is_non_destructive(loaded):
         event = write_degraded_event(root, loaded, reason, raw_payload, trace=trace)
         print(
@@ -92,8 +96,8 @@ def degraded_pretooluse_fallback(raw_payload: str, exc: BaseException) -> int:
             file=sys.stderr,
         )
         return 0
-    # Advisory contract: enforcement mode advisory NEVER hard-blocks — an infra
-    # failure records a degraded event (with traceback) and allows, loudly. Strict
+    # Advisory workflow failures record a degraded event and allow, loudly, only
+    # after the non-overridable client-mode boundary above. Strict
     # mode keeps failing closed below. The advisory check itself is best-effort:
     # if it crashes too, fail closed.
     try:
@@ -143,6 +147,9 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
             return 0
         return block_unclassifiable_payload(loaded.reason, loaded.raw_preview)
     payload = loaded
+    plan_denial = deny_plan_mode_mutation(root, payload)
+    if plan_denial is not None:
+        return plan_denial
     try:
         delegation = evaluate_native_delegation(root, payload)
     except DelegationPolicyError as exc:
