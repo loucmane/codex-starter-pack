@@ -3,9 +3,19 @@
 
 from __future__ import annotations
 
+import os
+import sys
+
+if __name__ == "__main__":
+    # Defense in depth; all runtime integrity and workflow checks remain in force.
+    # Set both read/write controls before imports and preserve existing caches.
+    sys.dont_write_bytecode = True
+    sys.pycache_prefix = os.devnull
+    os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+    os.environ["PYTHONPYCACHEPREFIX"] = os.devnull
+
 import argparse
 import json
-import sys
 from contextlib import nullcontext
 from pathlib import Path
 from typing import Any
@@ -155,7 +165,10 @@ def _verify(
 def _publish(root: Path, runner: CommandRunner) -> dict[str, Any]:
     context = build_context(root, DEFAULT_REGISTRY)
     root = Path(context["project"]["root"])
-    check_active_ownership(runner, root, dependencies_complete=True)
+    # Deliver the candidate before its attached repairs' post-merge acceptance.
+    # Keep normal source ownership/dependency checks; finish alone requires all
+    # blockers closed, both before and after the terminal closeout operation.
+    check_active_ownership(runner, root)
     _verify(root, runner, synchronize=False)
     status = git_value(runner, root, "status", "--porcelain=v1")
     if status:
@@ -286,6 +299,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     attach_command = subparsers.add_parser("attach")
     attach_command.add_argument("--root", default=".")
     attach_command.add_argument("--bead", required=True)
+    coordinate_command = subparsers.add_parser("coordinate", allow_abbrev=False)
+    coordinate_command.add_argument("--root", required=True)
+    coordinate_command.add_argument("--bead", required=True)
+    coordinate_command.add_argument("--action", choices=("note", "create", "depend"), required=True)
+    for field in ("text", "title", "description", "acceptance", "blocker"):
+        coordinate_command.add_argument("--" + field)
+    log_command = subparsers.add_parser("log", allow_abbrev=False)
+    log_command.add_argument("--root", required=True)
+    log_command.add_argument("--evidence", required=True)
+    log_command.add_argument("--note", required=True)
     for name in ("checkpoint", "verify", "publish"):
         command = subparsers.add_parser(name)
         command.add_argument("--root", default=".")
@@ -323,6 +346,19 @@ def _dispatch(args, runner: CommandRunner, root: Path) -> dict[str, Any]:
         payload["action"] = args.command
     elif args.command == "attach":
         payload = attach(root, args.bead, runner)
+    elif args.command == "coordinate":
+        from workflow_coordinate import coordinate
+
+        fields = {
+            key: getattr(args, key)
+            for key in ("text", "title", "description", "acceptance", "blocker")
+            if getattr(args, key) is not None
+        }
+        payload = coordinate(root, args.bead, args.action, fields, runner)
+    elif args.command == "log":
+        from workflow_coordinate import log
+
+        payload = log(root, args.evidence, args.note, runner)
     elif args.command == "checkpoint":
         payload = _checkpoint(root, runner)
     elif args.command == "verify":

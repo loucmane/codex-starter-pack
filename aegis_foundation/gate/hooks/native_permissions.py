@@ -29,7 +29,7 @@ from .runtime_state import hook_invoking_agent
 
 PROFILE = Path(".claude/orchestrator-command-profile.json")
 SCHEMA = "aegis.claude-orchestrator-command-profile.v1"
-COMMANDS = frozenset({"project-context", "beads-read", "workflow-begin"})
+COMMANDS = frozenset({"project-context", "beads-read", "workflow-begin", "workflow-coordinate"})
 KEYS = {"schema", "project_id", "canonical_root", "worktree_root", "city", "rig", "commands"}
 
 
@@ -136,6 +136,14 @@ def native_permission(root: Path, payload: Payload) -> str | None:
     No recognized command is executed here.
     """
     if payload.tool_name != "Bash" or hook_invoking_agent(payload) != "claude":
+        return None
+    # Stationary commands retain the original payload/cwd for the request digest.
+    # Only the explicitly validated workflow target receives task readiness/evidence.
+    if payload.cwd and Path(payload.cwd) != root:
+        from .coordination import KIND, target_for
+
+        if target_for(Path(payload.cwd), payload) == root:
+            return KIND
         return None
     profile_path = root / PROFILE
     if not profile_path.exists() and not profile_path.is_symlink():

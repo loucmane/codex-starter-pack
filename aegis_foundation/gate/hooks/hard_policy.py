@@ -18,6 +18,7 @@ from .contracts import (
     RAW_DESTRUCTIVE_GIT_RE,
     RAW_DOLT_AUTHORITY_RE,
     RAW_NESTED_SYNTHESIS_RE,
+    RAW_SHELL_EVALUATOR_RE,
     RAW_TASKMASTER_WRITE_RE,
     RAW_UNSUPPORTED_SYNTHESIS_RE,
     READ_ONLY_TEST_OUTPUT_OPTIONS,
@@ -146,6 +147,79 @@ def nested_shell_command(tokens: list[str]) -> str | None:
         if not token.startswith("-"):
             break
     return None
+
+
+def unquoted_hard_policy_text(command: str) -> str:
+    """Mask quoted text only for the conservative evaluator-word check.
+
+    This is not a shell parser or an expansion detector. The caller first uses the
+    existing parser, checks raw substitution syntax even inside quotes, and checks
+    parsed executable names plus nested shell bodies separately.
+    """
+
+    rendered: list[str] = []
+    quote = ""
+    escaped = False
+    for character in command:
+        if escaped:
+            rendered.append(" " if quote else character)
+            escaped = False
+        elif character == "\\" and quote != "'":
+            rendered.append(" " if quote else character)
+            escaped = True
+        elif quote:
+            rendered.append(" ")
+            if character == quote:
+                quote = ""
+        elif character in {"'", '"'}:
+            quote = character
+            rendered.append(" ")
+        else:
+            rendered.append(character)
+    return "".join(rendered)
+
+
+def unsupported_hard_policy_synthesis(
+    command: str, segments: list[list[str]], *, depth: int
+) -> bool:
+    """Inspect sensitive commands without treating quoted prose as an evaluator."""
+
+    if depth > 2 or RAW_UNSUPPORTED_SYNTHESIS_RE.search(command):
+        return True
+    # Retain conservative detection in shell control constructs the simple segment
+    # parser does not model (for example, `then source ...`).
+    if RAW_SHELL_EVALUATOR_RE.search(unquoted_hard_policy_text(command)):
+        return True
+    for raw_tokens in segments:
+        # Control words introduce a command position; quoted/escaped evaluator
+        # names there are executable too. Do not inspect arbitrary arguments,
+        # which would turn the inert note-text defect back on.
+        while raw_tokens and raw_tokens[0] in {
+            "if",
+            "then",
+            "else",
+            "elif",
+            "while",
+            "until",
+            "do",
+            "!",
+            "{",
+        }:
+            raw_tokens = raw_tokens[1:]
+        tokens = strip_hard_policy_prefixes(raw_tokens)
+        if not tokens:
+            continue
+        name = command_name(tokens[0])
+        if tokens[0] == "." or name in {"eval", "source"}:
+            return True
+        if name in {"python", "python3"} and "-c" in tokens[1:]:
+            return True
+        nested = nested_shell_command(tokens)
+        if nested is not None and unsupported_hard_policy_synthesis(
+            nested, hard_policy_shell_segments(nested), depth=depth + 1
+        ):
+            return True
+    return False
 
 
 def git_invocation(tokens: list[str], root: Path) -> tuple[Path, str, list[str]] | None:
@@ -433,10 +507,12 @@ def hard_policy_violations(command: str, root: Path, *, depth: int = 0) -> list[
         return ["nested shell command exceeds the destructive-operation inspection limit"]
     families = raw_hard_policy_families(command)
     sensitive_families = families - {"nested_synthesis"}
-    if sensitive_families and RAW_UNSUPPORTED_SYNTHESIS_RE.search(command):
-        return ["sensitive hard-policy command uses unsupported shell synthesis or concealment"]
     try:
         shell_segments = hard_policy_shell_segments(command)
+        if sensitive_families and unsupported_hard_policy_synthesis(
+            command, shell_segments, depth=depth
+        ):
+            return ["sensitive hard-policy command uses unsupported shell synthesis or concealment"]
     except HardPolicyParseError as exc:
         if families:
             return [f"hard-policy shell parse failed closed ({exc})"]

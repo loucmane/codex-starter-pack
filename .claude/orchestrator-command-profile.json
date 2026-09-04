@@ -5,5 +5,5 @@
   "worktree_root": "/home/loucmane/gas-city-ops-worktrees",
   "city": "/home/loucmane/gascity/city",
   "rig": "gascity",
-  "commands": ["project-context", "beads-read", "workflow-begin"]
+  "commands": ["project-context", "beads-read", "workflow-begin", "workflow-coordinate"]
 }

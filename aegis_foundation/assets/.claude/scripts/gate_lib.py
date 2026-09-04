@@ -2,7 +2,15 @@ from __future__ import annotations
 
 import os
 import sys
-from pathlib import Path
+
+# Defense in depth: prevent cache reads as well as writes before runtime imports.
+# This does not replace or relax any runtime integrity/approval check.
+sys.dont_write_bytecode = True
+sys.pycache_prefix = os.devnull
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+os.environ["PYTHONPYCACHEPREFIX"] = os.devnull
+
+from pathlib import Path  # noqa: E402 - cache isolation precedes runtime imports.
 
 
 def _candidate_source_roots() -> list[Path]:

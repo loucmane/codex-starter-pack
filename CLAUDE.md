@@ -62,6 +62,43 @@ Beads reads and canonical `workflow.py begin` receive audited native approvals
 after all applicable strict checks. No broad Bash allowlist, file-write grant,
 plan-mode mutation, signing or lifecycle authority follows from this profile.
 
+### Stationary canonical-root orchestration
+
+With the explicit `workflow-coordinate` profile opt-in, keep the conversation at
+the canonical project. Do not change `CLAUDE_PROJECT_DIR`, use `cd` to evade a gate,
+or reopen the client for each task. Name the registered linked worktree on each
+canonical `workflow.py` command. `attach`, `checkpoint`, `verify`, `coordinate` and
+`log` validate that target; other commands retain their existing boundaries.
+
+Use the canonical runtime path, literal arguments, and one operation per call:
+
+```bash
+python3 /home/loucmane/gas-city-ops/plugins/gas-city-workflow/scripts/workflow.py coordinate --root /absolute/registered/task-worktree --bead ga-primary --action note --text 'Evidence-backed progress'
+python3 /home/loucmane/gas-city-ops/plugins/gas-city-workflow/scripts/workflow.py coordinate --root /absolute/registered/task-worktree --bead ga-primary --action create --title 'Bounded follow-up' --description 'Scope and constraints' --acceptance 'Observable proof'
+python3 /home/loucmane/gas-city-ops/plugins/gas-city-workflow/scripts/workflow.py coordinate --root /absolute/registered/task-worktree --bead ga-primary --action depend --blocker ga-prerequisite
+python3 /home/loucmane/gas-city-ops/plugins/gas-city-workflow/scripts/workflow.py log --root /absolute/registered/task-worktree --evidence 'path/to/proof' --note 'Completed the bounded operation'
+```
+
+Replace example identities with the actual registered worktree and owned Bead.
+`create` produces one unassigned, unrouted P2 task with a **nonblocking parent-child**
+edge. `depend` adds a **blocks** prerequisite to the primary Bead, then invokes the
+existing transactional `attach`; these relationships are not interchangeable.
+`note` changes only notes on a primary or attached owned Bead. Exact completed
+requests replay as no-ops; a pending/ambiguous intent requires reconciliation.
+
+Readiness and pending tracking belong to the selected target; decision records
+retain the original request digest and session identity. Both canonical and target
+observation/advisory states refuse this opt-in. Use target `log` to clear target
+tracking. No general raw `bd` mutation approval, cross-rig grant, source edit,
+dispatch, signing, publication, lifecycle, or plan-mode exemption is added.
+
+The target's executable workflow helpers must match reviewed canonical bytes.
+Ordinary candidate source edits are permitted, but edited workflow executors cannot
+receive automatic approval to execute themselves. Such a runtime repair stays in
+the explicit implementation/review lane until merge-bound activation; do not work
+around the refusal. Gate approval validates local bindings, while execution still
+rechecks **live** Bead ownership under the repository lock. A journal is not authority.
+
 The PreToolUse dispatcher in `.claude/scripts/pretooluse-gate.sh` enforces this for hookable Claude file tools and tested Bash mutation patterns. After a successful mutation, `.claude/scripts/posttooluse-tracking.sh` records pending S:W:H:E tracking and `.claude/scripts/tracking-stop-gate.sh` blocks session stop until `aegis log` has updated the session, tracker, implementation log, changelog, handoff, and plan evidence.
 
 In Gas City managed projects, the same PreToolUse dispatcher blocks Claude `Agent` and `Task`

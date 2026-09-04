@@ -6,7 +6,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GATE_ROOT = REPO_ROOT / "aegis_foundation" / "gate"
 HOOK_ROOT = GATE_ROOT / "hooks"
@@ -44,6 +43,8 @@ def test_live_and_packaged_compatibility_launchers_are_identical() -> None:
 def test_modular_gate_inventory_and_size_budget() -> None:
     expected = {
         "contracts.py",
+        "coordination.py",
+        "coordination_runtime.py",
         "decisions.py",
         "delegation.py",
         "entrypoint.py",
@@ -95,7 +96,9 @@ def test_public_gate_readiness_command_matches_compatibility_command() -> None:
     assert canonical.stdout == legacy.stdout
 
 
-def test_generic_installer_does_not_opt_consumers_into_orchestrator_permissions(tmp_path: Path) -> None:
+def test_generic_installer_does_not_opt_consumers_into_orchestrator_permissions(
+    tmp_path: Path,
+) -> None:
     from scripts import _aegis_installer as installer
 
     plan = installer.plan_install(
