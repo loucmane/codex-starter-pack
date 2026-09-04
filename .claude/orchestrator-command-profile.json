@@ -1,0 +1,9 @@
+{
+  "schema": "aegis.claude-orchestrator-command-profile.v1",
+  "project_id": "gas-city-operations",
+  "canonical_root": "/home/loucmane/gas-city-ops",
+  "worktree_root": "/home/loucmane/gas-city-ops-worktrees",
+  "city": "/home/loucmane/gascity/city",
+  "rig": "gascity",
+  "commands": ["project-context", "beads-read", "workflow-begin"]
+}

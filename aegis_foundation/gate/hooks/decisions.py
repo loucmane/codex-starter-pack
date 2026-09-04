@@ -334,6 +334,37 @@ def gate_allow_or_record(root: Path, payload: Payload, *, reason: str) -> int:
             verdict="allow",
             reason=reason,
         )
+        return 0  # Advisory success is never a native permission grant.
+    # Called only at successful strict-gate exits, after their existing checks.
+    # A silent exit(0) means "defer to Claude permissions", not "approve Bash".
+    try:
+        from .native_permissions import native_permission
+
+        permission = native_permission(root, payload)
+        if permission is not None:
+            append_gate_decision(
+                root,
+                hook="pretooluse",
+                payload=payload,
+                verdict="allow",
+                reason=f"native_permission:{permission}",
+            )
+            print(
+                json.dumps(
+                    {
+                        "hookSpecificOutput": {
+                            "hookEventName": "PreToolUse",
+                            "permissionDecision": "allow",
+                            "permissionDecisionReason": f"aegis-orchestrator:{permission}",
+                        }
+                    }
+                )
+            )
+    except Exception as exc:  # Fail closed before output, including audit failure.
+        return block(
+            "BLOCKED: Claude command profile could not establish an audited approval: "
+            f"{type(exc).__name__}: {exc}"
+        )
     return 0
 
 

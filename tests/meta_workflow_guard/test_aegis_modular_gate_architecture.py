@@ -51,6 +51,7 @@ def test_modular_gate_inventory_and_size_budget() -> None:
         "hard_policy.py",
         "lifecycle.py",
         "loaders.py",
+        "native_permissions.py",
         "orchestrator.py",
         "payloads.py",
         "pretool.py",
@@ -91,6 +92,16 @@ def test_public_gate_readiness_command_matches_compatibility_command() -> None:
     )
     assert canonical.returncode == legacy.returncode
     assert canonical.stdout == legacy.stdout
+
+
+def test_generic_installer_does_not_opt_consumers_into_orchestrator_permissions(tmp_path: Path) -> None:
+    from scripts import _aegis_installer as installer
+
+    plan = installer.plan_install(
+        tmp_path, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"]
+    )
+    paths = {operation["path"] for operation in plan["operations"]}
+    assert ".claude/orchestrator-command-profile.json" not in paths
 
 
 def test_hook_launcher_fails_closed_when_canonical_runtime_is_unavailable(tmp_path: Path) -> None:

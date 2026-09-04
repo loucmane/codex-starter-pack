@@ -474,6 +474,7 @@ class Payload:
     session_id: str | None = None
     cwd: str | None = None
     parsed_apply_patch: ParsedApplyPatch | None = None
+    permission_mode: str | None = None
 
 
 @dataclass
