@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.machinery
 import importlib.util
 import json
 import marshal
@@ -184,12 +185,15 @@ def test_stale_malformed_cache_is_inert_and_not_read(tmp_path, monkeypatch, tag)
 
 @pytest.mark.parametrize("tag", ["cpython-311", sys.implementation.cache_tag])
 @pytest.mark.parametrize("optimization", [0, 1, 2])
-def test_python_generated_extensionless_helper_cache_is_preserved(tmp_path, tag, optimization):
+@pytest.mark.parametrize("source_mode", [0o644, 0o755])
+def test_python_named_extensionless_helper_cache_is_preserved(
+    tmp_path, tag, optimization, source_mode
+):
     canonical, target, _ = stationary_fixture(tmp_path)
     relative = "scripts/reviewed-helper"
     for root in (canonical, target):
         write(root / relative, "#!/usr/bin/env python3\nvalue = 'reviewed'\n")
-        (root / relative).chmod(0o755)
+        (root / relative).chmod(source_mode)
     git(canonical, "add", relative)
     git(canonical, "commit", "-qm", "reviewed extensionless helper")
     source = target / relative
@@ -208,19 +212,76 @@ def test_python_generated_extensionless_helper_cache_is_preserved(tmp_path, tag,
     assert cache.read_bytes() == before
 
 
-@pytest.mark.parametrize("tracked", [False, True])
-def test_extensionless_cache_cannot_invent_a_reviewed_executable(tmp_path, tracked):
+@pytest.mark.parametrize("scope", ["canonical", "target"])
+def test_source_file_loader_cache_for_nonexecutable_source_is_inert(tmp_path, monkeypatch, scope):
     canonical, target, _ = stationary_fixture(tmp_path)
-    relative = "scripts/not-an-executable"
-    if tracked:
-        for root in (canonical, target):
-            write(root / relative, "ordinary tracked text\n")
-        git(canonical, "add", relative)
-        git(canonical, "commit", "-qm", "nonexecutable fixture")
-    cache = target / "scripts/__pycache__/not-an-executablecpython-311.pyc"
+    relative = "scripts/reviewed-loader-source"
+    for root in (canonical, target):
+        write(root / relative, "value = 'reviewed nonexecutable source'\n")
+        (root / relative).chmod(0o644)
+    git(canonical, "add", relative)
+    git(canonical, "commit", "-qm", "reviewed SourceFileLoader source")
+    source = (canonical if scope == "canonical" else target) / relative
+    # Reproduce the repository's real interpreter-loader behavior in a disposable
+    # fixture only, then restore mandatory source-only policy before verification.
+    with monkeypatch.context() as generating_cache:
+        generating_cache.setattr(sys, "dont_write_bytecode", False)
+        generating_cache.setattr(sys, "pycache_prefix", None)
+        generating_cache.delenv("PYTHONDONTWRITEBYTECODE")
+        generating_cache.delenv("PYTHONPYCACHEPREFIX")
+        loader = importlib.machinery.SourceFileLoader("reviewed_fixture", str(source))
+        assert loader.get_code("reviewed_fixture") is not None
+        cache = Path(importlib.util.cache_from_source(str(source)))
+    assert cache.is_file()
+    assert stat.S_IMODE(source.stat().st_mode) == 0o644
+    before = cache.read_bytes()
+    original = Path.read_bytes
+
+    def refuse_payload_read(path):
+        if path == cache:
+            pytest.fail("inert extensionless cache payload must not be read")
+        return original(path)
+
+    monkeypatch.setattr(Path, "read_bytes", refuse_payload_read)
+    reviewed_runtime(target, canonical)
+    assert original(cache) == before
+
+
+@pytest.mark.parametrize("source_exists", [False, True])
+def test_extensionless_cache_cannot_invent_a_reviewed_source(tmp_path, source_exists):
+    canonical, target, _ = stationary_fixture(tmp_path)
+    relative = "scripts/unreviewed-source"
+    if source_exists:
+        write(target / relative, "value = 'untracked source'\n")
+    cache = target / "scripts/__pycache__/unreviewed-sourcecpython-311.pyc"
     cache.parent.mkdir()
     cache.write_bytes(b"never executable authority")
     with pytest.raises(ValueError):
+        reviewed_runtime(target, canonical)
+
+
+@pytest.mark.parametrize("scope", ["canonical", "target"])
+@pytest.mark.parametrize("source_mode", [0o644, 0o755])
+@pytest.mark.parametrize("drift", ["bytes", "mode"])
+def test_extensionless_cache_does_not_waive_source_bytes_or_mode(
+    tmp_path, scope, source_mode, drift
+):
+    canonical, target, _ = stationary_fixture(tmp_path)
+    relative = "scripts/reviewed-helper"
+    for root in (canonical, target):
+        write(root / relative, "value = 'reviewed'\n")
+        (root / relative).chmod(source_mode)
+    git(canonical, "add", relative)
+    git(canonical, "commit", "-qm", "reviewed extensionless helper")
+    source = (canonical if scope == "canonical" else target) / relative
+    cache = source.parent / "__pycache__/reviewed-helpercpython-311.pyc"
+    cache.parent.mkdir()
+    cache.write_bytes(b"inert cache does not authorize source drift")
+    if drift == "mode":
+        source.chmod(0o755 if source_mode == 0o644 else 0o644)
+    else:
+        source.write_text("value = 'unreviewed'\n")
+    with pytest.raises(ValueError, match="canonical Git objects"):
         reviewed_runtime(target, canonical)
 
 

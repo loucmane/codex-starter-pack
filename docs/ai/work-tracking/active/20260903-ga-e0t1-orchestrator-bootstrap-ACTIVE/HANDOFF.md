@@ -1,7 +1,24 @@
 # Bead ga-e0t1 Repair pre-kickoff inspection and trusted workflow bootstrap – Handoff Summary
 
 ## Current State
-- Current attached repair: **ga-fjoi R6 source candidate**, uncommitted. Fable's
+- **Current checkpoint: ga-fjoi R7 independent source PASS; signed delivery and
+  activation next.** Fable reports 2,783 PASS / four skips, the same 2,787-case
+  corpus as the executor. See `STATIONARY-R7-SOURCE-PASS.md` for the frozen review
+  binding and fresh source, ownership, signing and PR preflight. Operator approved the precise correction
+  diagnosed in preserved `STATIONARY-R6-ACTIVATION-HOLD.md`. Three source files
+  change; actual Git source bytes/mode and all other checks remain unchanged.
+  Focused tests: 111 PASS. Final full regression: **2,766 PASS / 21 existing skips /
+  zero failures**, with all 23 frozen source hashes unchanged. The operator resolved
+  the disposable test-dependency authority HOLD; virtualenvs and pip cache stayed
+  under `/tmp`. Earlier partial results and denied retry are preserved separately.
+  See `STATIONARY-R7-TEST-AUTHORIZATION.md` and the final verification receipt.
+  Real cache classification
+  accepts 95 candidate and 108 canonical entries without changing any of them.
+  Full integrity still correctly refuses the uncommitted source. See
+  `STATIONARY-R7-REVIEW.md` and `reports/ga-fjoi-cache-association-r7-review.md`.
+  PR #376 stays draft at R6 signed head `64e4bf13f6b48bc73e87305626a912c9a0a46497`,
+  tree `b847a0c55cd1aeedbb5324280d70827c95c80bf6`; R6 hosted CI is green.
+- Previous attached-repair milestone: **ga-fjoi R6 signed candidate delivered**. Fable's
   independent R5 review passed the stationary/source-only loading design. The
   supported publication preflight then exposed the circular requirement to close
   ga-fjoi before delivering the code needed for its live acceptance; that refusal
@@ -11,7 +28,7 @@
   all 20 other R5 source files are unchanged. Focused suite: 103 PASS. Final full
   regression: 2,750 PASS / 21 existing skips / zero failures. Independent R6
   source PASS received: 2,767 PASS / four skips, same 2,771 total. Delivery and
-  live acceptance remain pending. See `STATIONARY-R6-REVIEW.md` and
+  live acceptance remain pending behind R7 review. See `STATIONARY-R6-REVIEW.md` and
   `reports/ga-fjoi-publication-r6-review.md` for frozen bindings.
 - R5 source, delivery, canonical activation and eight fresh-client acceptance
   cases **PASS**. PR #375 merged as `3641fa7aa11c9713da3dac3c075f50caee547ed8`,
@@ -84,6 +101,10 @@
   See `reports/fresh-fable-acceptance-hold.json` and preserved stream.
 
 ## Next Steps
+- Independent R7 source review is PASS. Deliver its exact signed candidate through
+  PR376 and prove the full real-worktree inventory before merge-bound activation.
+  Keep all preserved caches and exact source-mode checks; source tests and CI alone
+  are not stationary-seat live acceptance.
 - ga-fjoi R6 independent delta review and full source verification PASS; next run the exact
   signed/CI/merge gates, merge-bound activation and stationary canonical-seat
   acceptance across two synthetic worktrees. Reconcile the owed Bead note through
@@ -133,3 +154,9 @@
 - **2026-09-04 17:19 CEST** - [S:20260904|W:ga-e0t1-orchestrator-bootstrap|H:candidate-publication-r6-implemented|E:docs/ai/work-tracking/active/20260903-ga-e0t1-orchestrator-bootstrap-ACTIVE/reports/ga-fjoi-publication-r6-review.md] Implemented the operator-approved separation of source candidate publication from terminal closeout. Only the publication initial call changes to normal source ownership checks; the ownership validator and both strict closeout checks remain unchanged. RED reproduced the circular prerequisite; focused GREEN passed 103 tests including 29 new publication and closeout cases. Frozen three-file delta 7cce0cf7 and full 23-file candidate 70137448; 20 prior reviewed source hashes unchanged. Full adapter/meta regression and independent delta review remain pending. No production preflight replay, ledger mutation, signing, publication, activation, client or rig action.
 - **2026-09-04 17:30 CEST** - [S:20260904|W:ga-e0t1-orchestrator-bootstrap|H:candidate-publication-r6-verified|E:docs/ai/work-tracking/active/20260903-ga-e0t1-orchestrator-bootstrap-ACTIVE/reports/ga-fjoi-publication-r6-review.md] R6 final source verification PASS: 2750 full-suite tests passed, 21 existing skips, zero failures; focused suite 103 passed including 29 publication/closeout cases. Frozen 23-file source manifest unchanged. Final verification receipt SHA256 1c961b014f11d94b04fd3b01ffbbc2bb5462898dd93ac40ea88c28e70a7a6332. Independent R6 review remains pending; no signing, publication replay, activation, live Bead mutation or rig lifecycle. Strict terminal dependency checks preserved.
 - **2026-09-04 17:50 CEST** - [S:20260904|W:ga-e0t1-orchestrator-bootstrap|H:candidate-publication-r6-review-pass|E:docs/ai/work-tracking/active/20260903-ga-e0t1-orchestrator-bootstrap-ACTIVE/STATIONARY-R6-REVIEW.md] Accepted operator-relayed independent Fable R6 source PASS: reviewer 2767 passed and 4 skipped; executor 2750 passed and 21 existing skips; identical 2771 total. All 23 frozen source hashes unchanged, exact remote main and branch verified, external Bead ownership unchanged, FD55 readiness cached without prompt. Continue standing signed publication and CI gates; no premature dependency closure, live acceptance claim, runtime activation or rig lifecycle.
+- **2026-09-04 18:06 CEST** - [S:20260904|W:ga-e0t1-orchestrator-bootstrap|H:stationary-runtime-inventory-hold|E:docs/ai/work-tracking/active/20260903-ga-e0t1-orchestrator-bootstrap-ACTIVE/STATIONARY-R6-ACTIVATION-HOLD.md] R6 source PASS delivered to PR376 at signed ancestry-only head64e4bf13 with unchanged reviewed treeb847a0c5; supported publication READY proves open attached repair is admitted without closure. Before activation, actual-loader inventory refuses two preserved extensionless helper caches because tracked source modes are0644 and the association rule requires0755. Canonical108 ignored inputs pass association; candidate has95 and exactly two refusals. Source modes, caches, settings, supervisor and suspended rigs unchanged. Merge and activation HOLD pending narrow disposition and independent review; no silent relaxation or cleanup.
+- **2026-09-04 18:21 CEST** - [S:20260904|W:ga-e0t1-orchestrator-bootstrap|H:stationary-cache-association-r7|E:docs/ai/work-tracking/active/20260903-ga-e0t1-orchestrator-bootstrap-ACTIVE/STATIONARY-R7-REVIEW.md] Implemented the explicitly approved extensionless cache-association correction after preserving the R6 inventory HOLD. Only runtime association, its contract and tests changed; all twenty other R6 source hashes and actual source-byte/mode checks remain exact. RED reproduced eight cases of one defect; focused GREEN passed 111 tests. Real candidate95 and canonical108 cache classifications pass without cache/source-mode changes, while full integrity still refuses uncommitted source. Final frozen regression and independent review pending. PR376 remains draft; no R7 publication, activation, live ledger mutation, client or rig action.
+- **2026-09-04 18:28 CEST** - [S:20260904|W:ga-e0t1-orchestrator-bootstrap|H:stationary-r7-test-authority-hold|E:docs/ai/work-tracking/active/20260903-ga-e0t1-orchestrator-bootstrap-ACTIVE/STATIONARY-R7-REVIEW.md] R7 focused tests passed 111 cases and supported workflow verification passed all six checks. The frozen full run stopped after 1376 passes and one existing skip on sandbox dependency retrieval for an unchanged disposable packaging fixture. Automatic review denied the requested network-enabled retry under the package-installation prohibition before process creation. Preserved raw and compressed JUnit evidence, exact source hashes, corrected append-forward R7 plan/tracker parity and the R6 HOLD. Full-suite completion and independent review remain required; no test bypass, R7 publication, runtime activation, live Bead mutation or rig action.
+- **2026-09-04 18:59 CEST** - [S:20260904|W:ga-e0t1-orchestrator-bootstrap|H:stationary-r7-test-authority-granted|E:docs/ai/work-tracking/active/20260903-ga-e0t1-orchestrator-bootstrap-ACTIVE/STATIONARY-R7-TEST-AUTHORIZATION.md] Operator explicitly permitted declared test dependencies only in disposable /tmp virtualenvs, with no system/user package environment changes or live activation. Reverified exact R7 hashes, branch and external Bead ownership; supported workflow verification passed. Started the unchanged full adapter/meta suite with a fresh full4 JUnit path and /tmp pip cache. Prior denied retries and partial results remain preserved. Independent review and all delivery/live-acceptance gates remain required.
+- **2026-09-04 19:10 CEST** - [S:20260904|W:ga-e0t1-orchestrator-bootstrap|H:stationary-r7-final-source-verification|E:docs/ai/work-tracking/active/20260903-ga-e0t1-orchestrator-bootstrap-ACTIVE/STATIONARY-R7-REVIEW.md] Final frozen R7 regression passed 2766 tests with 21 existing skips and zero failures; the previously blocked disposable packaging case passed under explicit test-dependency authority. All 23 source hashes, five protected configuration files, 108 canonical caches and both original extensionless caches/source modes remain exact. Final verification receipt SHA256 354d00b005ee8e17943b7cc1e954431cf86dbe0efaa6de8b42ce0ac7f9e131a7; full JUnit cbc90230bf859dc0d2c264f7e1b9880af7d4809912cb492249b3d496471fbc4c preserved losslessly. Independent R7 review and live acceptance remain pending. PR376 is draft with no auto-merge; no source delta this turn, R7 publication, activation, live Bead change or rig action.
+- **2026-09-04 19:46 CEST** - [S:20260904|W:ga-e0t1-orchestrator-bootstrap|H:stationary-r7-independent-pass|E:docs/ai/work-tracking/active/20260903-ga-e0t1-orchestrator-bootstrap-ACTIVE/STATIONARY-R7-SOURCE-PASS.md] Accepted operator-relayed independent Fable R7 source PASS: 2783 passed and four skipped, matching the 2787-case executor corpus. All 23 frozen source hashes reverified; supported workflow, exact PR376 head/base and cached signing readiness passed. Proceed with exact signed delivery and live runtime proof under standing authority; no source change, activation, worker capability claim, rig lifecycle or Bead closeout.

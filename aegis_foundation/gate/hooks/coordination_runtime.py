@@ -87,12 +87,10 @@ def _preserved_cache(path: Path, root: Path, manifest: dict) -> None:
     extensionless = re.fullmatch(r"([^.]+)cpython-[0-9]+(?:\.opt-[12])?\.pyc", path.name)
     if extensionless:
         # cache_from_source omits the separating dot for extensionless scripts.
-        # Accept only the exact same-directory tracked executable, never invent
-        # an implicit source file from an arbitrary cache name.
+        # SourceFileLoader also caches nonexecutable Python source. Require the
+        # exact same-directory tracked source below; _verify separately binds its
+        # bytes and actual mode to the reviewed Git object, without loading caches.
         source = path.parent.parent / extensionless[1]
-        record = manifest.get(source.relative_to(root).as_posix())
-        if record is None or record[0] != "100755":
-            raise ValueError("runtime cache has no reviewed extensionless executable")
     elif re.fullmatch(r".+\.[A-Za-z0-9_-]+(?:\.opt-[12])?\.pyc", path.name):
         source = Path(importlib.util.source_from_cache(str(path)))
     else:

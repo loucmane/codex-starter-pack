@@ -105,7 +105,9 @@ does not use sourceless loaders or reset these controls in helper children.
 Only size-bounded regular tagged `__pycache__/*.pyc` files with a corresponding
 reviewed source file may remain as inert evidence. Python's dotless cache naming
 for extensionless scripts is accepted only for an exact same-directory tracked
-executable. Orphan caches and non-executable extensionless sources still refuse.
+regular source (Git mode `100644` or `100755`): interpreter loading does not
+require an executable bit. Orphan and untracked-source caches still refuse;
+the actual source bytes and executable mode must still match their Git object.
 Cache payloads are not parsed,
 compiled, compared, or trusted; stale, malformed, and poisoned caches cannot
 supply executed code under this loading policy. Source Git-object bytes/modes,
