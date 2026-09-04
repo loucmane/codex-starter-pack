@@ -55,6 +55,13 @@ Strict readiness denials record a reason and payload digest in the existing deci
 ledger; raw commands/content and free-form readiness output are not copied into the
 new denial records. Failure to record a denial never makes the operation permissible.
 
+Hook success alone is not Claude-native command approval. Operations explicitly
+opts into the three-class command profile documented in
+`docs/aegis/claude-orchestrator-permissions.md`. Only the exact scoped context,
+Beads reads and canonical `workflow.py begin` receive audited native approvals
+after all applicable strict checks. No broad Bash allowlist, file-write grant,
+plan-mode mutation, signing or lifecycle authority follows from this profile.
+
 The PreToolUse dispatcher in `.claude/scripts/pretooluse-gate.sh` enforces this for hookable Claude file tools and tested Bash mutation patterns. After a successful mutation, `.claude/scripts/posttooluse-tracking.sh` records pending S:W:H:E tracking and `.claude/scripts/tracking-stop-gate.sh` blocks session stop until `aegis log` has updated the session, tracker, implementation log, changelog, handoff, and plan evidence.
 
 In Gas City managed projects, the same PreToolUse dispatcher blocks Claude `Agent` and `Task`
