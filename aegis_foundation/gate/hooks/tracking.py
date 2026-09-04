@@ -28,7 +28,7 @@ from .contracts import (
     TASK_BRANCH_RE,
 )
 from .loaders import _load_brief_lib_module, _load_ledger_lib_module
-from .decisions import _read_json_object, payload_digest, project_root
+from .decisions import _read_json_object, append_gate_decision, payload_digest, project_root
 from .payloads import (
     apply_patch_command,
     apply_patch_event_metadata,
@@ -54,6 +54,33 @@ def posttooluse_tracking() -> int:
     if payload is None:
         return 0
     root = project_root()
+    from .coordination import request as coordination_request, target_for
+
+    try:
+        target = target_for(root, payload)
+        if target is not None:
+            if coordination_request(root, payload)[0] == "log":
+                return 0  # The supported log command already reconciles target evidence.
+            root = target
+    except Exception:
+        # Never misattribute an ambiguous cross-worktree event to canonical main.
+        # It is a failed seat-level reconciliation, not silent tracking success.
+        try:
+            append_gate_decision(
+                root,
+                hook="PostToolUse",
+                payload=payload,
+                verdict="block",
+                reason="coordination_target_invalid",
+            )
+        except Exception:
+            pass  # Audit failure cannot turn unresolved tracking into success.
+        print(
+            "Aegis: coordination tracking could not revalidate the target; "
+            "stop and reconcile the preserved request before further work.",
+            file=sys.stderr,
+        )
+        return 2
     record_pending_tracking_event(root, payload)
     _maybe_emit_scope_nudge(root, payload)
     return 0

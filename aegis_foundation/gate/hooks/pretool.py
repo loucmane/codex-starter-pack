@@ -88,6 +88,19 @@ def degraded_pretooluse_fallback(raw_payload: str, exc: BaseException) -> int:
     plan_denial = deny_plan_mode_mutation(root, loaded)
     if plan_denial is not None:
         return plan_denial
+    from .coordination import request as coordination_request
+
+    try:
+        coordinating = coordination_request(root, loaded) is not None
+    except Exception:
+        coordinating = True
+    if coordinating:
+        return gate_hard_block(
+            root,
+            loaded,
+            "BLOCKED: coordination cannot use degraded approval",
+            reason="coordination_target_invalid",
+        )
     if degraded_payload_is_non_destructive(loaded):
         event = write_degraded_event(root, loaded, reason, raw_payload, trace=trace)
         print(
@@ -175,7 +188,9 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
                     verdict="allow",
                     reason=delegation.reason,
                 )
-            except Exception as exc:  # noqa: BLE001 - an exception without audit evidence is not valid.
+            except (
+                Exception
+            ) as exc:  # noqa: BLE001 - an exception without audit evidence is not valid.
                 return gate_hard_block(
                     root,
                     payload,
@@ -238,7 +253,9 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
         hard_families = raw_hard_policy_families(bash_command(payload))
         try:
             hard_violations = hard_policy_violations(bash_command(payload), root)
-        except Exception as exc:  # noqa: BLE001 - safety classifier failures deny, even in advisory mode.
+        except (
+            Exception
+        ) as exc:  # noqa: BLE001 - safety classifier failures deny, even in advisory mode.
             hard_violations = [
                 f"destructive-operation classifier failed closed ({type(exc).__name__}: {exc})"
             ]
@@ -264,6 +281,24 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
                 "Parser and authority-policy failures are equally non-overridable.",
                 reason=hard_reason,
             )
+
+    # No global cwd switch and no arbitrary --root exemption: only the exact
+    # opt-in canonical workflow entrypoint may select a journal-bound task.
+    from .coordination import request as coordination_request, target_for
+
+    coordination_log = False
+    try:
+        target = target_for(root, payload)
+        if target is not None:
+            coordination_log = coordination_request(root, payload)[0] == "log"
+            root = target
+    except Exception as exc:  # An invalid target must not fall through advisory/override.
+        return gate_hard_block(
+            root,
+            payload,
+            f"BLOCKED: coordination target invalid: {exc}",
+            reason="coordination_target_invalid",
+        )
 
     clear_client_reload_marker(root, hook_invoking_agent(payload))
     aegis_target_violations: list[str] = []
@@ -343,7 +378,12 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
         )
 
     pending_events = required_pending_tracking_events(root)
-    if pending_events and is_mutation and not payload_is_aegis_log(payload):
+    if (
+        pending_events
+        and is_mutation
+        and not payload_is_aegis_log(payload)
+        and not coordination_log
+    ):
         return gate_block_or_record(
             root,
             payload,

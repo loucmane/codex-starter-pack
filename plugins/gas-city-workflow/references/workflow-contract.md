@@ -47,6 +47,15 @@ through `planned → worktree-created → scaffolded → claimed → ready`.
   do not open a second Aegis context while the parent source change is still active.
 - `checkpoint`, `verify`, `publish`, and `finish` run their bounded checks and append results to
   the same transition journal.
+- `coordinate` provides three closed, same-store ledger actions inside an externally owned
+  task worktree: append a note, create an unassigned/unrouted P2 child, or add one blocking
+  dependency and transactionally attach it. It persists intent before the supported API
+  mutation; ambiguous results stop without replay. `log` records target-local evidence.
+  The Operations-only Claude command profile can approve these explicit worktree targets
+  from a stationary canonical conversation. It does not approve raw Beads commands, source
+  writes, cross-rig access, worker dispatch, signing, or lifecycle changes. Both policy copies
+  and executable helpers must match reviewed canonical source before automatic approval;
+  changing workflow-runtime code remains in the explicit implementation/review lane.
 
 The journal is evidence, not authority. A partial or contradictory filesystem, Git, bead, or
 scaffold state blocks instead of being guessed away. Existing unscaffolded worktrees can only be
@@ -69,6 +78,23 @@ The historical journal phase `claimed` is retained for format compatibility; new
 require a verified `external_ownership` record before READY. Every continuation validates fresh
 ledger status and binding plus Git/project identity; local Aegis READY alone is insufficient.
 Closed attached blockers remain evidence, not work to reopen. No periodic re-claim is permitted.
+
+### Candidate publication versus terminal closeout
+
+`publish` prepares delivery of the exact clean, signed source candidate; it does
+not close a Bead or declare live acceptance complete. Its normal source-work
+ownership checks permit the primary Bead's already-attached, journal-verified
+repair Beads to remain in progress for acceptance that requires merged code.
+Each repair must retain the same external-owner binding, valid status and no
+native assignment or routing. Unattached blockers, unresolved blockers of an
+attached repair, plan/journal mismatch and identity drift still refuse. These
+checks run again after signature verification. All readiness, guard, clean Git,
+signature and separate hosted CI/base/review requirements remain in force.
+
+`finish` is different: every blocking dependency must be closed before closeout
+is planned or applied, and that requirement is checked again after the closeout
+operation. Never remove an edge or prematurely close a repair to deliver its fix.
+Neither command adds native command approval, dispatch or lifecycle authority.
 
 The CLI serializes its source transitions in the repository's Git common directory. Before/after
 Bead snapshots and pending intent are recorded around one supported status/metadata patch,

@@ -8,7 +8,7 @@ refused `project_context.py --check` before the shell executed it.
 ## Opt-in profile, not a wildcard Bash grant
 
 `.claude/orchestrator-command-profile.json` is a project-local, protected opt-in.
-Operations enables three command classes, using the existing closed grammar:
+Operations enables four command classes, using closed grammars:
 
 - `project-context`: the unchanged canonical `project_context.py`, current root,
   and `--check` only.
@@ -17,6 +17,11 @@ Operations enables three command classes, using the existing closed grammar:
 - `workflow-begin`: the unchanged canonical `workflow.py begin`, targeting the
   canonical checkout, with its existing Bead/slug/goal/dry-run grammar. Internal
   project, Bead, worktree, ownership, journal and readiness checks remain in force.
+- `workflow-coordinate`: canonical `workflow.py attach/checkpoint/verify/coordinate/log`,
+  targeting one explicit registered linked worktree with verified journal/ownership.
+  See the stationary-orchestration examples in `CLAUDE.md`. Its narrow ledger
+  actions are note append, unassigned/unrouted P2 child creation, and dependency plus
+  transactional attach. It does not approve raw Beads mutations or cross-rig work.
 
 Only after the applicable strict gate checks succeed, the bridge records a
 payload-digest decision and emits Claude's `hookSpecificOutput.permissionDecision`
@@ -43,13 +48,13 @@ they do not permit the requested command to run.
 
 The profile is permission policy, not operator task authorization. A supported
 command remains subject to the operator's stated scope. It grants no signing,
-push/merge, Bead mutation CLI, dispatch, lifecycle, file-write or privileged access.
+push/merge, arbitrary Bead mutation CLI, dispatch, lifecycle, file-write or privileged access.
 It does not prove Claude implementation-worker capabilities.
 
 ## Identity and preservation
 
 The profile must be a regular, unaliased, size-bounded JSON object with unique
-keys, exact schema and a nonempty subset of the three known command classes.
+keys, exact schema and a nonempty subset of the four known command classes.
 Both task and canonical copies must equal their tracked HEAD bytes **and each
 other**. A task branch cannot opt itself in or expand the canonical grant. The
 managed descriptor, Git remote/common-directory identity, current hook cwd, city,
@@ -62,6 +67,60 @@ testing an uncommitted runtime is not an unattended production permission grant.
 Profile drift and approval-audit failure refuse before emitting an approval.
 No profile means existing behavior. Unknown commands defer to existing native
 permissions; the profile is not a replacement for the rest of the permission policy.
+
+Stationary coordination leaves the conversation's canonical directory unchanged.
+The requested target must be a direct-child worktree of the same canonical Git
+repository with matching reviewed descriptor/profile, exact branch and journal
+spec, ready phase, and derived external-owner binding. This local evidence never
+substitutes for the executor's fresh scoped Bead readback. The existing workflow
+lock serializes operations, but remains **not** a distributed Beads lease.
+
+Target selection happens after plan-mode/delegation/hard-policy checks and before
+target readiness, observation, and tracking checks. The original payload is not
+rewritten. Approvals are digest-audited at the target, and PostToolUse tracking is
+target-local. A target `log` can discharge target tracking, not canonical pending
+work. Invalid bindings are tier-C refusals in strict, advisory and degraded modes.
+
+Because existing verification imports target workflow helpers, their executable
+trees must remain byte-identical to canonical reviewed source. Unreviewed helper
+edits/imports or divergent installed-runtime bindings refuse before target code is
+loaded. This deliberately does not confer unattended permission to run arbitrary
+candidate tests. Ordinary non-executor source changes do not block coordination.
+An Operations runtime repair still uses the explicit implementation/review lane.
+
+The hook launcher (including its packaged copy) and direct workflow CLI establish
+source-only Python loading before project-runtime imports: bytecode writes are
+disabled and the cache prefix is the platform null device, which cannot be a
+cache directory. Fixed helper children inherit the same environment. Disabling
+writes alone is insufficient: Python would still read a valid poisoned cache.
+Executable tests exercise both shipped launchers, CLI imports and helper children,
+with positive poison controls and byte-identical cache preservation.
+
+Before any stationary runtime inventory or target import, the verifier requires
+both in-process loading controls and both inherited environment values, plus the
+real, unaliased Linux `/dev/null` character device (major 1, minor 3). A missing or
+altered control refuses even on an otherwise clean checkout. The reviewed path
+does not use sourceless loaders or reset these controls in helper children.
+
+Only size-bounded regular tagged `__pycache__/*.pyc` files with a corresponding
+reviewed source file may remain as inert evidence. Python's dotless cache naming
+for extensionless scripts is accepted only for an exact same-directory tracked
+regular source (Git mode `100644` or `100755`): interpreter loading does not
+require an executable bit. Orphan and untracked-source caches still refuse;
+the actual source bytes and executable mode must still match their Git object.
+Cache payloads are not parsed,
+compiled, compared, or trusted; stale, malformed, and poisoned caches cannot
+supply executed code under this loading policy. Source Git-object bytes/modes,
+untracked import refusal, symlink/special-file rejection, inventory bounds, and
+all permission/ownership checks remain in force. No cache cleanup occurs.
+This is not an OS sandbox or protection from a hostile same-UID process changing
+files concurrently. The stationary runtime remains source-only; installed-runtime
+overlays require a separately reviewed binding. Review and merge-bound live
+acceptance are still required before activation/PASS.
+
+Ledger operations persist intent before mutation and retain exact before/after
+readbacks. Only a verified exact replay is a no-op; an uncertain response is not
+retried. No failed intent, created child, or evidence is deleted automatically.
 
 The new opt-in is Operations-only. It is not copied into the generic installer,
 HPFetcher or Blog. Activation is a reviewed, merge-bound canonical fast-forward:
@@ -93,3 +152,14 @@ are checkpoints, not requests to reauthorize the same edit/test cycle.
 
 Protocol references: [Claude permissions](https://code.claude.com/docs/en/permissions)
 and [PreToolUse hook decisions](https://code.claude.com/docs/en/hooks).
+# Literal evidence text and hard policy
+
+Quoted evidence may contain the words `source` and `eval` without being a shell
+evaluator. The hard-policy check retains its raw sensitive-family preclassification,
+then uses the existing shell parser to distinguish quoted data from executable
+command names. Actual evaluator commands (including quoted names and the `.`
+builtin), nested shell bodies, and malformed sensitive commands still refuse.
+Raw substitution, redirection-synthesis, and Python `-c` checks remain conservative;
+this is not a general-purpose shell interpreter or a new Beads-write allowance.
+Passing hard policy still leaves readiness, ownership, native permissions, and the
+operator's scope in force.

@@ -6,7 +6,6 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-
 CODEX_APPLY_PATCH_TOOL = "apply_patch"
 
 
@@ -214,8 +213,7 @@ RAW_DESTRUCTIVE_GIT_RE = re.compile(
 
 
 RAW_TASKMASTER_WRITE_RE = re.compile(
-    r"(?:\b(?:cp|install|mv|rm|tee|touch)\b|(?<![<])>>?)"
-    r"[^\n;&|]*\.taskmaster(?:/|\\)",
+    r"(?:\b(?:cp|install|mv|rm|tee|touch)\b|(?<![<])>>?)" r"[^\n;&|]*\.taskmaster(?:/|\\)",
     re.IGNORECASE | re.MULTILINE,
 )
 
@@ -243,8 +241,13 @@ RAW_NESTED_SYNTHESIS_RE = re.compile(
 
 
 RAW_UNSUPPORTED_SYNTHESIS_RE = re.compile(
-    r"`|\$\(|<<|<\(|>\(|(?:^|[\s;&|()])(?:eval|source)\b|"
-    r"(?:^|[\s;&|()])python3?\s+-c\b",
+    r"`|\$\(|<<|<\(|>\(|(?:^|[\s;&|()])python3?\s+-c\b",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+RAW_SHELL_EVALUATOR_RE = re.compile(
+    r"(?:^|[\s;&|()])(?:eval|source)\b",
     re.IGNORECASE | re.MULTILINE,
 )
 
@@ -490,6 +493,13 @@ OVERRIDE_ELIGIBLE_REASONS = {"readiness_blocked", "pending_tracking"}
 
 
 RECOVERY_CONTRACT: dict[str, dict[str, str]] = {
+    "coordination_target_invalid": {
+        "tier": "c",
+        "repair": "Inspect the registered target, canonical runtime, journal and live ownership; use no root or permission override.",
+        "alt_repair": "",
+        "audit": ".aegis/reports/gate-decisions.jsonl + ledger",
+        "escalation": "Preserve the failed request and request a scoped repair if the target cannot be proven.",
+    },
     "plan_mode_mutation": {
         "tier": "c",
         "repair": "Continue read-only inspection in plan mode; execute already-authorized work only from a non-plan session.",
