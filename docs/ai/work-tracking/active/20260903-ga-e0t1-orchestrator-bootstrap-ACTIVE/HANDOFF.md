@@ -1,6 +1,22 @@
 # Bead ga-e0t1 Repair pre-kickoff inspection and trusted workflow bootstrap – Handoff Summary
 
 ## Current State
+- R5 source, delivery, canonical activation and eight fresh-client acceptance
+  cases **PASS**. PR #375 merged as `3641fa7aa11c9713da3dac3c075f50caee547ed8`,
+  exact tree `97ee511d96b31232241bf508c1de6ce7a51c7a8d`. Plan mode now explicitly
+  refuses bootstrap; normal kickoff, scoped task editing, native deny/ask,
+  composition and observation boundaries are proven. See `ACCEPTANCE-R5.md`.
+- Parent closeout is held independently: the archive helper moves the entire
+  task directory, including frozen R4/R5 repositories and linked worktrees.
+  Open, unassigned follow-up `ga-fc6p` records this; no archive or finish apply
+  was run and all original paths are preserved. Both acceptance Beads have the
+  exact evidence note, with read-only reconciliation of hydrated dependency
+  prose; no duplicate write and no terminal close claim.
+- The failed R4 child remains untouched. R5 child `ga-e0t1.2` has passed its
+  acceptance criteria. Supervisor PID1769 and protected configuration are
+  unchanged; all four project rigs remain suspended with zero agents/residue.
+
+## Preserved Prior Checkpoints
 - Additional interactive read acceptance PASS: existing Fable session
   `d2b93ac0-f122-46f7-969e-e6807d40c2e9` ran exactly two authorized Bash calls
   at 07:25 UTC, both successful. Codex independently recomputed both request
@@ -56,20 +72,15 @@
   See `reports/fresh-fable-acceptance-hold.json` and preserved stream.
 
 ## Next Steps
-- Do not replay the successful one-session read-only probe, PR374, or its
-  canonical activation. Prepare the remaining bounded live acceptance separately
-  from the now-completed read/disclosure scope. Complete the remaining live
-  checks including approval-ledger parity, plan-mode exclusion, explicit deny/ask,
-  real synthetic kickoff, separately scoped fixture mutation and observation.
-  Do not disable hooks, grant arbitrary Bash, or change modes to force acceptance.
-- Do not replay PR #373, its activation, or the completed ownership recovery.
-- After the permission boundary is resolved, fresh-session acceptance still owes
-  promptless context/Beads inspection, real kickoff, task-branch mutation,
-  adversarial refusals and observation start/stop. Print mode does not independently
-  prove interactive workspace trust. Installed Codex plugin cache was not refreshed.
-- Keep `ga-e0t1` open until those results are actually proven. Fable's stream, rather
-  than its prose, proves the repository hooks were reached and passed.
-- Implementation-worker capabilities and profile handover are separate work, not proven here.
+- Preserve all failed and successful fixtures at their original paths. Resolve
+  `ga-fc6p`'s supported archive-preservation contract before parent closeout; do not
+  run the whole-folder archive move or hand-edit its journal.
+- No replay of PR #373/#374/#375, activation, ownership recovery or successful
+  acceptance clients. Finish only evidence-bearing closeout and publication.
+- Keep `ga-e0t1` open until that closeout completes. Print-mode/session-scoped
+  trust limitations remain explicit in `ACCEPTANCE-R5.md`.
+- Resume the separate flexible-worker/profile-handover work after this task;
+  worker access, signing and control-plane capabilities require their own proof.
 
 ## Progress Log
 - **2026-09-03 14:03 CEST** - [S:20260903|W:ga-e0t1-orchestrator-bootstrap|H:aegis:orchestrator-bootstrap|E:docs/ai/work-tracking/active/20260903-ga-e0t1-orchestrator-bootstrap-ACTIVE/reports/repair-review.md] Review checkpoint: complete source candidate patch SHA-256 5a99e2203f4b3db80b8974d35d36433823f6e7d12841b96b8555b07d86f3aa72; 823 regression tests PASS. Task readiness, work-tracking audit, plan sync and diff-check PASS. Source guard HOLD: unchanged archived ga-ur1c.7 plan uses complete, not recognized as terminal. No archive rewrite, bypass, commit, publication or activation. Fable consolidated review and bounded state reconciliation required before publication; fresh-session acceptance still pending.
@@ -92,3 +103,4 @@
 - **2026-09-04 10:05 CEST** - [S:20260904|W:ga-e0t1-orchestrator-bootstrap|H:workflow:r5-plan-boundary-start|E:docs/ai/work-tracking/active/20260903-ga-e0t1-orchestrator-bootstrap-ACTIVE/reports/r4-plan-mode-acceptance-hold.md] Reopened the existing ga-e0t1 implementation step under standing authority after reproducing the real plan-mode bootstrap mutation. Preserved the failed ga-e0t1.1 fixture, worktree, journal, and all acceptance evidence; scoped the successor to explicit pre-bootstrap plan-mode refusal and regression proof. No runtime activation, new client, configuration, lifecycle, or product work occurred.
 - **2026-09-04 10:23 CEST** - [S:20260904|W:ga-e0t1-orchestrator-bootstrap|H:workflow:r5-plan-boundary-verified|E:docs/ai/work-tracking/active/20260903-ga-e0t1-orchestrator-bootstrap-ACTIVE/reports/fable-review-r5-plan-mode.md] Implemented explicit plan-mode mutation refusal before bootstrap/delegation exemptions and degraded advisory allowances. RED reproduced the executable negative; final full adapter/meta suites passed 2511 tests with 21 optional/legacy skips. Preserved all RED, initial inventory failure, and R4 synthetic failure evidence. Final source patch 4d67e9d094f71492b330631b69a0a7f9bae30a0976fcbd6645a9d74338cee324 and manifest 56c7f45d35fc6e9923bf9da81aa38532416e9e51d2d8d5695dea63c12840ef6c bind nine files. Standing authority covers routine steps and safe retries; no new client, permission/configuration change, publication, activation, rig lifecycle, or product work occurred. Independent review and append-forward real-client acceptance remain required before PASS.
 - **2026-09-04 10:38 CEST** - [S:20260904|W:ga-e0t1-orchestrator-bootstrap|H:workflow:r5-fable-source-pass|E:docs/ai/work-tracking/active/20260903-ga-e0t1-orchestrator-bootstrap-ACTIVE/reports/r5-review-acceptance.md] Accepted the operator-relayed independent Fable source PASS: 2528 reviewer tests passed with 4 skips, matching the local 2532-test total. Rebound all nine reviewed source files without changes. Recorded deliberate plan-mode refusal of override minting and precise best-effort audit semantics. Continued signed delivery under standing authority; preserved the failed synthetic child and all evidence. Live activation and append-forward acceptance remain pending; no PASS closeout or worker/lifecycle claim.
+- **2026-09-04 11:17 CEST** - [S:20260904|W:ga-e0t1-orchestrator-bootstrap|H:workflow:r5-live-acceptance|E:docs/ai/work-tracking/active/20260903-ga-e0t1-orchestrator-bootstrap-ACTIVE/ACCEPTANCE-R5.md] R5 source, signed PR375 delivery, canonical loaded-module activation, and all eight fresh synthetic client cases PASS. Aggregate audit SHA256 518a3e4c7ecf906bfa845e664ea5d39e4187a7af25dfedf91b1b5cd5e15aff8b; exact acceptance notes recorded once on ga-e0t1 and ga-e0t1.2. No test process, rig lifecycle or protected configuration delta; failed R4 preserved. Closeout remains held independently: whole-folder archive would move frozen fixture repositories. Follow-up ga-fc6p recorded open/unassigned; no archive, fixture move or terminal close attempted. See ACCEPTANCE-R5.md for delivery and scoped-trust limitations.
