@@ -35,6 +35,7 @@ inventory change, not another policy rewrite.
 | `gate/hooks/evidence.py` | Evidence extraction and pending-tracking classification |
 | `gate/hooks/decisions.py` | Enforcement mode, recovery contract, audit, and allow/block decisions |
 | `gate/hooks/pretool.py` | Ordered pre-tool policy pipeline and degraded fail-safe |
+| `gate/hooks/permission_modes.py` | Explicit plan-mode mutation/delegation refusal before workflow exemptions and degraded allowances |
 | `gate/hooks/tracking.py` | Post-tool, ledger, scope, and capsule event capture |
 | `gate/hooks/lifecycle.py` | Session-start, stop, and configuration-change boundaries |
 | `gate/hooks/entrypoint.py` | Phase dispatch only |

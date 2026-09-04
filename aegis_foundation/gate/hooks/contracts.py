@@ -490,6 +490,14 @@ OVERRIDE_ELIGIBLE_REASONS = {"readiness_blocked", "pending_tracking"}
 
 
 RECOVERY_CONTRACT: dict[str, dict[str, str]] = {
+    "plan_mode_mutation": {
+        "tier": "c",
+        "repair": "Continue read-only inspection in plan mode; execute already-authorized work only from a non-plan session.",
+        "alt_repair": "",
+        "audit": ".aegis/reports/gate-decisions.jsonl + ledger",
+        "escalation": "Keep the existing task scope and native permission rules. NOT override-eligible; no plan-file exemption.",
+        "override_eligible": "false",
+    },
     "readiness_blocked": {
         "tier": "b",
         "repair": "Inspect workflow state first; apply only the reviewed, bounded repair (preserve completed archives).",
