@@ -57,7 +57,8 @@ one coherent post-cycle snapshot. A `lock-timeout` result means the writer did n
 that bound; inspect the user service instead of retrying the doctor or weakening freshness.
 
 The installed registry is a generated projection of the canonical workflow project registry. It
-must contain Gas City Operations, Gas City, HPFetcher, and Blog, plus any later validated project;
+must contain Gas City Operations, Gas City, HPFetcher, Blog, and Gas City Template, plus any later
+validated project;
 do not add projects by hand to the installed JSON. Every host registry entry declares the exact
 absolute `rig_root`; never derive it from the city name or project ID. Regenerate the tracked source from the
 canonical checkout and require an exact check before installation:

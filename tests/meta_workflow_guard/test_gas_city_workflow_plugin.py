@@ -392,6 +392,34 @@ def test_hpfetcher_declares_a_stable_base_ref_for_dirty_canonical_checkout() -> 
     assert hpfetcher["base_ref"] == "refs/remotes/origin/main"
 
 
+def test_gas_city_template_registers_native_rig_store_and_frozen_base_ref() -> None:
+    registry = json.loads((PLUGIN / "config" / "projects.json").read_text(encoding="utf-8"))[
+        "projects"
+    ]
+    template = next(project for project in registry if project["id"] == "gas-city-template")
+
+    # The Git common directory names the canonical checkout; the Beads store lives
+    # in the native linked worktree; the parked canonical branch is never the base.
+    assert template == {
+        "id": "gas-city-template",
+        "root": "/home/loucmane/gas-city-template",
+        "rig_root": "/home/loucmane/gas-city-native",
+        "repository": "loucmane/gas-city-template",
+        "rig": "gas-city-template",
+        "base_ref": "refs/remotes/origin/main",
+        "workflow_authority": "beads",
+        "workflow_profile": "beads-with-frozen-legacy-evidence",
+    }
+    assert "worktree_root" not in template
+    assert [project["id"] for project in registry] == [
+        "gas-city-operations",
+        "gas-city",
+        "hpfetcher",
+        "blog",
+        "gas-city-template",
+    ]
+
+
 def test_codex_and_fable_adapters_share_one_context_and_keep_roles_bounded() -> None:
     skill = (PLUGIN / "skills" / "gas-city-workflow" / "SKILL.md").read_text(encoding="utf-8")
     codex = (PLUGIN / "adapters" / "codex.md").read_text(encoding="utf-8")
