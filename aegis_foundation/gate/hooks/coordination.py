@@ -20,6 +20,7 @@ from .payloads import bash_command, shlex_tokens, strip_shell_prefixes
 
 VERBS = frozenset({"attach", "checkpoint", "verify", "coordinate", "log"})
 KIND = "workflow-coordinate"
+PENDING_EVENT_ID = re.compile(r"[0-9a-f]{12}")
 
 
 def request(root: Path, payload: Payload) -> tuple[str, dict[str, list[str]]] | None:
@@ -55,8 +56,8 @@ def request(root: Path, payload: Payload) -> tuple[str, dict[str, list[str]]] | 
         }
         required |= {"--bead", "--action"}
     elif verb == "log":
-        values |= {"--evidence", "--note"}
-        required |= {"--evidence", "--note"}
+        values |= {"--evidence", "--note", "--pending-id"}
+        required |= {"--note"}
     options = _options(tokens[3:], values=values, switches=set())
     if options is None or not required <= options.keys():
         raise ValueError("unrecognized coordination arguments")
@@ -69,6 +70,12 @@ def request(root: Path, payload: Payload) -> tuple[str, dict[str, list[str]]] | 
         action = options["--action"][0]
         if action not in shapes or set(options) != required | shapes[action]:
             raise ValueError("unrecognized ledger operation")
+    elif verb == "log":
+        evidence_sources = {"--evidence", "--pending-id"} & set(options)
+        if len(evidence_sources) != 1:
+            raise ValueError("coordination log requires exactly one evidence source")
+        if "--pending-id" in options and not PENDING_EVENT_ID.fullmatch(options["--pending-id"][0]):
+            raise ValueError("invalid coordination pending event identity")
     for field in ("--bead", "--blocker"):
         if field in options and not BEAD.fullmatch(options[field][0]):
             raise ValueError("invalid coordination bead identity")
@@ -174,7 +181,7 @@ def _journal(target: Path, canonical: Path, profile: dict, verb: str, options: d
         raise ValueError("ledger operation does not name an owned Bead")
 
 
-def target_for(root: Path, payload: Payload) -> Path | None:
+def target_for(root: Path, payload: Payload, *, post_success: bool = False) -> Path | None:
     from .decisions import advisory_enabled
     from .native_permissions import PROFILE, _bound_bytes, _canonical_runtime, _profile
     from .runtime_state import current_work_is_observation, required_pending_tracking_events
@@ -214,9 +221,20 @@ def target_for(root: Path, payload: Payload) -> Path | None:
             raise ValueError(
                 "coordination requires strict non-observation state at seat and target"
             )
-        if required_pending_tracking_events(governed) and not (
-            verb == "log" and governed == target
-        ):
+        pending = required_pending_tracking_events(governed)
+        if verb == "log" and governed == target:
+            if "--pending-id" in options:
+                matches = [
+                    event
+                    for event in pending
+                    if str(event.get("id") or "") == options["--pending-id"][0]
+                ]
+                expected = 0 if post_success else 1
+                if len(matches) != expected:
+                    state = "resolved" if post_success else "exact"
+                    raise ValueError(f"coordination pending event is not {state} for target")
+            continue
+        if pending:
             raise ValueError("coordination requires pending tracking to be resolved")
     return target
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -35,6 +36,7 @@ from workflow_ownership import (
 )
 
 FIELDS = {"note": {"text"}, "create": {"title", "description", "acceptance"}, "depend": {"blocker"}}
+PENDING_EVENT_ID = re.compile(r"[0-9a-f]{12}")
 
 
 def _semantic(bead):
@@ -233,15 +235,41 @@ def coordinate(
     )
 
 
-def log(root: Path, evidence: str, note: str, runner: CommandRunner) -> dict:
-    if any(
-        not value.strip() or len(value) > 16384 or "\x00" in value for value in (evidence, note)
+def log(
+    root: Path,
+    evidence: str | None,
+    note: str,
+    runner: CommandRunner,
+    *,
+    pending_id: str | None = None,
+) -> dict:
+    if (evidence is None) == (pending_id is None):
+        raise WorkflowError("log requires exactly one evidence source")
+    if not note.strip() or len(note) > 16384 or "\x00" in note:
+        raise WorkflowError("log fields must be nonempty and bounded")
+    if evidence is not None and (
+        not evidence.strip() or len(evidence) > 16384 or "\x00" in evidence
     ):
         raise WorkflowError("log fields must be nonempty and bounded")
+    if pending_id is not None and not PENDING_EVENT_ID.fullmatch(pending_id):
+        raise WorkflowError("invalid pending event identity")
     check_active_ownership(runner, root)
     runtime = workflow_runtime_root()
-    runner.run(
-        [
+    if pending_id is not None:
+        command = [
+            sys.executable,
+            "-m",
+            "aegis_foundation.cli",
+            "log",
+            "--target-dir",
+            str(root),
+            "--pending-id",
+            pending_id,
+            "--note",
+            note,
+        ]
+    else:
+        command = [
             sys.executable,
             str(runtime / "scripts/codex-task"),
             "aegis",
@@ -251,11 +279,13 @@ def log(root: Path, evidence: str, note: str, runner: CommandRunner) -> dict:
             "--handler",
             "workflow-coordinate",
             "--evidence",
-            evidence,
+            str(evidence),
             "--note",
             note,
-        ],
-        cwd=runtime,
-    )
+        ]
+    runner.run(command, cwd=runtime)
     check_active_ownership(runner, root)
-    return result_payload("log", "applied", target=str(root))
+    details = {"target": str(root)}
+    if pending_id is not None:
+        details["pending_id"] = pending_id
+    return result_payload("log", "applied", **details)

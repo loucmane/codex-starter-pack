@@ -307,7 +307,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         coordinate_command.add_argument("--" + field)
     log_command = subparsers.add_parser("log", allow_abbrev=False)
     log_command.add_argument("--root", required=True)
-    log_command.add_argument("--evidence", required=True)
+    log_source = log_command.add_mutually_exclusive_group(required=True)
+    log_source.add_argument("--evidence")
+    log_source.add_argument("--pending-id")
     log_command.add_argument("--note", required=True)
     for name in ("checkpoint", "verify", "publish"):
         command = subparsers.add_parser(name)
@@ -358,7 +360,7 @@ def _dispatch(args, runner: CommandRunner, root: Path) -> dict[str, Any]:
     elif args.command == "log":
         from workflow_coordinate import log
 
-        payload = log(root, args.evidence, args.note, runner)
+        payload = log(root, args.evidence, args.note, runner, pending_id=args.pending_id)
     elif args.command == "checkpoint":
         payload = _checkpoint(root, runner)
     elif args.command == "verify":

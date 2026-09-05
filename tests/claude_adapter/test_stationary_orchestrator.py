@@ -326,6 +326,126 @@ def test_posttool_tracking_belongs_to_target_and_log_is_reachable(tmp_path):
     assert result.returncode == 0, result.stderr
 
 
+def test_exact_pending_id_log_is_reachable_only_for_selected_target_event(tmp_path):
+    from test_pretooluse_gates import POSTTOOLUSE
+
+    canonical, target, _ = stationary_fixture(tmp_path)
+    pending_id = "0123456789ab"
+    write(
+        target / ".aegis/state/pending-tracking.json",
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "id": pending_id,
+                        "mode": "strict",
+                        "task": {"id": "ga-one", "slug": "beads-first-guidance"},
+                    }
+                ]
+            }
+        ),
+    )
+    request = event(
+        canonical,
+        command(canonical, target, "log", f" --pending-id {pending_id} --note recorded"),
+    )
+    result = run_gate(PRETOOLUSE, canonical, request)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["hookSpecificOutput"]["permissionDecision"] == "allow"
+    (target / ".aegis/state/pending-tracking.json").unlink()
+    assert run_gate(POSTTOOLUSE, canonical, request).returncode == 0
+    assert not (canonical / ".aegis/state/pending-tracking.json").exists()
+
+
+def test_exact_pending_id_log_posttool_refuses_unresolved_target_event(tmp_path):
+    from test_pretooluse_gates import POSTTOOLUSE
+
+    canonical, target, _ = stationary_fixture(tmp_path)
+    pending_id = "0123456789ab"
+    write(
+        target / ".aegis/state/pending-tracking.json",
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "id": pending_id,
+                        "mode": "strict",
+                        "task": {"id": "ga-one", "slug": "beads-first-guidance"},
+                    }
+                ]
+            }
+        ),
+    )
+    request = event(
+        canonical,
+        command(canonical, target, "log", f" --pending-id {pending_id} --note recorded"),
+    )
+    assert run_gate(PRETOOLUSE, canonical, request).returncode == 0
+    result = run_gate(POSTTOOLUSE, canonical, request)
+    assert result.returncode == 2
+    assert "stop and reconcile" in result.stderr
+
+
+@pytest.mark.parametrize(
+    "flags",
+    [
+        " --pending-id current --note recorded",
+        " --pending-id latest --note recorded",
+        " --pending-id abcdefabcdef --note recorded",
+        " --pending-id 0123456789ab --evidence proof --note recorded",
+        " --pending-id 0123456789ab",
+        " --pending-id 0123456789ab --pending-id 0123456789ab --note recorded",
+        " --note recorded",
+    ],
+)
+def test_pending_id_log_closed_grammar_refuses_ambiguous_or_wrong_requests(tmp_path, flags):
+    canonical, target, _ = stationary_fixture(tmp_path)
+    write(
+        target / ".aegis/state/pending-tracking.json",
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "id": "0123456789ab",
+                        "mode": "strict",
+                        "task": {"id": "ga-one", "slug": "beads-first-guidance"},
+                    }
+                ]
+            }
+        ),
+    )
+    result = run_gate(
+        PRETOOLUSE, canonical, event(canonical, command(canonical, target, "log", flags))
+    )
+    assert result.returncode == 2
+    assert '"permissionDecision": "allow"' not in result.stdout
+
+
+def test_target_pending_log_does_not_bypass_canonical_pending_tracking(tmp_path):
+    canonical, target, _ = stationary_fixture(tmp_path)
+    pending_id = "0123456789ab"
+    event_payload = {
+        "events": [
+            {
+                "id": pending_id,
+                "mode": "strict",
+                "task": {"id": "ga-one", "slug": "beads-first-guidance"},
+            }
+        ]
+    }
+    write(target / ".aegis/state/pending-tracking.json", json.dumps(event_payload))
+    write(canonical / ".aegis/state/pending-tracking.json", json.dumps(event_payload))
+    result = run_gate(
+        PRETOOLUSE,
+        canonical,
+        event(
+            canonical,
+            command(canonical, target, "log", f" --pending-id {pending_id} --note recorded"),
+        ),
+    )
+    assert result.returncode == 2
+
+
 def test_posttool_target_drift_is_visible_not_silent_success(tmp_path):
     from test_pretooluse_gates import POSTTOOLUSE
 
