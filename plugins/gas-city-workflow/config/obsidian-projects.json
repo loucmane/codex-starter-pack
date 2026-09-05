@@ -123,6 +123,33 @@
       "min_interval_seconds": 10,
       "output_dir": "/home/loucmane/vaults/main/GasCity/blog/Aegis",
       "target_dir": "/home/loucmane/dev/blog"
+    },
+    {
+      "bead_export_argv": [
+        "/home/loucmane/gascity/bin/bd",
+        "-C",
+        "/home/loucmane/gas-city-native",
+        "--readonly",
+        "list",
+        "--all",
+        "--limit",
+        "0",
+        "--json"
+      ],
+      "enabled": true,
+      "export_timeout_seconds": 30,
+      "freshness_sla_seconds": 180,
+      "id": "gas-city-template",
+      "include_bead_content": false,
+      "live_index": {
+        "obsidian_cli": "/home/loucmane/.local/bin/obsidian",
+        "probe_path": "GasCity/gas-city-template/Aegis/Home.md",
+        "timeout_seconds": 30,
+        "vault": "main"
+      },
+      "min_interval_seconds": 10,
+      "output_dir": "/home/loucmane/vaults/main/GasCity/gas-city-template/Aegis",
+      "target_dir": "/home/loucmane/gas-city-template"
     }
   ],
   "schema_version": "1"

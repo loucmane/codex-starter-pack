@@ -38,6 +38,16 @@
       "rig": "blog",
       "workflow_authority": "beads",
       "workflow_profile": "beads-with-frozen-legacy-evidence"
+    },
+    {
+      "id": "gas-city-template",
+      "root": "/home/loucmane/gas-city-template",
+      "rig_root": "/home/loucmane/gas-city-native",
+      "repository": "loucmane/gas-city-template",
+      "rig": "gas-city-template",
+      "base_ref": "refs/remotes/origin/main",
+      "workflow_authority": "beads",
+      "workflow_profile": "beads-with-frozen-legacy-evidence"
     }
   ]
 }
