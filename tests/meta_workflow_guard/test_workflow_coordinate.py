@@ -2,13 +2,15 @@
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
 from test_gas_city_workflow_transitions import MultiBeadRunner, _bead, _fixture_project, begin
+from workflow import parse_args
 from workflow_common import WorkflowError
-from workflow_coordinate import coordinate
+from workflow_coordinate import coordinate, log
 
 
 class LedgerRunner(MultiBeadRunner):
@@ -19,6 +21,12 @@ class LedgerRunner(MultiBeadRunner):
 
     def run(self, argv, *, cwd=None, env=None, check=True):
         args = list(argv)
+        if len(args) >= 4 and args[1:4] == ["-m", "aegis_foundation.cli", "log"]:
+            self.calls.append(args)
+            return subprocess.CompletedProcess(args, 0, '{"status":"logged"}\n', "")
+        if len(args) >= 4 and args[2:4] == ["aegis", "log"]:
+            self.calls.append(args)
+            return subprocess.CompletedProcess(args, 0, '{"status":"logged"}\n', "")
         if args and args[0].endswith("/gc") and "bd" in args:
             index = args.index("bd") + 1
             verb = args[index]
@@ -184,3 +192,90 @@ def test_no_arbitrary_control_flags(lane, action, fields):
     with pytest.raises(WorkflowError):
         coordinate(root, "ga-test", action, fields, runner, registry=registry)
     assert not json.loads(path.read_text()).get("coordination")
+
+
+def test_pending_id_log_uses_canonical_aegis_cli(lane):
+    root, _, runner, _ = lane
+    pending_id = "0123456789ab"
+    result = log(root, None, "Recorded pending mutation", runner, pending_id=pending_id)
+    call = next(args for args in runner.calls if "aegis_foundation.cli" in args)
+    assert call == [
+        sys.executable,
+        "-m",
+        "aegis_foundation.cli",
+        "log",
+        "--target-dir",
+        str(root),
+        "--pending-id",
+        pending_id,
+        "--note",
+        "Recorded pending mutation",
+    ]
+    assert result["status"] == "applied"
+    assert result["pending_id"] == pending_id
+
+
+def test_evidence_log_retains_compatibility_path_and_result_shape(lane):
+    root, _, runner, _ = lane
+    result = log(root, "reports/proof.json", "Recorded proof", runner)
+    call = next(
+        args
+        for args in runner.calls
+        if "scripts/codex-task" in args[1] and args[2:4] == ["aegis", "log"]
+    )
+    assert (
+        call[-8:]
+        == [
+            "aegis",
+            "log",
+            "--target-dir",
+            str(root),
+            "--handler",
+            "workflow-coordinate",
+            "--evidence",
+            "reports/proof.json",
+            "--note",
+            "Recorded proof",
+        ][-8:]
+    )
+    assert "pending_id" not in result
+
+
+@pytest.mark.parametrize("pending_id", ["", "current", "latest", "ABCDEFABCDEF", "abc123"])
+def test_pending_id_log_refuses_nonliteral_identifiers_before_execution(lane, pending_id):
+    root, _, runner, _ = lane
+    before = len(runner.calls)
+    with pytest.raises(WorkflowError, match="pending event identity"):
+        log(root, None, "Recorded pending mutation", runner, pending_id=pending_id)
+    assert len(runner.calls) == before
+
+
+def test_log_parser_requires_exactly_one_evidence_source():
+    parsed = parse_args(
+        [
+            "log",
+            "--root",
+            "/tmp/target",
+            "--pending-id",
+            "0123456789ab",
+            "--note",
+            "recorded",
+        ]
+    )
+    assert parsed.pending_id == "0123456789ab" and parsed.evidence is None
+    with pytest.raises(SystemExit):
+        parse_args(["log", "--root", "/tmp/target", "--note", "recorded"])
+    with pytest.raises(SystemExit):
+        parse_args(
+            [
+                "log",
+                "--root",
+                "/tmp/target",
+                "--evidence",
+                "proof",
+                "--pending-id",
+                "0123456789ab",
+                "--note",
+                "recorded",
+            ]
+        )

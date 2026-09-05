@@ -79,7 +79,14 @@ Target selection happens after plan-mode/delegation/hard-policy checks and befor
 target readiness, observation, and tracking checks. The original payload is not
 rewritten. Approvals are digest-audited at the target, and PostToolUse tracking is
 target-local. A target `log` can discharge target tracking, not canonical pending
-work. Invalid bindings are tier-C refusals in strict, advisory and degraded modes.
+work. Its evidence form and exact pending-event form are mutually exclusive. The
+pending form requires one literal 12-character lowercase hexadecimal event ID that
+exists exactly once in the selected target's required queue; ambiguous sentinels,
+wrong-target IDs and mixed evidence/ID requests refuse. Resolution delegates to the
+existing canonical Aegis pending-event implementation rather than expanding raw
+`--target-dir` access. PreToolUse requires that exact event once; successful
+PostToolUse requires it to be absent, so a no-op or incomplete resolution fails
+closed. Invalid bindings are tier-C refusals in strict, advisory and degraded modes.
 
 Because existing verification imports target workflow helpers, their executable
 trees must remain byte-identical to canonical reviewed source. Unreviewed helper

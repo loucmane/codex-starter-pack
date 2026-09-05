@@ -57,7 +57,7 @@ def posttooluse_tracking() -> int:
     from .coordination import request as coordination_request, target_for
 
     try:
-        target = target_for(root, payload)
+        target = target_for(root, payload, post_success=True)
         if target is not None:
             if coordination_request(root, payload)[0] == "log":
                 return 0  # The supported log command already reconciles target evidence.

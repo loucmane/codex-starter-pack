@@ -2596,5 +2596,41 @@
     "plan_hash": "cd2957eeb2f3e9e1743d4e9dd79ece92198d8b8df889c03ae0db4753d926db82",
     "tracker_hash": "1cd3eaa0db8b40253be9c9b9ea7e6ae1e64c9a6acf8fae44b2788359dcde2390",
     "synced_at": "2026-09-04T19:46:08.953974+02:00"
+  },
+  {
+    "plan": "plans/2026-09-03-ga-e0t1-orchestrator-bootstrap.md",
+    "plan_hash": "cd2957eeb2f3e9e1743d4e9dd79ece92198d8b8df889c03ae0db4753d926db82",
+    "tracker_hash": "20031b62c6024c1b19b40380260e2514cfc4aa19c2a8781006e98cf6300e25d4",
+    "synced_at": "2026-09-04T20:05:32.813563+02:00"
+  },
+  {
+    "plan": "plans/2026-09-03-ga-e0t1-orchestrator-bootstrap.md",
+    "plan_hash": "cd2957eeb2f3e9e1743d4e9dd79ece92198d8b8df889c03ae0db4753d926db82",
+    "tracker_hash": "20031b62c6024c1b19b40380260e2514cfc4aa19c2a8781006e98cf6300e25d4",
+    "synced_at": "2026-09-04T20:08:39.961779+02:00"
+  },
+  {
+    "plan": "plans/2026-09-03-ga-e0t1-orchestrator-bootstrap.md",
+    "plan_hash": "cd2957eeb2f3e9e1743d4e9dd79ece92198d8b8df889c03ae0db4753d926db82",
+    "tracker_hash": "20031b62c6024c1b19b40380260e2514cfc4aa19c2a8781006e98cf6300e25d4",
+    "synced_at": "2026-09-05T10:28:09.140972+02:00"
+  },
+  {
+    "plan": "plans/2026-09-03-ga-e0t1-orchestrator-bootstrap.md",
+    "plan_hash": "cd2957eeb2f3e9e1743d4e9dd79ece92198d8b8df889c03ae0db4753d926db82",
+    "tracker_hash": "fcbcd9054ed63737d12a262c675f46463ae58f2275293482d859cc78dfca1f6f",
+    "synced_at": "2026-09-05T10:29:47.395957+02:00"
+  },
+  {
+    "plan": "plans/2026-09-03-ga-e0t1-orchestrator-bootstrap.md",
+    "plan_hash": "de97578aac779aef868e6e054e92d999b9752d12697705fcc9b0d7a8b109e769",
+    "tracker_hash": "fe932c9408474905e60260592d309a02dd5a0a08c33e53caec11e03a20135d54",
+    "synced_at": "2026-09-05T10:33:31.149292+02:00"
+  },
+  {
+    "plan": "plans/2026-09-03-ga-e0t1-orchestrator-bootstrap.md",
+    "plan_hash": "4b27aeba7b73d0c08eaba3d431b7bfea16f60ea77dda2a2cbdefc85edc960869",
+    "tracker_hash": "3415cb58c765f81278ceef45b37c57f24af5f78b378f92713170eab00ab6ab6c",
+    "synced_at": "2026-09-05T11:15:40.390056+02:00"
   }
 ]

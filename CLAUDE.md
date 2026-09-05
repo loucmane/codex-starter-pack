@@ -77,6 +77,7 @@ python3 /home/loucmane/gas-city-ops/plugins/gas-city-workflow/scripts/workflow.p
 python3 /home/loucmane/gas-city-ops/plugins/gas-city-workflow/scripts/workflow.py coordinate --root /absolute/registered/task-worktree --bead ga-primary --action create --title 'Bounded follow-up' --description 'Scope and constraints' --acceptance 'Observable proof'
 python3 /home/loucmane/gas-city-ops/plugins/gas-city-workflow/scripts/workflow.py coordinate --root /absolute/registered/task-worktree --bead ga-primary --action depend --blocker ga-prerequisite
 python3 /home/loucmane/gas-city-ops/plugins/gas-city-workflow/scripts/workflow.py log --root /absolute/registered/task-worktree --evidence 'path/to/proof' --note 'Completed the bounded operation'
+python3 /home/loucmane/gas-city-ops/plugins/gas-city-workflow/scripts/workflow.py log --root /absolute/registered/task-worktree --pending-id 0123456789ab --note 'Recorded the pending mutation evidence'
 ```
 
 Replace example identities with the actual registered worktree and owned Bead.
@@ -86,7 +87,10 @@ existing transactional `attach`; these relationships are not interchangeable.
 `note` changes only notes on a primary or attached owned Bead. Exact completed
 requests replay as no-ops; a pending/ambiguous intent requires reconciliation.
 
-Readiness and pending tracking belong to the selected target; decision records
+The two `log` forms are mutually exclusive. Use `--pending-id` only with the exact
+12-character lowercase hexadecimal ID reported by the selected target; stationary
+coordination deliberately rejects `current` and `latest` sentinels. Readiness and
+pending tracking belong to the selected target; decision records
 retain the original request digest and session identity. Both canonical and target
 observation/advisory states refuse this opt-in. Use target `log` to clear target
 tracking. No general raw `bd` mutation approval, cross-rig grant, source edit,
